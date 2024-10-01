@@ -33,7 +33,7 @@ pydicom.config.convert_wrong_length_to_UN = True
 # contain static files with reference patients values
 STATIC_FILES = library_paths.report_data_directory
 print(STATIC_FILES)
-DEFAULT_PATH = "/home/zuza/PE2IPETCT/data/"
+DEFAULT_PATH = "/home/zuza/pe2i/data/"
 OUTPUT_PATH = Path(os.environ.get("PE2I_PET_CT_NODE", default=DEFAULT_PATH))
 factory  = DicomFactory()
 
