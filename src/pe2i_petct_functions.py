@@ -19,6 +19,8 @@ from sklearn.linear_model import LinearRegression
 from tensorflow import keras
 import tensorflow as tf
 import keras_contrib
+import dotenv
+dotenv.load_dotenv()
 #tf.config.list_physical_devices('GPU')
 # tf.config.list_physical_devices('CPU')
 
@@ -31,10 +33,9 @@ from pylatex.utils import bold, NoEscape
 from rhnode import RHJob #pip install git+https://github.com/CAAI/rh-node.git
 from dicomnode import library_paths
 
-library_paths._report_data_directory = Path("/home/zuza/pe2i/report_data")
-STATIC_FILES = library_paths.report_data_directory
-OUTPUT_DIR = "/home/zuza/pe2i/data/"
-OUTPUT_PATH = Path(os.environ.get("PE2I_PET_CT_NODE", default=OUTPUT_DIR))
+STATIC_FILES = Path(os.environ.get("STATIC_PATH"))
+print(STATIC_FILES)
+OUTPUT_DIR = Path(os.environ.get("OUTPUT_PATH"))
 FWHM = 2.35482 # converting sigma of 1 to FWHM 2.35482*1 mm
 CEREBELLUM_INDEX = 4
 
@@ -2121,7 +2122,7 @@ def generate_report(ref_pet_dcm, ct_desc, pet, ct_nii, prediction, cerebellum, p
     slices.sort(reverse=True)
     
     # Define the path for output LaTeX document
-    header_doc = OUTPUT_PATH / 'doc'
+    header_doc = OUTPUT_DIR / 'doc'
     doc = create_document(header_doc)
     doc.preamble.append(Command('usepackage', 'xcolor')) 
     

@@ -1,17 +1,20 @@
 '''
-add this to environment command 
-export DICOMNODE_ENV_REPORT_DATA_PATH=$HOME/PE2IPETCT/report_data
+add to .env file:
+OUTPUT_PATH="/data/"
+STATIC_PATH="/report_data/"
 '''
 import os
 import logging
 import random
 import shutil
 from pathlib import Path
-import dicomnode.server
 from typing import Dict, Any
+import dotenv
+dotenv.load_dotenv()
 
 import pe2i_petct_functions as node_functions
 import dicomnode
+import dicomnode.server
 from dicomnode.lib.io import save_dicom
 from dicomnode.dicom.dimse import Address
 from dicomnode import library_paths
@@ -30,12 +33,7 @@ warnings.filterwarnings("ignore", category=UserWarning, module="pydicom")
 # Your pydicom configuration
 pydicom.config.convert_wrong_length_to_UN = True
 
-# contain static files with reference patients values
-library_paths._report_data_directory = Path("/home/zuza/pe2i/report_data")
-STATIC_FILES = library_paths.report_data_directory
-print(STATIC_FILES)
-DEFAULT_PATH = "/home/zuza/pe2i/data/"
-OUTPUT_PATH = Path(os.environ.get("PE2I_PET_CT_NODE", default=DEFAULT_PATH))
+OUTPUT_PATH = Path(os.environ.get("OUTPUT_PATH"))
 factory  = DicomFactory()
 
 class MyCTInput(AbstractInput):
@@ -167,8 +165,8 @@ class Pe2iPetCtNode(AbstractPipeline):
         #     os.mkdir(OUTPUT_PATH)
 
         # Return the file output containing the generated report
-        return dicomnode.server.output.FileOutput([(Path(DEFAULT_PATH), encoded_report)])
-        # return dicomnode.server.output.FileOutput([(Path(DEFAULT_PATH + 'test'), [encoded_report])])#, saving_function=save_dicom)
+        return dicomnode.server.output.FileOutput([(Path(OUTPUT_PATH), encoded_report)])
+        # return dicomnode.server.output.FileOutput([(Path(OUTPUT_PATH + 'test'), [encoded_report])])#, saving_function=save_dicom)
 
         return DicomOutput([(self.endpoint, [encoded_report]),], self.ae_title)
        
