@@ -31,6 +31,7 @@ warnings.filterwarnings("ignore", category=UserWarning, module="pydicom")
 pydicom.config.convert_wrong_length_to_UN = True
 
 # contain static files with reference patients values
+library_paths._report_data_directory = Path("/home/zuza/pe2i/report_data")
 STATIC_FILES = library_paths.report_data_directory
 print(STATIC_FILES)
 DEFAULT_PATH = "/home/zuza/pe2i/data/"
@@ -94,6 +95,7 @@ class Pe2iPetCtNode(AbstractPipeline):
     # Logger settings
     disable_pynetdicom_logger = True
     log_level: int = logging.DEBUG
+    log_output = "log.log"
 
     # Input types for the pipeline
     input = {
@@ -155,7 +157,7 @@ class Pe2iPetCtNode(AbstractPipeline):
         blueprint[0x0020_0011] = StaticElement(0x0020_0011, 'IS', str(random.randint(5000,100000))) # Series Number
         blueprint[0x0008_0021] = FunctionalElement(0x00080021, 'DA', get_today) #Series Date
         blueprint[0x0008_0031] = FunctionalElement(0x00080031, 'TM', get_time) #Series Time
-        blueprint[0x3003_1000] = StaticElement(0x3003_1000, 'LO', patient_values)
+        #blueprint[0x3003_1000] = StaticElement(0x3003_1000, 'LO', patient_values)
         # Encode the report as a PDF
         encoded_report = self.dicom_factory.encode_pdf(report, [ref_pet_dicom], blueprint)
         print(encoded_report[0])
@@ -165,7 +167,7 @@ class Pe2iPetCtNode(AbstractPipeline):
         #     os.mkdir(OUTPUT_PATH)
 
         # Return the file output containing the generated report
-        return dicomnode.server.output.FileOutput([(Path(DEFAULT_PATH + 'test1.dcm'), encoded_report[0]), (Path(DEFAULT_PATH + 'test2.dcm'), [encoded_report[1]]), (Path(DEFAULT_PATH + 'test3.dcm'), [encoded_report[2]]), (Path(DEFAULT_PATH + 'test4.dcm'), [encoded_report[3]]), (Path(DEFAULT_PATH + 'test5dcm'), [encoded_report[4]]),], saving_function=save_dicom)
+        return dicomnode.server.output.FileOutput([(Path(DEFAULT_PATH), encoded_report)])
         # return dicomnode.server.output.FileOutput([(Path(DEFAULT_PATH + 'test'), [encoded_report])])#, saving_function=save_dicom)
 
         return DicomOutput([(self.endpoint, [encoded_report]),], self.ae_title)

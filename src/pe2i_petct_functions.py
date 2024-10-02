@@ -19,7 +19,7 @@ from sklearn.linear_model import LinearRegression
 from tensorflow import keras
 import tensorflow as tf
 import keras_contrib
-tf.config.list_physical_devices('GPU')
+#tf.config.list_physical_devices('GPU')
 # tf.config.list_physical_devices('CPU')
 
 from nilearn.image import smooth_img
@@ -31,9 +31,9 @@ from pylatex.utils import bold, NoEscape
 from rhnode import RHJob #pip install git+https://github.com/CAAI/rh-node.git
 from dicomnode import library_paths
 
-
+library_paths._report_data_directory = Path("/home/zuza/pe2i/report_data")
 STATIC_FILES = library_paths.report_data_directory
-OUTPUT_DIR = "/homes/zuza/PE2IPETCT/data/"
+OUTPUT_DIR = "/home/zuza/pe2i/data/"
 OUTPUT_PATH = Path(os.environ.get("PE2I_PET_CT_NODE", default=OUTPUT_DIR))
 FWHM = 2.35482 # converting sigma of 1 to FWHM 2.35482*1 mm
 CEREBELLUM_INDEX = 4
@@ -161,6 +161,32 @@ def swap_dims(logger, modality, name):
         raise IOError(f"Failed to save NIfTI image at {modality_nii}")
     
     return modality_nii
+
+def run_hd_ctbet(input_folder, output_folder, device='cpu'):
+    # Construct the command
+    if device == 'cpu':
+        command = [
+            'hd-ctbet',
+            '-i', input_folder,
+            '-o', output_folder,
+            '-device', device,
+            '-mode fast',
+            '-tta 0'
+        ]
+    elif device == 'gpu':
+        command = [
+            'hd-ctbet',
+            '-i', input_folder,
+            '-o', output_folder,
+            '-device', device
+        ]
+    
+    # Ensure the output folder exists (or create it)
+    os.system(command)
+
+
+def run_skullstripping(input_modality_nii):
+    run_hd_ctbet(input_modality_nii, OUTPUT_DIR)
 
 
 def run_skullstrip(modality_nii):
