@@ -165,8 +165,8 @@ class Pe2iPetCtNode(AbstractPipeline):
         blueprint[0x0008_0031] = FunctionalElement(0x00080031, 'TM', get_time) #Series Time
         for i in range(len(keys)):  
             key = keys[i]
-            blueprint[0x3003_0001 + i] = StaticElement(
-                0x3003_0001 + i,
+            blueprint[0x3003_0101 + i] = StaticElement(
+                0x3003_0101 + i,
                 'FL',
                 np.round(patient_values[key], 2),
                 name=f"{key} [SBR]" if i < 14 else f"{key}"
