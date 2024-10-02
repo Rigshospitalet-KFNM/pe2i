@@ -31,7 +31,7 @@ from pylatex import Figure, Command, NoEscape, Tabular, Document, Package,Sectio
 from pylatex.utils import bold, NoEscape
 
 from rhnode import RHJob #pip install git+https://github.com/CAAI/rh-node.git
-from dicomnode import library_paths
+from HD_CTBET.run import run_hd_ctbet
 
 STATIC_FILES = Path(os.environ.get("STATIC_PATH"))
 print(STATIC_FILES)
@@ -132,7 +132,7 @@ def swap_dims(logger, modality, name):
         raise ValueError("Input modality must be a Nifti1Image object.")
     
     # Construct the full output path for the new NIfTI image
-    modality_nii = OUTPUT_DIR + name + '_swap.nii.gz'
+    modality_nii = OUTPUT_DIR / (name + '_swap.nii.gz')
 
     # Convert the input image to the closest canonical orientation
     img = nib.as_closest_canonical(modality)
@@ -163,32 +163,25 @@ def swap_dims(logger, modality, name):
     
     return modality_nii
 
-def run_hd_ctbet(input_folder, output_folder, device='cpu'):
-    # Construct the command
-    if device == 'cpu':
-        command = [
-            'hd-ctbet',
-            '-i', input_folder,
-            '-o', output_folder,
-            '-device', device,
-            '-mode fast',
-            '-tta 0'
-        ]
-    elif device == 'gpu':
-        command = [
-            'hd-ctbet',
-            '-i', input_folder,
-            '-o', output_folder,
-            '-device', device
-        ]
-    
-    # Ensure the output folder exists (or create it)
-    os.system(command)
+# def run_hd_ctbet(input_file, output_folder, device='cpu'):
+#     # Construct the command
+#     output_filename = output_folder/'CT_swap_BET.nii.gz'
+#     if device == 'cpu':
+#         command = f'hd-ctbet -i {str(input_file)} -o {str(output_filename)} -device {device} -mode fast -tta 0'
+#     elif device == 'gpu':
+#         command = f'hd-ctbet -i {str(input_file)} -o {str(output_filename)} -device {device}'
+#     print(command)
+#     os.system(command)
+#     return output_filename
+    # TODO change input_folder to file
 
 
-def run_skullstripping(input_modality_nii):
-    run_hd_ctbet(input_modality_nii, OUTPUT_DIR)
-
+def run_skullstripping(logger, input_modality_nii):
+    logger.info('Skullstripping')
+    output_filename = OUTPUT_DIR/'CT_swap_BET.nii.gz'
+    # output_filename = run_hd_ctbet(input_modality_nii, OUTPUT_DIR)
+    run_hd_ctbet(str(input_modality_nii), str(output_filename), mode='fast', device='cpu', do_tta =False )
+    return output_filename
 
 def run_skullstrip(modality_nii):
     """
@@ -244,7 +237,7 @@ def process_ct(logger, brain_nii):
         The file path to the preprocessed and saved NIfTI image.
     """
     # Generate the output file path for the preprocessed image
-    brain_sm_th_nii = OUTPUT_DIR + 'brain-preprocessed.nii.gz'
+    brain_sm_th_nii = OUTPUT_DIR / 'brain_preprocessed.nii.gz'
     logger.info('Applying thresholding and smoothing')
 
     # Load the NIfTI image
@@ -292,7 +285,7 @@ def cerebellum_mask(logger, input_file):
     Raises an exception if the LabelFusion process fails.
     """
     logger.info('Segmenting cerebellum gray matter mask')
-    out_file = Path(OUTPUT_DIR + 'cerebellum.nii.gz')
+    out_file = Path(OUTPUT_DIR / 'cerebellum.nii.gz')
     if not out_file.is_file():
         # Initialize LabelFusion with the necessary inputs
         lf = LabelFusion()
@@ -303,7 +296,7 @@ def cerebellum_mask(logger, input_file):
         lf.inputs.kernel_size = 5            # Set the kernel size for the algorithm
         lf.inputs.template_num = 8           # Use 8 templates in the process
         lf.inputs.mrf_value = 0.5            # Set the MRF (Markov Random Field) value for regularization
-        lf.inputs.out_file = OUTPUT_DIR + 'cerebellum.nii.gz'
+        lf.inputs.out_file = OUTPUT_DIR / 'cerebellum.nii.gz'
         # Run the LabelFusion proces
         lf.run()
         # Check if the output file was successfully created
@@ -318,7 +311,7 @@ def cerebellum_mask(logger, input_file):
     
 
 def cerebellum_mask2(input_file):
-    out_file = OUTPUT_DIR + 'cerebellum.nii.gz'
+    out_file = OUTPUT_DIR / 'cerebellum.nii.gz'
     if not Path(out_file).is_file():
         print('calculating mask')
         labFusion_file = '/homes/zuza/niftyseg/seg-apps/seg_LabFusion'
@@ -368,14 +361,14 @@ def resampling(logger, pet_nii, ct_nii, brain_nii):
 
     # Define file paths for templates and output files
     template_nii = STATIC_FILES / 'avg_template_swap.nii.gz'
-    brainreg_nii = OUTPUT_DIR + 'brain_reg_avg.nii.gz'
-    brainrsl_nii = OUTPUT_DIR + 'brain_rsl_avg.nii.gz'
-    trans_ct = OUTPUT_DIR + 'brain_to_avg.txt'
-    ctrsl_nii = OUTPUT_DIR + 'ct_rsl_avg.nii.gz'
-    petrsl_nii = OUTPUT_DIR + 'pet_reg_ct.nii.gz'
-    petreg_nii = OUTPUT_DIR + 'pet_rsl_ct.nii.gz'
-    petrsltemplate_nii = OUTPUT_DIR + 'pet_rsl_avg.nii.gz'
-    trans_pet = OUTPUT_DIR + 'pet_to_ct-new.txt'
+    brainreg_nii = OUTPUT_DIR / 'brain_reg_avg.nii.gz'
+    brainrsl_nii = OUTPUT_DIR / 'brain_rsl_avg.nii.gz'
+    trans_ct = OUTPUT_DIR / 'brain_to_avg.txt'
+    ctrsl_nii = OUTPUT_DIR / 'ct_rsl_avg.nii.gz'
+    petrsl_nii = OUTPUT_DIR / 'pet_reg_ct.nii.gz'
+    petreg_nii = OUTPUT_DIR / 'pet_rsl_ct.nii.gz'
+    petrsltemplate_nii = OUTPUT_DIR / 'pet_rsl_avg.nii.gz'
+    trans_pet = OUTPUT_DIR / 'pet_to_ct-new.txt'
 
     # Step 1: Register CT brain to the average template if the transformation doesn't exist
     if not Path(trans_ct).is_file():

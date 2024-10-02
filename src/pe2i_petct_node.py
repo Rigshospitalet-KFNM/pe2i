@@ -15,17 +15,15 @@ dotenv.load_dotenv()
 import pe2i_petct_functions as node_functions
 import dicomnode
 import dicomnode.server
-from dicomnode.lib.io import save_dicom
 from dicomnode.dicom.dimse import Address
-from dicomnode import library_paths
 from dicomnode.server.pipeline_tree import InputContainer
 from dicomnode.server.input import AbstractInput
 from dicomnode.server.output import DicomOutput
 from dicomnode.server.nodes import AbstractPipeline
 from dicomnode.server.grinders import NiftiGrinder
-from dicomnode.dicom.blueprints import default_report_blueprint, Blueprint, StaticElement, CopyElement, FunctionalElement, get_today, get_time
+from dicomnode.dicom.blueprints import Blueprint, StaticElement, CopyElement, FunctionalElement, get_today, get_time
 from dicomnode.dicom.blueprints.secondary_image_report_blueprint import SECONDARY_IMAGE_REPORT_BLUEPRINT
-from dicomnode.dicom.dicom_factory import DicomFactory, FillingStrategy
+from dicomnode.dicom.dicom_factory import DicomFactory
 import pydicom.config
 import warnings
 # Suppress specific warnings
@@ -131,13 +129,15 @@ class Pe2iPetCtNode(AbstractPipeline):
         # Perform various processing steps on PET and CT data
         pet_swap_nii = node_functions.swap_dims(self.logger, pet, 'PET')
         ct_swap_nii = node_functions.swap_dims(self.logger, ct, 'CT') 
-        ct_bet_nii = node_functions.run_skullstrip(ct_swap_nii)
+        # ct_bet_nii = node_functions.run_skullstrip(ct_swap_nii)
+        ct_bet_nii = node_functions.run_skullstripping(self.logger, ct_swap_nii)
+        print(ct_bet_nii)
         pet_resampled_nii, ct_resampled_nii, ct_bet_resampled_nii = node_functions.resampling(
             self.logger, pet_swap_nii, ct_swap_nii, ct_bet_nii
         ) 
         ct_bet_preproc_nii = node_functions.process_ct(self.logger, ct_bet_resampled_nii)
         cerebellum_nii = node_functions.cerebellum_mask(self.logger, ct_bet_preproc_nii)
-        # cerebellum_nii = node_functions.cerebellum_mask2(ct_bet_preproc_nii)
+
         prediction_data = node_functions.get_predition(self.logger, ct_bet_preproc_nii, pet_resampled_nii)
         pet_normalized_data, cerebellum_mask_data, patient_values = node_functions.get_statistics(
             self.logger, pet_resampled_nii, cerebellum_nii, prediction_data
