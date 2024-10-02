@@ -34,7 +34,6 @@ from rhnode import RHJob #pip install git+https://github.com/CAAI/rh-node.git
 from HD_CTBET.run import run_hd_ctbet
 
 STATIC_FILES = Path(os.environ.get("STATIC_PATH"))
-print(STATIC_FILES)
 OUTPUT_DIR = Path(os.environ.get("OUTPUT_PATH"))
 FWHM = 2.35482 # converting sigma of 1 to FWHM 2.35482*1 mm
 CEREBELLUM_INDEX = 4
@@ -163,61 +162,33 @@ def swap_dims(logger, modality, name):
     
     return modality_nii
 
-# def run_hd_ctbet(input_file, output_folder, device='cpu'):
-#     # Construct the command
-#     output_filename = output_folder/'CT_swap_BET.nii.gz'
-#     if device == 'cpu':
-#         command = f'hd-ctbet -i {str(input_file)} -o {str(output_filename)} -device {device} -mode fast -tta 0'
-#     elif device == 'gpu':
-#         command = f'hd-ctbet -i {str(input_file)} -o {str(output_filename)} -device {device}'
-#     print(command)
-#     os.system(command)
-#     return output_filename
-    # TODO change input_folder to file
-
 
 def run_skullstripping(logger, input_modality_nii):
-    logger.info('Skullstripping')
-    output_filename = OUTPUT_DIR/'CT_swap_BET.nii.gz'
-    # output_filename = run_hd_ctbet(input_modality_nii, OUTPUT_DIR)
-    run_hd_ctbet(str(input_modality_nii), str(output_filename), mode='fast', device='cpu', do_tta =False )
-    return output_filename
-
-def run_skullstrip(modality_nii):
     """
-    Run a skull-stripping process on a given CT scan.
+    Perform skull stripping on a CT scan using the hd_ctbet method.
 
     Parameters:
     -----------
-    modality_nii : Path
-        The file path to the CT scan to be processed.
+    logger : Logger object
+        The logger used for logging information.
+    input_modality_nii : str
+        The file path to the NIfTI image to be processed.
 
     Returns:
     --------
-    Path
-        The skull-stripped NIfTI image loaded from the output file.
+    output_filename : str
+        The file path to the skull-stripped NIfTI image.
     """
-    try:
-        # Prepare the input data dictionary
-        data = {
-            'ct': modality_nii
-        }
-        
-        # Initialize and start the RHJob node for skull stripping
-        node = RHJob(
-            node_name='hdctbet',
-            output_directory = OUTPUT_DIR,
-            inputs = data,
-            node_address = 'aims:9030',
-        )
-        node.start()
-        # Wait for the node to finish processing
-        output = node.wait_for_finish()
-        return output['masked_ct']
+    # Log the beginning of the skull stripping process
+    logger.info('Skullstripping')
 
-    except Exception as e:
-        # Log and re-raise any other exceptions that occur
-        raise RuntimeError(f"An error occurred during skull stripping: {e}")
+    # Define the output filename for the skull-stripped image
+    output_filename = OUTPUT_DIR/'CT_swap_BET.nii.gz'
+
+    # Call the hd_ctbet function to perform skull stripping
+    run_hd_ctbet(str(input_modality_nii), str(output_filename), mode='fast', device='cpu', do_tta =False )
+    
+    return output_filename
 
 
 def process_ct(logger, brain_nii):

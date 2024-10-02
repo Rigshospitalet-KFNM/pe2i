@@ -6,6 +6,7 @@ STATIC_PATH="/report_data/"
 import os
 import logging
 import random
+import numpy as np
 import shutil
 from pathlib import Path
 from typing import Dict, Any
@@ -23,6 +24,7 @@ from dicomnode.server.nodes import AbstractPipeline
 from dicomnode.server.grinders import NiftiGrinder
 from dicomnode.dicom.blueprints import Blueprint, StaticElement, CopyElement, FunctionalElement, get_today, get_time
 from dicomnode.dicom.blueprints.secondary_image_report_blueprint import SECONDARY_IMAGE_REPORT_BLUEPRINT
+from dicomnode.dicom.blueprints.error_blueprint_english import ERROR_BLUEPRINT
 from dicomnode.dicom.dicom_factory import DicomFactory
 import pydicom.config
 import warnings
@@ -33,6 +35,8 @@ pydicom.config.convert_wrong_length_to_UN = True
 
 OUTPUT_PATH = Path(os.environ.get("OUTPUT_PATH"))
 factory  = DicomFactory()
+error_blueprint = ERROR_BLUEPRINT
+
 
 class MyCTInput(AbstractInput):
     """
@@ -92,6 +96,8 @@ class Pe2iPetCtNode(AbstractPipeline):
     disable_pynetdicom_logger = True
     log_level: int = logging.DEBUG
     log_output = "log.log"
+    unhandled_error_blueprint = error_blueprint
+
 
     # Input types for the pipeline
     input = {
@@ -142,12 +148,14 @@ class Pe2iPetCtNode(AbstractPipeline):
         pet_normalized_data, cerebellum_mask_data, patient_values = node_functions.get_statistics(
             self.logger, pet_resampled_nii, cerebellum_nii, prediction_data
             ) # doesnt need to be file 
-        
+        print(patient_values)
         # Generate the report
         report = node_functions.generate_report(
             ref_pet_dicom, ct_desc, pet_normalized_data, ct_resampled_nii, 
             prediction_data, cerebellum_mask_data, patient_values
         )
+
+        keys = list(patient_values.keys())
 
         blueprint= Blueprint(SECONDARY_IMAGE_REPORT_BLUEPRINT)
         blueprint[0x0008_103E] = StaticElement(0x0008_103E, 'LO', 'PE2I report') # Series Description
@@ -155,6 +163,14 @@ class Pe2iPetCtNode(AbstractPipeline):
         blueprint[0x0020_0011] = StaticElement(0x0020_0011, 'IS', str(random.randint(5000,100000))) # Series Number
         blueprint[0x0008_0021] = FunctionalElement(0x00080021, 'DA', get_today) #Series Date
         blueprint[0x0008_0031] = FunctionalElement(0x00080031, 'TM', get_time) #Series Time
+        for i in range(len(keys)):  
+            key = keys[i]
+            blueprint[0x3003_0001 + i] = StaticElement(
+                0x3003_0001 + i,
+                'FL',
+                np.round(patient_values[key], 2),
+                name=f"{key} [SBR]" if i < 14 else f"{key}"
+    )
         #blueprint[0x3003_1000] = StaticElement(0x3003_1000, 'LO', patient_values)
         # Encode the report as a PDF
         encoded_report = self.dicom_factory.encode_pdf(report, [ref_pet_dicom], blueprint)
@@ -166,7 +182,6 @@ class Pe2iPetCtNode(AbstractPipeline):
 
         # Return the file output containing the generated report
         return dicomnode.server.output.FileOutput([(Path(OUTPUT_PATH), encoded_report)])
-        # return dicomnode.server.output.FileOutput([(Path(OUTPUT_PATH + 'test'), [encoded_report])])#, saving_function=save_dicom)
 
         return DicomOutput([(self.endpoint, [encoded_report]),], self.ae_title)
        
