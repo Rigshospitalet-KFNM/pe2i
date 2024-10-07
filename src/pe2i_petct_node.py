@@ -106,7 +106,7 @@ class Pe2iPetCtNode(AbstractPipeline):
     }
 
     # Endpoint for output
-    endpoint = Address('172.16.186.210', 104, "ENDPOINT_AE") ## TODO change
+    endpoint = Address('10.49.144.35', 104, "SYNGOVIA") ## TODO change
 
     def process(self, input_data: InputContainer):
         """
@@ -181,9 +181,9 @@ class Pe2iPetCtNode(AbstractPipeline):
         #     os.mkdir(OUTPUT_PATH)
 
         # Return the file output containing the generated report
-        return dicomnode.server.output.FileOutput([(Path(OUTPUT_PATH), encoded_report)])
+        #return dicomnode.server.output.FileOutput([(Path(OUTPUT_PATH), encoded_report)])
 
-        return DicomOutput([(self.endpoint, [encoded_report]),], self.ae_title)
+        return DicomOutput([(self.endpoint, encoded_report),], self.ae_title)
        
 # Entry point for running the node
 if __name__ == "__main__":
