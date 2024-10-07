@@ -1506,6 +1506,8 @@ def plot_ct(doc, ct, mask, ct_desc, slices):
     
     doc.append(NoEscape(r'\vspace{-0.7cm}'))
 
+    if '_' in ct_desc:
+        ct_desc = ct_desc.replace('_', r'\_')
     # Add study description to the LaTeX document
     doc.append(NoEscape(r'{\scriptsize{' + ct_desc + r'}}\\'))
     

@@ -36,7 +36,6 @@ decorator==5.1.1
 deepdiff==8.0.1
 defusedxml==0.7.1
 dicom2nifti==2.5.0
-dicomnode @ git+https://github.com/Rigshospitalet-KFNM/DicomNode.git@f2ef5caa4938ef0dc0eac4923667e6a701190207
 dipy==1.9.0
 distro==1.9.0
 docopt==0.6.2
@@ -63,7 +62,6 @@ greenlet==3.1.1
 grpcio==1.66.2
 h11==0.14.0
 h5py==3.12.1
--e git+https://github.com/CAAI/HD-CTBET@33da48b31de06c75f884d861f302fef11c6a3e6a#egg=HD_CTBET
 humanize==4.10.0
 idna==3.10
 imageio==2.35.1
@@ -119,7 +117,7 @@ networkx==3.3
 nibabel==5.2.1
 nilearn==0.10.4
 nipy==0.6.0
-nipype @ file:///home/zuza/pe2i/nipype-1.8.6.tar.gz#sha256=977b1315e8f70f94163ec07e31e5571be83f2add6023141c5a06ac700126f8d1
+nipype
 nitime==0.11
 nnunet==1.7.1
 num2words==0.5.13
