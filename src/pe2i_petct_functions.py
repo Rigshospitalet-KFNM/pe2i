@@ -135,7 +135,7 @@ def swap_dims(self, modality, name):
         raise ValueError("Input modality must be a Nifti1Image object.")
     
     # Construct the full output path for the new NIfTI image
-    modality_nii = self.processing_directory / (name + '_swap.nii.gz')
+    modality_nii = os.getcwd() + '/' + name + '_swap.nii.gz'
 
     # Convert the input image to the closest canonical orientation
     img = nib.as_closest_canonical(modality)
@@ -185,7 +185,7 @@ def run_skullstripping(self, input_modality_nii):
     self.logger.info('Running skullstripping')
 
     # Define the output filename for the skull-stripped image
-    output_filename = self.processing_directory /'CT_swap_BET.nii.gz'
+    output_filename = os.getcwd() + '/CT_swap_BET.nii.gz'
 
     # Call the hd_ctbet function to perform skull stripping
     run_hd_ctbet(str(input_modality_nii), str(output_filename), mode='fast', device='cpu', do_tta =False)
@@ -208,7 +208,7 @@ def process_ct(self, brain_nii):
         The file path to the preprocessed and saved NIfTI image.
     """
     # Generate the output file path for the preprocessed image
-    brain_sm_th_nii = self.processing_directory / 'brain_preprocessed.nii.gz'
+    brain_sm_th_nii = os.getcwd() + '/brain_preprocessed.nii.gz'
     self.logger.info('Applying thresholding and smoothing')
 
     # Load the NIfTI image
@@ -263,7 +263,7 @@ def cerebellum_mask(self, input_file):
     lf.inputs.kernel_size = 5            # Set the kernel size for the algorithm
     lf.inputs.template_num = 8           # Use 8 templates in the process
     lf.inputs.mrf_value = 0.5            # Set the MRF (Markov Random Field) value for regularization
-    lf.inputs.out_file = self.processing_directory / 'cerebellum.nii.gz'
+    lf.inputs.out_file = os.getcwd() + '/cerebellum.nii.gz'
     # Run the LabelFusion proces
     lf.run()
     # Check if the output file was successfully created
@@ -308,14 +308,14 @@ def resampling(self, pet_nii, ct_nii, brain_nii):
 
     # Define file paths for templates and output files
     template_nii = STATIC_FILES / 'avg_template_swap.nii.gz'
-    brainreg_nii = self.processing_directory / 'brain_reg_avg.nii.gz'
-    brainrsl_nii = self.processing_directory / 'brain_rsl_avg.nii.gz'
-    trans_ct = self.processing_directory / 'brain_to_avg.txt'
-    ctrsl_nii = self.processing_directory / 'ct_rsl_avg.nii.gz'
-    petrsl_nii = self.processing_directory / 'pet_reg_ct.nii.gz'
-    petreg_nii = self.processing_directory / 'pet_rsl_ct.nii.gz'
-    petrsltemplate_nii = self.processing_directory / 'pet_rsl_avg.nii.gz'
-    trans_pet = self.processing_directory / 'pet_to_ct-new.txt'
+    brainreg_nii = os.getcwd() + '/brain_reg_avg.nii.gz'
+    brainrsl_nii = os.getcwd() + '/brain_rsl_avg.nii.gz'
+    trans_ct = os.getcwd() + '/brain_to_avg.txt'
+    ctrsl_nii = os.getcwd() + '/ct_rsl_avg.nii.gz'
+    petrsl_nii = os.getcwd() + '/pet_reg_ct.nii.gz'
+    petreg_nii = os.getcwd() + '/pet_rsl_ct.nii.gz'
+    petrsltemplate_nii = os.getcwd() + '/pet_rsl_avg.nii.gz'
+    trans_pet = os.getcwd() + '/pet_to_ct-new.txt'
 
     # Step 1: Register CT brain to the average template if the transformation doesn't exist
     self.logger.info(f'Registering CT brain to template')
@@ -2057,7 +2057,7 @@ def generate_report(self, ref_pet_dcm, ct_desc, normalised_pet, ct_nii, predicti
     slices.sort(reverse=True)
     
     # Define the path for output LaTeX document
-    header_doc = self.processing_directory / 'doc'
+    header_doc = os.getcwd() + '/doc'
     doc = create_document(header_doc)
     doc.preamble.append(Command('usepackage', 'xcolor')) 
     # Define the custom color
