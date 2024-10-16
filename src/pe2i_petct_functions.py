@@ -27,14 +27,14 @@ dotenv.load_dotenv()
 from nilearn.image import smooth_img
 from nipype.interfaces.niftyseg import LabelFusion
 from nipype.interfaces.niftyreg import RegAladin, RegResample
-from pylatex import Figure, Command, NoEscape, Tabular, Document, Package,Section, SubFigure, MultiColumn
+from pylatex import Figure, Command, NoEscape, Tabular, Document, Package,Section, SubFigure, MultiColumn, MiniPage, FlushLeft
 from pylatex.utils import bold, NoEscape
+from pylatex.base_classes import Environment
 
 from rhnode import RHJob #pip install git+https://github.com/CAAI/rh-node.git
 from HD_CTBET.run import run_hd_ctbet
 
 STATIC_FILES = Path(os.environ.get("STATIC_PATH"))
-OUTPUT_DIR = Path(os.environ.get("OUTPUT_PATH"))
 FWHM = 2.35482 # converting sigma of 1 to FWHM 2.35482*1 mm
 CEREBELLUM_INDEX = 4
 
@@ -107,15 +107,19 @@ FIRST_DIM_CROPPED = slice(*FIRST_DIM)
 SECOND_DIM_CROPPED = slice(*SECOND_DIM)
 
 
-def swap_dims(logger, modality, name):
+class ColorBox(Environment):
+    def __init__(self, color):
+        super().__init__(arguments=NoEscape(r'\colorbox{' + color + r'}'))
+        self.content_separator = ''
+
+
+def swap_dims(self, modality, name):
     """
     Adjust the orientation of a given NIfTI image (modality) from radiological to neurological if needed, 
     and save the modified image to the specified output directory.
 
     Parameters:
     -----------
-    logger : Logger object
-        The logger used for logging information.
     modality : nib.Nifti1Image
         The NIfTI image to be processed.
     name : str
@@ -131,7 +135,7 @@ def swap_dims(logger, modality, name):
         raise ValueError("Input modality must be a Nifti1Image object.")
     
     # Construct the full output path for the new NIfTI image
-    modality_nii = OUTPUT_DIR / (name + '_swap.nii.gz')
+    modality_nii = self.processing_directory / (name + '_swap.nii.gz')
 
     # Convert the input image to the closest canonical orientation
     img = nib.as_closest_canonical(modality)
@@ -139,7 +143,7 @@ def swap_dims(logger, modality, name):
     # Check if the first dimension is in the 'R' (Right) direction
     if nib.aff2axcodes(modality.affine)[0] == 'R': 
         # Log that we're changing from radiological to neurological orientation
-        logger.info('Changing to neurological orientation')
+        self.logger.info('Changing to neurological orientation')
 
         # Get the image data as a numpy array
         img_data = img.get_fdata()
@@ -155,50 +159,46 @@ def swap_dims(logger, modality, name):
 
     # Check if the file is saved successfully
     if os.path.exists(modality_nii):
-        logger.info(f'NIfTI image saved successfully at: {modality_nii}')
+        self.logger.info(f'NIfTI image saved successfully at: {modality_nii}')
     else:
-        logger.error(f'Failed to save NIfTI image at: {modality_nii}')
+        self.logger.error(f'Failed to save NIfTI image at: {modality_nii}')
         raise IOError(f"Failed to save NIfTI image at {modality_nii}")
     
     return modality_nii
 
 
-def run_skullstripping(logger, input_modality_nii):
+def run_skullstripping(self, input_modality_nii):
     """
     Perform skull stripping on a CT scan using the hd_ctbet method.
 
     Parameters:
     -----------
-    logger : Logger object
-        The logger used for logging information.
     input_modality_nii : str
         The file path to the NIfTI image to be processed.
 
     Returns:
     --------
     output_filename : str
-        The file path to the skull-stripped NIfTI image.
+         The file path to the resulting skull-stripped NIfTI image.
     """
     # Log the beginning of the skull stripping process
-    logger.info('Skullstripping')
+    self.logger.info('Running skullstripping')
 
     # Define the output filename for the skull-stripped image
-    output_filename = OUTPUT_DIR/'CT_swap_BET.nii.gz'
+    output_filename = self.processing_directory /'CT_swap_BET.nii.gz'
 
     # Call the hd_ctbet function to perform skull stripping
-    run_hd_ctbet(str(input_modality_nii), str(output_filename), mode='fast', device='cpu', do_tta =False )
-    
+    run_hd_ctbet(str(input_modality_nii), str(output_filename), mode='fast', device='cpu', do_tta =False)
+
     return output_filename
 
 
-def process_ct(logger, brain_nii):
+def process_ct(self, brain_nii):
     """
     Preprocess a CT scan by applying thresholding and smoothing operations before segmentation.
 
     Parameters:
     -----------
-    logger : Logger object
-        The logger used for logging information.
     brain_nii : str
         The file path to the NIfTI image of the brain CT scan.
 
@@ -208,8 +208,8 @@ def process_ct(logger, brain_nii):
         The file path to the preprocessed and saved NIfTI image.
     """
     # Generate the output file path for the preprocessed image
-    brain_sm_th_nii = OUTPUT_DIR / 'brain_preprocessed.nii.gz'
-    logger.info('Applying thresholding and smoothing')
+    brain_sm_th_nii = self.processing_directory / 'brain_preprocessed.nii.gz'
+    self.logger.info('Applying thresholding and smoothing')
 
     # Load the NIfTI image
     brain_nib = nib.load(brain_nii)
@@ -229,20 +229,18 @@ def process_ct(logger, brain_nii):
     
     # Save the preprocessed image
     nib.save(brain_sm_th, brain_sm_th_nii)
-    logger.info(f'saved {brain_sm_th_nii }')
+    self.logger.info(f'saved {brain_sm_th_nii }')
 
     # Return the path to the preprocessed image
     return brain_sm_th_nii
 
 
-def cerebellum_mask(logger, input_file):
+def cerebellum_mask(self, input_file):
     """
     Generate a cerebellum mask using the LabelFusion tool with the STEPS algorithm.
 
     Parameters:
     -----------
-    logger : Logger object
-        Logger for logging the process information.
     input_file : str
         The file path to the input NIfTI image that needs segmentation.
 
@@ -255,51 +253,31 @@ def cerebellum_mask(logger, input_file):
     -----------
     Raises an exception if the LabelFusion process fails.
     """
-    logger.info('Segmenting cerebellum gray matter mask')
-    out_file = Path(OUTPUT_DIR / 'cerebellum.nii.gz')
-    if not out_file.is_file():
-        # Initialize LabelFusion with the necessary inputs
-        lf = LabelFusion()
-        lf.inputs.file_to_seg = input_file
-        lf.inputs.in_file = STATIC_FILES / 'atlas4_swap.nii.gz'
-        lf.inputs.template_file = STATIC_FILES / 'templates_swap.nii.gz'
-        lf.inputs.classifier_type = 'STEPS'  # Use the STEPS algorithm for segmentation
-        lf.inputs.kernel_size = 5            # Set the kernel size for the algorithm
-        lf.inputs.template_num = 8           # Use 8 templates in the process
-        lf.inputs.mrf_value = 0.5            # Set the MRF (Markov Random Field) value for regularization
-        lf.inputs.out_file = OUTPUT_DIR / 'cerebellum.nii.gz'
-        # Run the LabelFusion proces
-        lf.run()
-        # Check if the output file was successfully created
-        out_file = lf.inputs.out_file
-        if not Path(out_file).exists():
-            logger.error(f"Output file {out_file} was not created.")
-            raise FileNotFoundError(f"Segmentation failed: Output file {out_file} does not exist.")
+    self.logger.info('Segmenting cerebellum gray matter mask')
+    # Initialize LabelFusion with the necessary inputs
+    lf = LabelFusion()
+    lf.inputs.file_to_seg = input_file
+    lf.inputs.in_file = STATIC_FILES / 'atlas4_swap.nii.gz'
+    lf.inputs.template_file = STATIC_FILES / 'templates_swap.nii.gz'
+    lf.inputs.classifier_type = 'STEPS'  # Use the STEPS algorithm for segmentation
+    lf.inputs.kernel_size = 5            # Set the kernel size for the algorithm
+    lf.inputs.template_num = 8           # Use 8 templates in the process
+    lf.inputs.mrf_value = 0.5            # Set the MRF (Markov Random Field) value for regularization
+    lf.inputs.out_file = self.processing_directory / 'cerebellum.nii.gz'
+    # Run the LabelFusion proces
+    lf.run()
+    # Check if the output file was successfully created
+    out_file = lf.inputs.out_file
+    if not Path(out_file).exists():
+        self.logger.error(f"Output file {out_file} was not created.")
+        raise FileNotFoundError(f"Segmentation failed: Output file {out_file} does not exist.")
 
-        logger.info(f"Segmentation successful. Output file: {out_file}")
-        # Return the path to the output file
-    return out_file
-    
-
-def cerebellum_mask2(input_file):
-    out_file = OUTPUT_DIR / 'cerebellum.nii.gz'
-    if not Path(out_file).is_file():
-        print('calculating mask')
-        labFusion_file = '/homes/zuza/niftyseg/seg-apps/seg_LabFusion'
-        in_file = STATIC_FILES / 'atlas4_swap.nii.gz'
-        template_file = STATIC_FILES / 'templates_swap.nii.gz'
-        file_to_seg = input_file
-        classifier = '-STEPS'
-        kernel_size = 5.0
-        template_num = 8
-        mrf_value = 0.5
-        cmd = f'{labFusion_file} -in {in_file} {classifier} {str(kernel_size)} {str(template_num)} {file_to_seg} {template_file} -MRF_beta {str(mrf_value)} -out {out_file}'
-        os.system(cmd)
-
+    self.logger.info(f"Segmentation successful. Output file: {out_file}")
+    # Return the path to the output file
     return out_file
 
 
-def resampling(logger, pet_nii, ct_nii, brain_nii):
+def resampling(self, pet_nii, ct_nii, brain_nii):
     """
     Resample and register PET and CT scans to a brain template, ensuring that all steps 
     are performed only if the corresponding output files do not already exist.
@@ -311,8 +289,6 @@ def resampling(logger, pet_nii, ct_nii, brain_nii):
 
     Parameters:
     -----------
-    logger : Logger object
-        The logger used for logging information.
     pet_nii : nib.Nifti1Image
         The NIfTI image representing the PET scan.
     ct_nii : nib.Nifti1Image
@@ -332,108 +308,102 @@ def resampling(logger, pet_nii, ct_nii, brain_nii):
 
     # Define file paths for templates and output files
     template_nii = STATIC_FILES / 'avg_template_swap.nii.gz'
-    brainreg_nii = OUTPUT_DIR / 'brain_reg_avg.nii.gz'
-    brainrsl_nii = OUTPUT_DIR / 'brain_rsl_avg.nii.gz'
-    trans_ct = OUTPUT_DIR / 'brain_to_avg.txt'
-    ctrsl_nii = OUTPUT_DIR / 'ct_rsl_avg.nii.gz'
-    petrsl_nii = OUTPUT_DIR / 'pet_reg_ct.nii.gz'
-    petreg_nii = OUTPUT_DIR / 'pet_rsl_ct.nii.gz'
-    petrsltemplate_nii = OUTPUT_DIR / 'pet_rsl_avg.nii.gz'
-    trans_pet = OUTPUT_DIR / 'pet_to_ct-new.txt'
+    brainreg_nii = self.processing_directory / 'brain_reg_avg.nii.gz'
+    brainrsl_nii = self.processing_directory / 'brain_rsl_avg.nii.gz'
+    trans_ct = self.processing_directory / 'brain_to_avg.txt'
+    ctrsl_nii = self.processing_directory / 'ct_rsl_avg.nii.gz'
+    petrsl_nii = self.processing_directory / 'pet_reg_ct.nii.gz'
+    petreg_nii = self.processing_directory / 'pet_rsl_ct.nii.gz'
+    petrsltemplate_nii = self.processing_directory / 'pet_rsl_avg.nii.gz'
+    trans_pet = self.processing_directory / 'pet_to_ct-new.txt'
 
     # Step 1: Register CT brain to the average template if the transformation doesn't exist
+    self.logger.info(f'Registering CT brain to template')
+    reg_aladin(ref_file=template_nii, 
+                flo_file=brain_nii,
+                aff_file=trans_ct,
+                in_aff_file=None,
+                res_file=brainreg_nii,
+                verbosity='none')
+    
+    # Verify if registration was successful
     if not Path(trans_ct).is_file():
-        logger.info(f'Registering CT brain to template')
-        reg_aladin(ref_file=template_nii, 
-                    flo_file=brain_nii,
-                    aff_file=trans_ct,
-                    in_aff_file=None,
-                    res_file=brainreg_nii,
-                    verbosity='none')
-        
-        # Verify if registration was successful
-        if not Path(trans_ct).is_file():
-            logger.error(f"Failed to save CT brain registration at {trans_ct}")
-            raise IOError(f"CT brain registration not saved: {trans_ct}")
+        self.logger.error(f"Failed to save CT brain registration at {trans_ct}")
+        raise IOError(f"CT brain registration not saved: {trans_ct}")
 
     # Step 2: Resample CT brain to the template if not already resampled  
+    self.logger.info(f'Resampling CT brain to template')
+    reg_resample(ref_file=template_nii, 
+                    flo_file=brain_nii,
+                    trans_file=trans_ct,
+                    out_file=brainrsl_nii,
+                    interpol='LIN',
+                    pad_val=-1024,
+                    verbosity='none')
+    
+    # Check if brain resampling was successful
     if not Path(brainrsl_nii).is_file():
-        logger.info(f'Resampling CT brain to template')
-        reg_resample(ref_file=template_nii, 
-                        flo_file=brain_nii,
-                        trans_file=trans_ct,
-                        out_file=brainrsl_nii,
-                        interpol='LIN',
-                        pad_val=-1024,
-                        verbosity='none')
-        
-        # Check if brain resampling was successful
-        if not Path(brainrsl_nii).is_file():
-            logger.error(f"Failed to save resampled CT brain at {brainrsl_nii}")
-            raise IOError(f"Resampled CT brain not saved: {brainrsl_nii}")
+        self.logger.error(f"Failed to save resampled CT brain at {brainrsl_nii}")
+        raise IOError(f"Resampled CT brain not saved: {brainrsl_nii}")
         
     # Step 3: Resample CT to the template if not already resampled
+    self.logger.info('Resampling CT to template')
+    reg_resample(ref_file=template_nii,
+                    flo_file=ct_nii,
+                    trans_file=trans_ct,
+                    out_file=ctrsl_nii,
+                    interpol='LIN',
+                    pad_val=-1024,
+                    verbosity='none')
+    
+    # Check if CT resampling was successful
     if not Path(ctrsl_nii).is_file():
-        logger.info('Resampling CT to template')
-        reg_resample(ref_file=template_nii,
-                        flo_file=ct_nii,
-                        trans_file=trans_ct,
-                        out_file=ctrsl_nii,
-                        interpol='LIN',
-                        pad_val=-1024,
-                        verbosity='none')
-        
-        # Check if CT resampling was successful
-        if not Path(ctrsl_nii).is_file():
-            logger.error(f"Failed to save resampled CT at {ctrsl_nii}")
-            raise IOError(f"Resampled CT not saved: {ctrsl_nii}")
+        self.logger.error(f"Failed to save resampled CT at {ctrsl_nii}")
+        raise IOError(f"Resampled CT not saved: {ctrsl_nii}")
 
     # Step 4: Register PET to CT if the transformation doesn't exist
+    self.logger.info('Registering PET to CT')
+    reg_aladin(ref_file=ct_nii, 
+                flo_file=pet_nii,
+                aff_file=trans_pet,
+                in_aff_file=None,
+                res_file=petreg_nii,
+                verbosity='none')
+    
+    # Verify if PET registration was successful
     if not Path(trans_pet).is_file():
-        logger.info('Registering PET to CT')
-        reg_aladin(ref_file=ct_nii, 
-                    flo_file=pet_nii,
-                    aff_file=trans_pet,
-                    in_aff_file=None,
-                    res_file=petreg_nii,
-                    verbosity='none')
-        
-        # Verify if PET registration was successful
-        if not Path(trans_pet).is_file():
-            logger.error(f"Failed to save PET registration at {trans_pet}")
-            raise IOError(f"PET registration not saved: {trans_pet}")
+        self.logger.error(f"Failed to save PET registration at {trans_pet}")
+        raise IOError(f"PET registration not saved: {trans_pet}")
 
     # Step 5: Resample PET to CT if not already resampled
-    if not Path(petrsl_nii).is_file():
-        logger.info('Resampling PET to CT')
-        reg_resample(ref_file=ct_nii,
-                        flo_file=pet_nii,
-                        trans_file=trans_pet,
-                        out_file=petrsl_nii,
-                        interpol='LIN',
-                        pad_val=0,
-                        verbosity='none')
+    self.logger.info('Resampling PET to CT')
+    reg_resample(ref_file=ct_nii,
+                    flo_file=pet_nii,
+                    trans_file=trans_pet,
+                    out_file=petrsl_nii,
+                    interpol='LIN',
+                    pad_val=0,
+                    verbosity='none')
 
-        # Check if PET resampling to CT was successful
-        if not Path(petrsl_nii).is_file():
-            logger.error(f"Failed to save resampled PET at {petrsl_nii}")
-            raise IOError(f"Resampled PET not saved: {petrsl_nii}")
+    # Check if PET resampling to CT was successful
+    if not Path(petrsl_nii).is_file():
+        self.logger.error(f"Failed to save resampled PET at {petrsl_nii}")
+        raise IOError(f"Resampled PET not saved: {petrsl_nii}")
 
     # Step 6: Resample PET to the brain template if not already resampled
+    self.logger.info('Resampling PET to template')
+    reg_resample(ref_file=template_nii,
+                    flo_file=petrsl_nii,
+                    trans_file=trans_ct,
+                    out_file=petrsltemplate_nii,
+                    interpol='LIN',
+                    pad_val=0,
+                    verbosity='none')
+    
+    # Check if PET resampling to template was successful
     if not Path(petrsltemplate_nii).is_file():
-        logger.info('Resampling PET to template')
-        reg_resample(ref_file=template_nii,
-                        flo_file=petrsl_nii,
-                        trans_file=trans_ct,
-                        out_file=petrsltemplate_nii,
-                        interpol='LIN',
-                        pad_val=0,
-                        verbosity='none')
-        
-        # Check if PET resampling to template was successful
-        if not Path(petrsltemplate_nii).is_file():
-            logger.error(f"Failed to save resampled PET at {petrsltemplate_nii}")
-            raise IOError(f"Resampled PET not saved: {petrsltemplate_nii}")
+        self.logger.error(f"Failed to save resampled PET at {petrsltemplate_nii}")
+        raise IOError(f"Resampled PET not saved: {petrsltemplate_nii}")
 
     return petrsltemplate_nii, ctrsl_nii, brainrsl_nii
 
@@ -454,7 +424,7 @@ def get_predition(logger, ct_brain_nii, pet_nii):
     Returns:
     --------
     prediction_image : numpy array
-        The segmentation prediction image of basal gangia.
+        The segmentation prediction image of basal ganglia.
     """
 
     logger.info('Getting predition.')
@@ -479,9 +449,7 @@ def get_predition(logger, ct_brain_nii, pet_nii):
         except Exception as e:
             # Log any exceptions encountered during session clearing
             logger.info(e)
-    # prediction_nii = nib.Nifti1Image(prediction_image, nib.load(ct_brain_nii).affine)
-    # nib.save(prediction_nii, OUTPUT_DIR+ 'pred.nii.gz')
-    # Return the prediction image
+
     return prediction_image
 
 
@@ -649,7 +617,6 @@ def get_asymmetry(right, left):
     float
         The asymmetry value.
     """
-
     # Calculate asymmetry using the formula: (right - left) / (right + left)
     asymmetry = (right - left) / (right + left)
     return asymmetry
@@ -1337,7 +1304,7 @@ def add_average_plot(doc, norm_pet, mask, title, subfig_width, colormap_width, m
         plot_collapse_pet(
             norm_pet,
             mask,
-            slice(slices[5], slices[0]),
+            slice(slices[6]-1, slices[0]+1),
             vmin=min_value,
             vmax=max_value
         )
@@ -1375,15 +1342,14 @@ def plot_average(doc, pet, mask, slices):
     None
     """
 
-    norm_pet =pet-1
     doc.append(NoEscape(r'\vspace{-0.2cm}'))
-    avgmax = 0.9 * np.max(norm_pet[:, :, slices[5]:slices[0]+1].mean(axis=2))
+    avgmax = 0.9 * np.max(pet[:, :, (slices[6]-1):(slices[0]+1)].mean(axis=2))
     with doc.create(Figure(position='!htp')):
         doc.append(Command('centering'))
         subfig_width = r'8cm'
         colormap_width = r'5cm'
-        add_average_plot(doc, norm_pet, mask, 'Relative scale', subfig_width, colormap_width, min_value=-1, max_value=avgmax, slices=slices)
-        add_average_plot(doc, norm_pet, mask, 'Absolute scale', subfig_width, colormap_width, min_value=-1, max_value=4.0, slices=slices)
+        add_average_plot(doc, pet, mask, 'Relative scale', subfig_width, colormap_width, min_value=-1, max_value=avgmax, slices=slices)
+        add_average_plot(doc, pet, mask, 'Absolute scale', subfig_width, colormap_width, min_value=-1, max_value=4.0, slices=slices)
 
 
 def plot_nine_pet(doc, pet, mask, pet_desc, slices):
@@ -1442,6 +1408,8 @@ def plot_nine_pet(doc, pet, mask, pet_desc, slices):
 
         doc.append(NoEscape(r'\par \vfill'))
         
+        if '_' in pet_desc:
+            pet_desc = pet_desc.replace('_', r'\_')
         # Add study description to the LaTeX document
         doc.append(NoEscape(r'{\scriptsize{' + pet_desc + r'}}\\'))
 
@@ -2022,7 +1990,7 @@ def plots_normal_values(doc, normal_values, patient_values, pt_age):
             subplot2.add_plot(width=subfig_width)
 
 
-def generate_report(ref_pet_dcm, ct_desc, pet, ct_nii, prediction, cerebellum, patient_values):
+def generate_report(self, ref_pet_dcm, ct_desc, normalised_pet, ct_nii, prediction, cerebellum, patient_values):
     """
     Generates a comprehensive report including PET and CT scan analysis, patient data, and reference comparisons.
 
@@ -2032,8 +2000,8 @@ def generate_report(ref_pet_dcm, ct_desc, pet, ct_nii, prediction, cerebellum, p
         Reference DICOM metadata for PET scan.
     ct_desc : str
         Description of the CT scan.
-    pet : array
-        PET scan data array.
+    normalised_pet : array
+        normalised PET scan data array.
     ct_nii : str
         CT scan path.
     prediction : array
@@ -2050,8 +2018,9 @@ def generate_report(ref_pet_dcm, ct_desc, pet, ct_nii, prediction, cerebellum, p
     ds : DICOM
         The DICOM header information.
     """
+    self.logger.info('Generating report')
     # Flip PET, prediction, and cerebellum arrays along the axis 0 (typically to adjust orientation)
-    pet_flipped = np.flip(pet, axis=0) 
+    pet_flipped = np.flip(normalised_pet, axis=0) 
     pet_flipped = np.nan_to_num(pet_flipped)
     prediction_flipped = np.flip(prediction, axis=0)
     cerebellum_flipped= np.flip(cerebellum, axis=0)
@@ -2084,26 +2053,36 @@ def generate_report(ref_pet_dcm, ct_desc, pet, ct_nii, prediction, cerebellum, p
     pt_age = get_age(ref_pet_dcm.PatientAge)
     
     # Generate slices from prediction and cerebellum data
-    slices = get_slices(prediction_flipped, indices = [2,3], num_slices = 9)[1:7] + get_slices(cerebellum_flipped, indices = [CEREBELLUM_INDEX], num_slices = 4)[1:]
+    slices = get_slices(prediction_flipped, indices = [2,3], num_slices = 9)[2:8] + get_slices(cerebellum_flipped, indices = [CEREBELLUM_INDEX], num_slices = 4)[1:]
     slices.sort(reverse=True)
     
     # Define the path for output LaTeX document
-    header_doc = OUTPUT_DIR / 'doc'
+    header_doc = self.processing_directory / 'doc'
     doc = create_document(header_doc)
     doc.preamble.append(Command('usepackage', 'xcolor')) 
+    # Define the custom color
+    doc.append(NoEscape(r'\definecolor{babyblue}{RGB}{183, 227, 249}')) 
     
     # Add report header with institution name
     get_report_header(doc, institution) 
     
     doc.append(NoEscape(r'\vspace{-1.2cm}'))
-    
-    # Create section for DAT PET scanning
-    with doc.create(Section(NoEscape(r'\begin{flushleft}{Dopamine transporter (DAT) {[\textsuperscript{18}F]}FE-PE2I PET scanning}\end{flushleft}'),numbering=False)):
-        doc.append(NoEscape(r'\vspace{-0.7cm}'))
-        doc.append(NoEscape(r"\begin{flushleft}  {\textcolor{blue}{Report nr.: 2.0}}\end{flushleft}"))
+    doc.append(NoEscape(r'\colorbox{babyblue}{\begin{minipage}{\linewidth}'))
+    doc.append(NoEscape(r'\vspace{-0.5cm}'))
+    # Create a section with the flushleft alignment for the title
+    with doc.create(Section(NoEscape(r'\begin{flushleft}{Dopamine transporter (DAT) {[\textsuperscript{18}F]}FE-PE2I PET scanning}\end{flushleft}'), numbering=False)):
+        # Adjust the vertical space
+        doc.append(NoEscape(r'\vspace{-0.5cm}'))
         
+        # Add the flushleft report number with custom blue color
+        doc.append(NoEscape(r"\begin{flushleft}  {{Report v. 2.0 (10.2024)}}\end{flushleft}\end{minipage}}"))
+        doc.append(NoEscape(r'\newline'))
+        doc.append(NoEscape(r'\newline'))
+        doc.append(NoEscape(r'\newline'))
+        doc.append(NoEscape(r'\newline'))
+        doc.append(NoEscape(r'\newline'))
         # Add patient information table
-        get_patient_table(doc, ref_pet_dcm) # TODO uncomment
+        get_patient_table(doc, ref_pet_dcm)
         
         # Generate and add plots for PET scan data
         get_first_plots(doc, pet_flipped, mask, slices)

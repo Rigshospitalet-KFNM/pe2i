@@ -87,7 +87,8 @@ class Pe2iPetCtNode(AbstractPipeline):
     dicom_factory = factory
     log_path: str = "/var/log/pe2ipetctnode.log"  # Path for logging
     ae_title: str = "PE2IPETCTNODE" # AE Title for DICOM nodes
-    
+    processing_directory = OUTPUT_PATH
+
     # Network settings
     port: int = 1131 ## TODO change
     ip: str = '0.0.0.0' ## TODO change
@@ -123,6 +124,7 @@ class Pe2iPetCtNode(AbstractPipeline):
         DicomOutput 
             The generated report in DICOM format.
         """
+
         # Extract PET and CT data from input
         pet = input_data['PET'] # NIfTI PET data
         ct = input_data['CT'] # NIfTI CT data
@@ -133,25 +135,24 @@ class Pe2iPetCtNode(AbstractPipeline):
         ct_desc = ref_ct_dicom.SeriesDescription
 
         # Perform various processing steps on PET and CT data
-        pet_swap_nii = node_functions.swap_dims(self.logger, pet, 'PET')
-        ct_swap_nii = node_functions.swap_dims(self.logger, ct, 'CT') 
-        # ct_bet_nii = node_functions.run_skullstrip(ct_swap_nii)
-        ct_bet_nii = node_functions.run_skullstripping(self.logger, ct_swap_nii)
-        print(ct_bet_nii)
+        pet_swap_nii = node_functions.swap_dims(self, pet, 'PET')
+        ct_swap_nii = node_functions.swap_dims(self, ct, 'CT') 
+        
+        ct_bet_nii = node_functions.run_skullstripping(self, ct_swap_nii)
         pet_resampled_nii, ct_resampled_nii, ct_bet_resampled_nii = node_functions.resampling(
-            self.logger, pet_swap_nii, ct_swap_nii, ct_bet_nii
+            self, pet_swap_nii, ct_swap_nii, ct_bet_nii
         ) 
-        ct_bet_preproc_nii = node_functions.process_ct(self.logger, ct_bet_resampled_nii)
-        cerebellum_nii = node_functions.cerebellum_mask(self.logger, ct_bet_preproc_nii)
+        ct_bet_preproc_nii = node_functions.process_ct(self, ct_bet_resampled_nii)
+        cerebellum_nii = node_functions.cerebellum_mask(self, ct_bet_preproc_nii)
 
         prediction_data = node_functions.get_predition(self.logger, ct_bet_preproc_nii, pet_resampled_nii)
         pet_normalized_data, cerebellum_mask_data, patient_values = node_functions.get_statistics(
             self.logger, pet_resampled_nii, cerebellum_nii, prediction_data
             ) # doesnt need to be file 
-        print(patient_values)
+
         # Generate the report
         report = node_functions.generate_report(
-            ref_pet_dicom, ct_desc, pet_normalized_data, ct_resampled_nii, 
+            self, ref_pet_dicom, ct_desc, pet_normalized_data, ct_resampled_nii, 
             prediction_data, cerebellum_mask_data, patient_values
         )
 
@@ -170,16 +171,10 @@ class Pe2iPetCtNode(AbstractPipeline):
                 'FL',
                 np.round(patient_values[key], 2),
                 name=f"{key} [SBR]" if i < 14 else f"{key}"
-    )
+        )
         #blueprint[0x3003_1000] = StaticElement(0x3003_1000, 'LO', patient_values)
         # Encode the report as a PDF
         encoded_report = self.dicom_factory.encode_pdf(report, [ref_pet_dicom], blueprint)
-        print(encoded_report[0])
-        # Clean up and prepare output directory
-        shutil.rmtree(OUTPUT_PATH, ignore_errors=True)
-        if not OUTPUT_PATH.is_file():
-            os.mkdir(OUTPUT_PATH)
-
         # Return the file output containing the generated report
         return DicomOutput([(self.endpoint, encoded_report),], self.ae_title)
        
