@@ -981,7 +981,7 @@ def contours_mask_slice(slice):
     mask = np.zeros((256, 256), dtype=np.uint8)
         
     # Draw the contours onto the mask
-    cv.drawContours(mask, contours, -1, 1, 2)
+    cv.drawContours(mask, contours, -1, 1, 4)
 
     # Return the logical 'and' between the inverse of the original slice and the mask
     return np.logical_and(np.logical_not(slice), mask)
@@ -1181,9 +1181,9 @@ def get_first_plots(doc, pet, mask, slices):
     --------
     None
     """
-    min_value = -0.4
+    min_value = -0.2
     max_value = 0.9 * np.max(pet*(mask.astype(bool)))
-    
+
     # Create a new figure in the LaTeX document
     with doc.create(Figure(position='h!')) as plot:
         doc.append(Command('centering'))
@@ -1348,8 +1348,18 @@ def plot_average(doc, pet, mask, slices):
         doc.append(Command('centering'))
         subfig_width = r'8cm'
         colormap_width = r'5cm'
-        add_average_plot(doc, pet, mask, 'Relative scale', subfig_width, colormap_width, min_value=-1, max_value=avgmax, slices=slices)
-        add_average_plot(doc, pet, mask, 'Absolute scale', subfig_width, colormap_width, min_value=-1, max_value=4.0, slices=slices)
+        # add_average_plot(doc, pet, mask, 'Relative scale', subfig_width, colormap_width, min_value=-1, max_value=avgmax, slices=slices)
+        # add_average_plot(doc, pet, mask, 'Absolute scale', subfig_width, colormap_width, min_value=-1, max_value=4.0, slices=slices)
+        # add_average_plot(doc, pet, mask, 'Relative scale', subfig_width, colormap_width, min_value=0.1*avgmax, max_value=avgmax, slices=slices)
+        # add_average_plot(doc, pet, mask, 'Absolute scale', subfig_width, colormap_width, min_value=0.4, max_value=4.0, slices=slices)
+        # add_average_plot(doc, pet, mask, 'Relative scale', subfig_width, colormap_width, min_value=0, max_value=avgmax, slices=slices)
+        # add_average_plot(doc, pet, mask, 'Absolute scale', subfig_width, colormap_width, min_value=0, max_value=4.0, slices=slices)
+        # add_average_plot(doc, pet, mask, 'Relative scale', subfig_width, colormap_width, min_value=-0.5, max_value=avgmax, slices=slices)
+        # add_average_plot(doc, pet, mask, 'Absolute scale', subfig_width, colormap_width, min_value=-0.5, max_value=4.0, slices=slices)
+        # add_average_plot(doc, pet, mask, 'Relative scale', subfig_width, colormap_width, min_value=-0.3, max_value=avgmax, slices=slices)
+        # add_average_plot(doc, pet, mask, 'Absolute scale', subfig_width, colormap_width, min_value=-0.3, max_value=4.0, slices=slices)
+        add_average_plot(doc, pet, mask, 'Relative scale', subfig_width, colormap_width, min_value=-0.15, max_value=avgmax, slices=slices)
+        add_average_plot(doc, pet, mask, 'Absolute scale', subfig_width, colormap_width, min_value=-0.15, max_value=4.0, slices=slices)
 
 
 def plot_nine_pet(doc, pet, mask, pet_desc, slices):
@@ -1375,9 +1385,9 @@ def plot_nine_pet(doc, pet, mask, pet_desc, slices):
     """
 
     # Define intensity range for PET display
-    min_value = -0.4
+    min_value = -0.2
     max_value = 0.9 * np.max(pet*(mask.astype(bool)))
-
+    
     doc.append(NoEscape(r'\vspace*{-0.3cm}'))
 
     # Create figure for PET plots
@@ -1408,8 +1418,6 @@ def plot_nine_pet(doc, pet, mask, pet_desc, slices):
 
         doc.append(NoEscape(r'\par \vfill'))
         
-        if '_' in pet_desc:
-            pet_desc = pet_desc.replace('_', r'\_')
         # Add study description to the LaTeX document
         doc.append(NoEscape(r'{\scriptsize{' + pet_desc + r'}}\\'))
 
@@ -1474,8 +1482,6 @@ def plot_ct(doc, ct, mask, ct_desc, slices):
     
     doc.append(NoEscape(r'\vspace{-0.7cm}'))
 
-    if '_' in ct_desc:
-        ct_desc = ct_desc.replace('_', r'\_')
     # Add study description to the LaTeX document
     doc.append(NoEscape(r'{\scriptsize{' + ct_desc + r'}}\\'))
     
@@ -1624,7 +1630,7 @@ def first_values(doc, patient_values, normal_stat_values, pt_age, pet_desc, age_
             table.add_row(*list(row))
 
         table.add_hline()
-    
+
     now = datetime.now()
     # Add explanatory footnotes to the LaTeX document
     doc.append(NoEscape(r"\begin{flushleft} {\hspace*{0.3cm}\footnotesize Specific Binding Ratio (SBR) is relative to cerebellar grey matter.\newline}"))
@@ -2033,6 +2039,10 @@ def generate_report(self, ref_pet_dcm, ct_desc, normalised_pet, ct_nii, predicti
 
     # Extract metadata from the reference PET DICOM
     pet_desc = ref_pet_dcm.SeriesDescription
+    if '_' in pet_desc:
+        pet_desc = pet_desc.replace('_', r'\_')
+    if '_' in ct_desc:
+        ct_desc = ct_desc.replace('_', r'\_')
     institution = ref_pet_dcm.InstitutionName 
     if institution == 'Nuklearmedicin':
         institution = 'Rigshospitalet'

@@ -20,7 +20,7 @@ from dicomnode.dicom.dimse import Address
 from dicomnode.server.pipeline_tree import InputContainer
 from dicomnode.server.input import AbstractInput
 from dicomnode.server.output import DicomOutput
-from dicomnode.server.nodes import AbstractPipeline
+from dicomnode.server.nodes import bstractQueuedPipeline
 from dicomnode.server.grinders import NiftiGrinder
 from dicomnode.dicom.blueprints import Blueprint, StaticElement, CopyElement, FunctionalElement, get_today, get_time
 from dicomnode.dicom.blueprints.secondary_image_report_blueprint import SECONDARY_IMAGE_REPORT_BLUEPRINT
@@ -80,7 +80,7 @@ class MyPETInput(AbstractInput):
     }
 
 
-class Pe2iPetCtNode(AbstractPipeline):
+class Pe2iPetCtNode(AbstractQueuedPipeline):
     """
     Main pipeline node for processing PET and CT data, and generating reports.
     """
