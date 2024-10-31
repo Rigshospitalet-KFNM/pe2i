@@ -20,7 +20,7 @@ from dicomnode.dicom.dimse import Address
 from dicomnode.server.pipeline_tree import InputContainer
 from dicomnode.server.input import AbstractInput
 from dicomnode.server.output import DicomOutput
-from dicomnode.server.nodes import bstractQueuedPipeline
+from dicomnode.server.nodes import AbstractQueuedPipeline
 from dicomnode.server.grinders import NiftiGrinder
 from dicomnode.dicom.blueprints import Blueprint, StaticElement, CopyElement, FunctionalElement, get_today, get_time
 from dicomnode.dicom.blueprints.secondary_image_report_blueprint import SECONDARY_IMAGE_REPORT_BLUEPRINT
@@ -43,7 +43,7 @@ class MyCTInput(AbstractInput):
     Handles input data for CT images.
     """
     def validate(self) -> bool:
-        maxInstanceNumber = 0
+        maxInstanceNumber = -1
         # Iterate through datasets to find the maximum instance number
         for dataset in self:
             maxInstanceNumber = max(maxInstanceNumber, dataset.InstanceNumber)
@@ -63,7 +63,7 @@ class MyPETInput(AbstractInput):
     Handles input data for PET images.
     """
     def validate(self) -> bool:
-        maxInstanceNumber = 0
+        maxInstanceNumber = -1
         # Iterate through datasets to find the maximum instance number
         for dataset in self:
             maxInstanceNumber = max(maxInstanceNumber, dataset.InstanceNumber)
