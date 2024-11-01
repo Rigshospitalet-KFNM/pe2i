@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Dict, Any
 import dotenv
 dotenv.load_dotenv()
+from datetime import datetime
 
 import pe2i_petct_functions as node_functions
 import dicomnode
@@ -37,6 +38,7 @@ OUTPUT_PATH = Path(os.environ.get("OUTPUT_PATH"))
 factory  = DicomFactory()
 error_blueprint = ERROR_BLUEPRINT
 
+PET_ARCHIVE = Address('10.49.144.6', 104, 'GOYA') # These should be  in .env
 
 class MyCTInput(AbstractInput):
     """
@@ -90,8 +92,8 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
     processing_directory = OUTPUT_PATH
 
     # Network settings
-    port: int = 1131 ## TODO change
-    ip: str = '0.0.0.0' ## TODO change
+    port: int = 1131
+    ip: str = '0.0.0.0'
 
     # Logger settings
     disable_pynetdicom_logger = True
@@ -107,7 +109,7 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
     }
 
     # Endpoint for output
-    endpoint = Address('10.49.144.35', 104, "VIA2") ## TODO change
+    endpoint = Address('10.49.144.35', 104, "VIA2") ## TODO move into .env
 
     def process(self, input_data: InputContainer):
         """
@@ -158,6 +160,8 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
 
         keys = list(patient_values.keys())
 
+
+        report_name = f"PE2I Report V2.0 {datetime.now().strftime("%Y/%m/%d %H:%M:%S")}"
         blueprint= Blueprint(SECONDARY_IMAGE_REPORT_BLUEPRINT)
         blueprint[0x0008_103E] = StaticElement(0x0008_103E, 'LO', 'PE2I report') # Series Description
         blueprint[0x0010_0010] = CopyElement(0x0010_0010) # Patient's Name 
@@ -176,7 +180,7 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
         # Encode the report as a PDF
         encoded_report = self.dicom_factory.encode_pdf(report, [ref_pet_dicom], blueprint)
         # Return the file output containing the generated report
-        return DicomOutput([(self.endpoint, encoded_report),], self.ae_title)
+        return DicomOutput([(self.endpoint, encoded_report),(PET_ARCHIVE, encoded_report)], self.ae_title)
        
 # Entry point for running the node
 if __name__ == "__main__":
