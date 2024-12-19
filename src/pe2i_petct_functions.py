@@ -21,34 +21,36 @@ import tensorflow as tf
 import keras_contrib
 import dotenv
 dotenv.load_dotenv()
-#tf.config.list_physical_devices('GPU')
+# tf.config.list_physical_devices('GPU')
 # tf.config.list_physical_devices('CPU')
 
 from nilearn.image import smooth_img
 from nipype.interfaces.niftyseg import LabelFusion
 from nipype.interfaces.niftyreg import RegAladin, RegResample
-from pylatex import Figure, Command, NoEscape, Tabular, Document, Package,Section, SubFigure, MultiColumn, MiniPage, FlushLeft
+from pylatex import Figure, Command, NoEscape, Tabular, Document, Package,Section, SubFigure, MultiColumn
 from pylatex.utils import bold, NoEscape
 from pylatex.base_classes import Environment
 
-from rhnode import RHJob #pip install git+https://github.com/CAAI/rh-node.git
 from HD_CTBET.run import run_hd_ctbet
 
-STATIC_FILES = Path(os.environ.get("STATIC_PATH"))
+STATIC_FILES = Path(os.environ.get("STATIC_PATH")) # path to static files
 FWHM = 2.35482 # converting sigma of 1 to FWHM 2.35482*1 mm
-CEREBELLUM_INDEX = 4
+CEREBELLUM_INDEX = 4 # label for Cerebellum cortex
+MID_POINTS = [0] # for graphical visualisation 
+DEF_MIDS = [0.07] # shifting PET colormap parameter
 
 # Colormap to be used when displaying images.
 _PETRainbowCMAP = matplotlib.colors.LinearSegmentedColormap(
     'PET-Rainbow',
     {
-        u'blue': [(0.0, 0.1, 0.1),
-                  (0.1, 0.6667, 0.6667),
-                  (0.15, 0.9667, 0.9667),
+        u'blue': [(0.0, 0.0, 0.0),
+                  (0.07, 0.4667, 0.4667),
+                  (0.15, 0.6667, 0.6667),
                   (0.2, 0.8667, 0.8667),
                   (0.25, 0.8667, 0.8667),
                   (0.3, 0.8667, 0.8667),
-                  (0.35, 0.8333, 0.8333),
+                  (0.35, 0.8667, 0.8667),
+                  (0.4, 0.8333, 0.8333),
                   (0.45, 0.0, 0.0),
                   (0.5, 0.0, 0.0),
                   (0.55, 0.0, 0.0),
@@ -62,18 +64,18 @@ _PETRainbowCMAP = matplotlib.colors.LinearSegmentedColormap(
                   (0.95, 0.3, 0.3),
                   (1.0, 1.0, 1.0)],
         u'green': [(0.0, 0.0, 0.0),
-                   (0.1, 0.0, 0.0),
                    (0.15, 0.0, 0.0),
-                   (0.20, 0.4667, 0.4667),
-                   (0.25, 0.8, 0.8),
-                   (0.30, 0.8667, 0.8667),
+                   (0.2, 0.0, 0.0),
+                   (0.25, 0.4667, 0.4667),
+                   (0.3, 0.8, 0.8),
                    (0.35, 0.8667, 0.8667),
+                   (0.4, 0.8667, 0.8667),
                    (0.45, 0.86, 0.86),
                    (0.5, 0.8633, 0.8633),
                    (0.55, 0.8667, 0.8667),
-                   (0.58, 0.8667, 0.9667),
-                   (0.63, 0.9667, 1.0),
-                   (0.68, 1.0, 0.9333),
+                   (0.6, 0.8667, 0.9667),
+                   (0.65, 0.9667, 1.0),
+                   (0.7, 1.0, 0.9333),
                    (0.75, 0.8, 0.8),
                    (0.8, 0.6, 0.6),
                    (0.85, 0.1, 0.1),
@@ -100,14 +102,86 @@ _PETRainbowCMAP = matplotlib.colors.LinearSegmentedColormap(
                  (0.95, 0.8, 0.8),
                  (1.0, 1.0, 1.0)]},
     256)
-    
-FIRST_DIM = (22, 234)
+
+# defining slices to include in cropped image for visualisation purposes
+FIRST_DIM = (22, 234) 
 SECOND_DIM = (4, 216)  
 FIRST_DIM_CROPPED = slice(*FIRST_DIM)
 SECOND_DIM_CROPPED = slice(*SECOND_DIM)
 
 
+class MidPointNorm(matplotlib.colors.Normalize):
+    """
+    Class defining normalization of colors to be used when plotting using matplotlib. 
+    The class allows one to define the minimum and maximum used in normalization, as usual, 
+    while it also allows one to define a "mid-point" -- this allows one to have values
+    between the provided minimum and maximum mapped to something other than 0.5 in the colormap.
+
+    Parameters:
+    -----------
+    vmin (numeric):
+        Minimum used in the normalization.
+
+    vmax (numeric):
+        Maximum used in the normalization.
+
+    midpoints (numeric):
+        Midpoints used in the normalization.
+
+    clip (bool):
+        Whether to allow clipping in normalization (standard matplotlib argument).
+
+    defmids (list):
+        What point in the colorscale the provided midpoints should be mapped to (normally, this would be 0.5, but one may "stretch" the colormap using this).
+
+    Attributes:
+    -----------
+    vmin (numeric):
+        Minimum used in the normalization.
+
+    vmax (numeric):
+        Maximum used in the normalization.
+
+    midpoints (numeric):
+        Midpoints used in the normalization.
+
+    defmids (list):
+        What point in the colorscale the provided midpoints should be mapped to (normally, this would be 0.5, but one may "stretch" the colormap using this).
+
+    """
+    def __init__(self, vmin=None, vmax=None, midpoints=None, clip=False, defmids=[0.5]):
+        self.midpoints = midpoints
+        self.defmids = defmids
+        self._vmin = vmin
+        self._vmax = vmax
+        matplotlib.colors.Normalize.__init__(self, vmin, vmax, clip)
+
+    def __call__(self, value, clip=None):
+        result, is_scalar = self.process_value(value)
+        x, y = [self.vmin] + self.midpoints + \
+            [self.vmax], [0] + self.defmids + [1]
+        result = np.ma.array(
+            np.interp(value, x, y), mask=result.mask, copy=False)
+        return (result[0]
+                if is_scalar
+                else result)
+
+
 class ColorBox(Environment):
+    """
+    Create a colored box environment in LaTeX using the \colorbox command.
+
+    Parameters:
+    -----------
+    color (str):
+        The name of the color to be used for the box.
+
+    Attributes:
+    -----------
+    color (str):
+        The name of the color to be used for the box.
+
+    """
     def __init__(self, color):
         super().__init__(arguments=NoEscape(r'\colorbox{' + color + r'}'))
         self.content_separator = ''
@@ -424,7 +498,7 @@ def get_predition(logger, ct_brain_nii, pet_nii):
     Returns:
     --------
     prediction_image : numpy array
-        The segmentation prediction image of basal ganglia.
+        The segmentation prediction image of basal ganglia. # TODO CHANGE THIS?
     """
 
     logger.info('Getting predition.')
@@ -987,7 +1061,9 @@ def contours_mask_slice(slice):
     return np.logical_and(np.logical_not(slice), mask)
 
 
-def get_overlaying_plots(axes, segmentations, image, min_value, max_value, c_map=_PETRainbowCMAP, c_map_contour='plasma_r'):
+# def get_overlaying_plots(axes, segmentations, image, min_value, max_value, c_map=_PETRainbowCMAP, c_map_contour='plasma_r'):
+def get_overlaying_plots(axes, segmentations, image, min_value, max_value, normalization, c_map=_PETRainbowCMAP, c_map_contour='plasma_r'):
+    
     '''
     Superimposes contour of segmentations on the current PET image slice.
     The contours are color-mapped dynamically according to the underlying PET image.
@@ -1010,12 +1086,13 @@ def get_overlaying_plots(axes, segmentations, image, min_value, max_value, c_map
         Maximum value for the color scaling of the PET image.
 
     c_map : matplotlib.colors.Colormap, optional
-        Colormap to use for the PET image. Default is `_PETRainbowCMAP`.
+        Colormap to use for the PET image. Default is '_PETRainbowCMAP'.
 
     Returns:
     --------
     None
     '''
+    
     # Extract the contours of the segmentations
     segmentations_cont = contours_mask_slice(segmentations)[FIRST_DIM_CROPPED, SECOND_DIM_CROPPED]
        
@@ -1023,10 +1100,17 @@ def get_overlaying_plots(axes, segmentations, image, min_value, max_value, c_map
     im_ma = np.ma.array(image, mask=np.logical_not(segmentations_cont))
         
     # Display the PET image
-    kwargs = {'interpolation': 'none', 'vmin': min_value, 'vmax': max_value}
-    axes.imshow(np.rot90(image), cmap=c_map, **kwargs)
-
+    # kwargs = {'interpolation': 'none', 'vmin': min_value, 'vmax': max_value}
+    # axes.imshow(np.rot90(image), cmap=c_map, **kwargs)
+    if normalization:
+        norm = MidPointNorm(vmin=min_value, vmax=max_value, midpoints=MID_POINTS, defmids=DEF_MIDS)
+        axes.imshow(np.rot90(image), aspect='equal', norm=norm, cmap=c_map)
+    else:
+        kwargs = {'interpolation': 'none', 'vmin': min_value, 'vmax': max_value}
+        axes.imshow(np.rot90(image), cmap=c_map, **kwargs)
+        
     # Overlay the masked segmentation contours with an 'autumn' colormap
+    kwargs = {'interpolation': 'none', 'vmin': min_value, 'vmax': max_value}
     axes.imshow(np.rot90(im_ma), cmap=c_map_contour, **kwargs)
     
 
@@ -1156,10 +1240,13 @@ def get_slices(masks, indices, num_slices):
     masks[mask] = 1
 
     # Extract slice numbers from the mask
-    slice_numbers = sorted(np.unique([x[2] for x in np.argwhere(masks)]))
+    slice_numbers = np.unique([x[2] for x in np.argwhere(masks)])
+    indices = np.linspace(0, len(slice_numbers) - 1, num=num_slices, dtype=int)
+    return [slice_numbers[i] for i in indices]
+    # slice_numbers = sorted(np.unique([x[2] for x in np.argwhere(masks)]))
 
-    # Select and return the slices based on the interval
-    return  slice_numbers[0::int(np.ceil((len(slice_numbers) * 1.0) / num_slices))]
+    # # Select and return the slices based on the interval
+    # return  slice_numbers[0::int(np.ceil((len(slice_numbers) * 1.0) / num_slices))]
 
 
 def get_first_plots(doc, pet, mask, slices):
@@ -1181,7 +1268,8 @@ def get_first_plots(doc, pet, mask, slices):
     --------
     None
     """
-    min_value = -0.2
+    # Setting minimum and maximum value for PET data display
+    min_value = -1
     max_value = 0.9 * np.max(pet*(mask.astype(bool)))
 
     # Create a new figure in the LaTeX document
@@ -1189,29 +1277,40 @@ def get_first_plots(doc, pet, mask, slices):
         doc.append(Command('centering'))
         # Create a subfigure for the plots
         with doc.create(SubFigure(position='t', width=NoEscape(r'0.9\linewidth'))) as subplot1:
+            # Create a matplotlib figure with 1 row and 3 columns of subplots
             fig, axes = plt.subplots(
                 1, 3, gridspec_kw={'wspace': 0, 'hspace': 0}, figsize=(15, 5)
             )
+            
+            # Adjust subplot margins to remove unwanted spacing around the plots
             margins = {'left': 0, 'bottom': 0, 'right': 1, 'top': 1}
             fig.subplots_adjust(**margins)
 
+             # The mask is the segmentation data which will be overlaid on the PET image
             segmentations = mask
+            
+            # Loop over slices indices 3 to 5 to generate three plots (one for each slice)
             for i, k in enumerate(range(3, 6)):
                 axes[i].axis('off')
                 ind = slices[k]
                 pet_crop = pet[FIRST_DIM_CROPPED,SECOND_DIM_CROPPED, ind]
-                get_overlaying_plots(axes[i], segmentations[:, :, ind], pet_crop, min_value, max_value)
+
+                # Generate the overlay plot of the PET image and the segmentation mask
+                get_overlaying_plots(axes[i], segmentations[:, :, ind], pet_crop, min_value, max_value, True)
+                # Adding letter to distinguish between directions 
                 get_image_sides(axes[i])
 
             subplot1.add_plot()
 
         doc.append(NoEscape(r'\par \vfill'))
+        
+        # Add a color map to the LaTeX document
         add_colormap_plot(doc, plt, vmin=0, vmax=max_value, step=1 if max_value < 5 else 2)
 
     doc.append(NoEscape(r'\vspace*{-0.3cm}'))
 
 
-def plot_collapse_pet(img_pet, seg, axial_slices, vmin, vmax):
+def plot_collapse_pet(img_pet, seg, axial_slices, normalization):
     """
     Creates a plot of an axially collapsed PET image by averaging over specified slices.
 
@@ -1260,8 +1359,9 @@ def plot_collapse_pet(img_pet, seg, axial_slices, vmin, vmax):
     margins = {'left': 0, 'bottom': 0, 'right': 1, 'top': 1}
     fig.subplots_adjust(**margins)
 
+    # Showing of collapsed PET images 
     axes.axis('off')
-    axes.imshow(np.rot90(img_pet_collapse[xslices, yslices]), vmin=vmin, vmax=vmax, aspect='equal', cmap=_PETRainbowCMAP)
+    axes.imshow(np.rot90(img_pet_collapse[xslices, yslices]), norm=normalization, aspect='equal', cmap=_PETRainbowCMAP)
     axes.text(2, 5, 'R', color='#f9f9f9', fontsize=45)
     axes.text(xrang - 5, 5, 'L', color='#f9f9f9', fontsize=45)
 
@@ -1295,27 +1395,32 @@ def add_average_plot(doc, norm_pet, mask, title, subfig_width, colormap_width, m
     --------
     None
     """
-
+    # Set up a normalization for the PET data using the given min_value and max_value
+    normalization = MidPointNorm(min_value, max_value, midpoints=MID_POINTS, defmids=DEF_MIDS)
     with doc.create(SubFigure(width=NoEscape(subfig_width))) as subplot:
         doc.append(Command('centering'))
         doc.append(NoEscape(r'{\small\textbf{' + title + r'}}\\'))
         doc.append(NoEscape(r'\vspace{0.2cm}'))
         
+        # Generate the collapsed PET image plot
         plot_collapse_pet(
             norm_pet,
             mask,
             slice(slices[6]-1, slices[0]+1),
-            vmin=min_value,
-            vmax=max_value
+            normalization
         )
         
         subplot.add_plot(width=NoEscape(subfig_width))
 
         doc.append(NoEscape(r'\par \vfill'))
+        
+        # Determine if a maximum tick should be added to the color map based on the plot title
         if title == 'Absolute scale':
             add_max_tick = True
         else:
             add_max_tick = False
+        
+        # Add the color map to the LaTeX document
         add_colormap_plot(doc, plt, vmin=0, vmax=max_value, step=1, add_max_tick=add_max_tick, subfig_width=subfig_width, plot_width=colormap_width)
         doc.append(NoEscape(r'\newline'))
         doc.append(NoEscape(r' {\small Average intensity of top 6 axial slices. }  '))
@@ -1343,23 +1448,26 @@ def plot_average(doc, pet, mask, slices):
     """
 
     doc.append(NoEscape(r'\vspace{-0.2cm}'))
+    
+    # Define the minimum value for normalization
+    min_value = - 1
+    
+    # Calculate the maximum value for the relative scale
     avgmax = 0.9 * np.max(pet[:, :, (slices[6]-1):(slices[0]+1)].mean(axis=2))
+    
+    # Set a fixed maximum value for the absolute scale
+    max_value_absolute = 4
+
     with doc.create(Figure(position='!htp')):
         doc.append(Command('centering'))
         subfig_width = r'8cm'
         colormap_width = r'5cm'
-        # add_average_plot(doc, pet, mask, 'Relative scale', subfig_width, colormap_width, min_value=-1, max_value=avgmax, slices=slices)
-        # add_average_plot(doc, pet, mask, 'Absolute scale', subfig_width, colormap_width, min_value=-1, max_value=4.0, slices=slices)
-        # add_average_plot(doc, pet, mask, 'Relative scale', subfig_width, colormap_width, min_value=0.1*avgmax, max_value=avgmax, slices=slices)
-        # add_average_plot(doc, pet, mask, 'Absolute scale', subfig_width, colormap_width, min_value=0.4, max_value=4.0, slices=slices)
-        # add_average_plot(doc, pet, mask, 'Relative scale', subfig_width, colormap_width, min_value=0, max_value=avgmax, slices=slices)
-        # add_average_plot(doc, pet, mask, 'Absolute scale', subfig_width, colormap_width, min_value=0, max_value=4.0, slices=slices)
-        # add_average_plot(doc, pet, mask, 'Relative scale', subfig_width, colormap_width, min_value=-0.5, max_value=avgmax, slices=slices)
-        # add_average_plot(doc, pet, mask, 'Absolute scale', subfig_width, colormap_width, min_value=-0.5, max_value=4.0, slices=slices)
-        # add_average_plot(doc, pet, mask, 'Relative scale', subfig_width, colormap_width, min_value=-0.3, max_value=avgmax, slices=slices)
-        # add_average_plot(doc, pet, mask, 'Absolute scale', subfig_width, colormap_width, min_value=-0.3, max_value=4.0, slices=slices)
-        add_average_plot(doc, pet, mask, 'Relative scale', subfig_width, colormap_width, min_value=-0.15, max_value=avgmax, slices=slices)
-        add_average_plot(doc, pet, mask, 'Absolute scale', subfig_width, colormap_width, min_value=-0.15, max_value=4.0, slices=slices)
+        
+        # Generate the relative scale plot and add it to the document
+        add_average_plot(doc, pet, mask, 'Relative scale', subfig_width, colormap_width, min_value, max_value=avgmax, slices=slices)
+        
+        # Generate the absolute scale plot and add it to the document
+        add_average_plot(doc, pet, mask, 'Absolute scale', subfig_width, colormap_width, min_value, max_value=max_value_absolute, slices=slices)
 
 
 def plot_nine_pet(doc, pet, mask, pet_desc, slices):
@@ -1385,9 +1493,9 @@ def plot_nine_pet(doc, pet, mask, pet_desc, slices):
     """
 
     # Define intensity range for PET display
-    min_value = -0.2
+    # min_value = -0.2
+    min_value = - 1
     max_value = 0.9 * np.max(pet*(mask.astype(bool)))
-    
     doc.append(NoEscape(r'\vspace*{-0.3cm}'))
 
     # Create figure for PET plots
@@ -1406,12 +1514,12 @@ def plot_nine_pet(doc, pet, mask, pet_desc, slices):
             # Iterate through 3x3 grid positions to plot PET slices
             for k, (i, j) in enumerate([(i, j) for i in range(0, 3) for j in range(0, 3)]):
                 axes[i, j].axis('off')  # Turn off axis for each subplot
-                
                 ind = slices[k]  # Select slice index
+
                 pet_crop = pet[FIRST_DIM_CROPPED, SECOND_DIM_CROPPED, ind]  # Crop the PET image
                 
                 # Plot PET image with segmentation overlay
-                get_overlaying_plots(axes[i, j], segmentations[:, :, ind], pet_crop, min_value, max_value, _PETRainbowCMAP)
+                get_overlaying_plots(axes[i, j], segmentations[:, :, ind], pet_crop, min_value, max_value, normalization=True)
                 get_image_sides(axes[i, j])  # Add R/L labels
 
             subplot1.add_plot()  # Add plot to the LaTeX document
@@ -1475,7 +1583,7 @@ def plot_ct(doc, ct, mask, ct_desc, slices):
                 ct_crop = ct[FIRST_DIM_CROPPED, SECOND_DIM_CROPPED, ind]  # Crop the CT image
                 
                 # Plot CT image with segmentation overlay
-                get_overlaying_plots(axes[i, j], segmentations[:, :, ind], ct_crop, min_value, max_value, cmap, c_map_contour='autumn_r')
+                get_overlaying_plots(axes[i, j], segmentations[:, :, ind], ct_crop, min_value, max_value, False, cmap, c_map_contour='autumn_r')
                 get_image_sides(axes[i, j])  # Add R/L labels
 
             subplot1.add_plot()  # Add plot to the LaTeX document
@@ -1678,17 +1786,22 @@ def second_values(doc,patient_values, normal_stat_values, pt_age):
             table.add_row(*list(row))   
 
         table.add_hline()
-        
+        # Add row with names of columns 
         table.add_row(bold("Location"), bold(" "), bold("Ratio"), bold(" "),
                       MultiColumn(5, align="c", data=bold("Z-score")))
+        
+        # Add row with values for each column
         for row in produce_row(patient_values, "Posterior Putamen / Caudate Nucleus", normal_stat_values, pt_age):
             table.add_row(*list(row))
         
         table.add_hline()
-
+        
+        # Add row with names of columns 
         table.add_row(
             bold("Location"), MultiColumn(3, align="c", data=bold("Hemisphere")),
             MultiColumn(5, align="c", data=bold("Z-score")))
+        
+        # Add row with values for each column
         table.add_row(
             "", MultiColumn(3, align="c", data=bold("asymmetry")),
             MultiColumn(5, align="c", data=""))
@@ -2019,10 +2132,7 @@ def generate_report(self, ref_pet_dcm, ct_desc, normalised_pet, ct_nii, predicti
 
     Returns:
     --------
-    doc : Document
-        The generated LaTeX document object.
-    ds : DICOM
-        The DICOM header information.
+    path
     """
     self.logger.info('Generating report')
     # Flip PET, prediction, and cerebellum arrays along the axis 0 (typically to adjust orientation)
@@ -2207,21 +2317,39 @@ def normalize(logger,ct_brain_nii, pet_nii):
 
 
 def reg_aladin(ref_file, flo_file, aff_file, rig_only_flag=False, in_aff_file=None, aff_direct_flag=True, res_file=None, verbosity=None):
-    '''
-    Block Matching algorithm for symmetric global registration
-    Args:
-        ref_file (a pathlike object or str): The input reference/target image
-        flo_file (a pathlike object or str): The input floating/source image
-        aff_file (a pathlike object or str): The output affine matrix file
-        res_file (a pathlike object or str): The affine transformed floating image
-        verbosity (None or str): One of file, file_split, file_stdout,
-                                 file_stderr, stream, allatonce, none
+    """
+    Perform symmetric global registration using the Block Matching algorithm.
+
+    This function aligns a floating/source image ('flo_file') to a reference/target image ('ref_file') 
+    by applying a Block Matching algorithm. The result is an affine transformation matrix ('aff_file') 
+    that describes the alignment between the two images, and the transformed floating image is saved as 
+    a new file ('res_file').
+
+    Parameters:
+    -----------
+    ref_file : pathlike object or str
+        The input reference/target image to which the floating image will be aligned.
+
+    flo_file : pathlike object or str
+        The input floating/source image that needs to be aligned with the reference image.
+
+    aff_file : pathlike object or str
+        The output affine matrix file that contains the transformation parameters used to align the floating image.
+
+    res_file : pathlike object or str
+        The output file where the affine transformed floating image will be saved.
+
+    verbosity : {'file', 'file_split', 'file_stdout', 'file_stderr', 'stream', 'allatonce', 'none'}, optional
+        The level of verbosity for logging output during the registration process. If set to 'none', no 
+        logging output will be shown.
+
     Returns:
-        Runtime object (except for verbosity='none').
-        Access errors by e.g.:
-            result = reg_aladin(...,verbosity='file_stdout')
-            result.runtime.stdout
-    '''
+    --------
+    runtime object
+        A runtime object representing the execution of the registration process. This object allows access 
+        to detailed logs and error messages. For example, if verbosity is set to 'file_stdout', you can access 
+        the standard output of the process with 'result.runtime.stdout'.
+    """
 
     ral = RegAladin()
     ral.inputs.ref_file = ref_file
@@ -2242,24 +2370,47 @@ def reg_aladin(ref_file, flo_file, aff_file, rig_only_flag=False, in_aff_file=No
 
 def reg_resample(ref_file, flo_file, trans_file, out_file, interpol='NN',
                  pad_val=None, verbosity=None):
-    '''Resample nifty file to a reference template given a transformation matrix
+    """
+    Resample a NIfTI file to a reference template using a given transformation matrix.
 
-    Args:
-        ref_file (a pathlike object or str): The input reference/target image
-        flo_file (a pathlike object or str): The input floating/source image
-        trans_file (a pathlike object or str): The input transformation matrix file
-        out_file (a pathlike object or str): The output filename of the transformed image
-        interpol ('NN' or 'LIN' or 'CUB' or 'SINC'): Type of interpolation. Defaults to 'NN'.
-        pad_val (float, optional): Padding value to pad. Defaults to None.
-        verbosity (None or str): One of file, file_split, file_stdout,
-                                 file_stderr, stream, allatonce, none
+    This function performs image resampling of the floating/source image ('flo_file') to match the reference/target image 
+    ('ref_file'), applying the transformation matrix ('trans_file') for the resampling. The output image is saved to 
+    the specified output file ('out_file').
+
+    Parameters:
+    -----------
+    ref_file : pathlike object or str
+        The input reference/target image to which the floating image will be resampled.
+
+    flo_file : pathlike object or str
+        The input floating/source image that needs to be resampled to match the reference image.
+
+    trans_file : pathlike object or str
+        The input transformation matrix file that defines the transformation to apply to the floating image.
+
+    out_file : pathlike object or str
+        The output filename where the transformed image will be saved.
+
+    interpol : {'NN', 'LIN', 'CUB', 'SINC'}, optional, default='NN'
+        The interpolation method to use for resampling. Options include:
+        - 'NN': Nearest-neighbor interpolation
+        - 'LIN': Linear interpolation
+        - 'CUB': Cubic interpolation
+        - 'SINC': Sinc interpolation
+
+    pad_val : float, optional, default=None
+        The padding value to apply when resampling. If None, no padding will be applied.
+
+    verbosity : {'file', 'file_split', 'file_stdout', 'file_stderr', 'stream', 'allatonce', 'none'}, optional
+        The level of verbosity for logging output during the resampling process. If set to 'none', no logging output will be shown.
 
     Returns:
-        Runtime object (except for verbosity='none').
-        Access errors by e.g.:
-            result = reg_resample(...,verbosity='file_stdout')
-            result.runtime.stdout
-    '''
+    --------
+    runtime object
+        A runtime object representing the execution of the resampling process. This object allows access to 
+        detailed logs and error messages. For example, if verbosity is set to 'file_stdout', you can access 
+        the standard output of the process with 'result.runtime.stdout'.
+    """
 
     rsl = RegResample()
     rsl.inputs.ref_file = ref_file
@@ -2281,18 +2432,29 @@ def reg_resample(ref_file, flo_file, trans_file, out_file, interpol='NN',
 
 
 def load_model(logger, model_file):
-    '''
-    Load a pre-trained Keras model with custom objects.
+    """
+    Load a pre-trained Keras model with custom objects, including any custom layers or functions.
 
-    Args:
-        model_file (str): Path to the pre-trained model file.
+    This function loads a Keras model from a file, while ensuring that any custom layers (like 'InstanceNormalization')
+    or other custom objects are correctly loaded into the Keras model.
+
+    Parameters:
+    -----------
+    model_file : str
+        Path to the pre-trained model file (.h5 format) that contains the Keras model. The model file should include
+        all necessary custom layers or objects that are part of the model architecture.
 
     Returns:
-        keras.Model: Loaded Keras model with the custom objects.
+    --------
+    keras.Model
+        The loaded Keras model with custom objects. This model can then be used for inference or further training.
 
     Raises:
-        ValueError: If there's an error related to 'InstanceNormalization' and keras-contrib is not installed.
-    '''
+    -------
+    ValueError
+        If there is an issue with loading the model related to the 'InstanceNormalization' layer and the 
+        'keras-contrib' package is not installed, a ValueError will be raised indicating the missing dependency.
+    """
     logger.info('Loading pre-trained model')
 
     # Define custom objects for loading the model
@@ -2327,42 +2489,78 @@ def load_model(logger, model_file):
 
 
 def patch_wise_prediction(model, data):
-    '''
-    Function for prediction of caudate nuclei and putamen using 8 patches.
+    """
+    Perform patch-wise prediction of caudate nuclei and putamen using a U-Net model.
 
-    Args:
-        model (keras.Model): U-Net model used for prediction.
-        data (np.ndarray): PET and CT data in one numpy array.
+    This function divides the input 3D data into smaller patches, runs the prediction on each patch 
+    using the provided U-Net model, and then reconstructs the predicted values back into the full image.
+
+    Parameters:
+    -----------
+    model : keras.Model
+        The U-Net model used for prediction. The model should be capable of processing 3D patches 
+        and outputting predicted values for the caudate nuclei and putamen.
+    
+    data : np.ndarray
+        A 3D numpy array containing the PET and CT data. The data should be in a format that 
+        can be divided into smaller patches for processing by the model.
 
     Returns:
-        np.ndarray: Prediction of caudate nuclei and putamen reconstructed from the patches.
-    '''
-    patch_shape = np.asarray([int(dim) for dim in model.input.shape[-3:]]) # 80, 48, 48
+    --------
+    np.ndarray
+        A 3D numpy array containing the prediction for the caudate nuclei and putamen, 
+        reconstructed from the individual patches predicted by the model.
+    """
+    # Get the shape of the input patches, based on the model's input shape (e.g., 80x48x48)
+    patch_shape = np.asarray([int(dim) for dim in model.input.shape[-3:]])  # Model input shape, e.g., (80, 48, 48)
+    
+    # List to store predictions for each patch
     predictions = list()
+    
+    # Get the indices for the patches to be extracted from the 3D data
     indices = compute_patch_indices()
     
+    # Loop through each patch index to process and predict patch-wise
     for i in range(len(indices)):
+        # Extract the patch from the 3D data using the specified patch shape and index
         patch = get_patch_from_3d_data(data, patch_shape=patch_shape, patch_index=indices[i])[np.newaxis]
+        
+        # Predict the patch using the model. This returns the predicted values for this patch.
         prediction = model.predict(patch, verbose=0)
+        
+        # Append each predicted patch result to the predictions list
         for predicted_patch in prediction:
             predictions.append(predicted_patch)
+        
+        # Calculate the output shape based on the model's output and the input data shape
         output_shape = [int(model.output.shape[1])] + list(data.shape[-3:])
 
+    # Reconstruct the full output from the list of patches
     return reconstruct_from_patches(predictions, patch_indices=indices, data_shape=output_shape)
 
 
 def get_patch_from_3d_data(data, patch_shape, patch_index):
-    '''
-    Extract a patch from 3D data (both CT and PET) numpy array.
+    """
+    Extract a patch from a 3D numpy array containing CT and PET data.
 
-    Args:
-        data (np.ndarray): CT and PET numpy array from which to get the patch.
-        patch_shape (tuple): Shape/size of the patch.
-        patch_index (tuple): Corner index of the patch.
+    This function crops a subregion (patch) from the input 3D array based on the provided shape and corner index.
+
+    Parameters:
+    -----------
+    data : np.ndarray
+        A 3D numpy array containing CT and PET data from which the patch will be extracted.
+
+    patch_shape : tuple
+        A tuple specifying the dimensions (depth, height, width) of the patch to be extracted.
+
+    patch_index : tuple
+        A tuple specifying the starting corner index (z, y, x) of the patch in the input data.
 
     Returns:
-        np.ndarray: Cropped CT and PET data with the specified patch shape.
-    ''' 
+    --------
+    np.ndarray
+        A numpy array containing the extracted patch of CT and PET data with the specified shape.
+    """
     return data[..., 
                 patch_index[0]: patch_index[0] + patch_shape[0], 
                 patch_index[1]: patch_index[1] + patch_shape[1],
@@ -2370,18 +2568,29 @@ def get_patch_from_3d_data(data, patch_shape, patch_index):
 
 
 def reconstruct_from_patches(patches, patch_indices, data_shape):
-    '''
-    Reconstruct an array of the original shape from the list of patches and corresponding patch indices. Overlapping
-    patches are averaged.
+    """
+    Reconstruct an array of the original shape from a list of patches and their corresponding indices.
 
-    Args:
-        patches (list): List of prediction patches as numpy arrays.
-        patch_indices (list): List of indices corresponding to the patches.
-        data_shape (tuple): Shape of the array from which the patches were extracted.
+    Overlapping regions in the patches are averaged to produce the reconstructed data.
+
+    Parameters:
+    -----------
+    patches : list
+        A list of numpy arrays representing the prediction patches.
+
+    patch_indices : list
+        A list of tuples specifying the corner indices for each patch in the original data.
+
+    data_shape : tuple
+        A tuple specifying the shape of the original data from which the patches were extracted 
+        (e.g., (depth, height, width)).
 
     Returns:
-        np.ndarray: Data reconstructed from the patches.
-    '''
+    --------
+    np.ndarray
+        A numpy array reconstructed from the input patches, matching the specified original data shape.
+    """
+    
     data =np.zeros(data_shape)
     count = np.zeros(data_shape, dtype=int)
 
@@ -2405,210 +2614,330 @@ def reconstruct_from_patches(patches, patch_indices, data_shape):
 
 
 def prediction_to_image(prediction, threshold=0.5, labels=None):
-    '''
-    Convert model prediction to a labeled image based on a threshold.
+    """
+    Convert model prediction to a labeled image based on a specified threshold.
 
-    Args:
-        prediction (np.ndarray): Model prediction.
-        threshold (float): Threshold for labeling. Defaults to 0.5.
-        labels (list, optional): List of labels for each class. Defaults to None.
+    This function assigns labels to the prediction array based on a threshold value, optionally using a provided list of labels.
+
+    Parameters:
+    -----------
+    prediction : np.ndarray
+        A numpy array containing the model's prediction values.
+
+    threshold : float, optional
+        The threshold value for binarizing the prediction. Predictions greater than or equal to this value are labeled.
+        Defaults to 0.5.
+
+    labels : list, optional
+        A list of labels corresponding to each class in the prediction. If not provided, default labels will be used.
+        Defaults to None.
 
     Returns:
-        np.ndarray: Labeled image.
-    '''
-    if prediction.shape[1] == 1:
-        data = prediction[0, 0]
-        label_map_data = np.zeros(prediction[0, 0].shape, np.int8)
-        label = labels[0] if labels else 1
-        label_map_data[data > threshold] = label
-        data = label_map_data
-    elif prediction.shape[1] > 1:
-        label_map_data = get_prediction_labels(prediction, threshold=threshold, labels=labels)
-        data = label_map_data[0]
-    else:
-        raise RuntimeError('Invalid prediction array shape: {0}'.format(prediction.shape))
+    --------
+    np.ndarray
+        A numpy array representing the labeled image, where each pixel/voxel is assigned to a class based on the threshold.
+    """
     
-    return data
+    if prediction.shape[1] == 1:  # Check if the prediction is for binary classification (single channel)
+        data = prediction[0, 0]  # Extract the binary prediction array from the first batch
+        label_map_data = np.zeros(prediction[0, 0].shape, np.int8)  # Initialize an empty array for labeled data
+        label = labels[0] if labels else 1  # Assign a default label (1) if no labels are provided
+        label_map_data[data > threshold] = label  # Label regions where prediction exceeds the threshold
+        data = label_map_data  # Update 'data' with the labeled image
+    elif prediction.shape[1] > 1:  # Check if the prediction is for multi-class classification
+        # Use a helper function to get the labeled image for multi-class predictions
+        label_map_data = get_prediction_labels(prediction, threshold=threshold, labels=labels)
+        data = label_map_data[0]  # Extract the labeled data from the first batch
+    else:
+        # Raise an error if the prediction array shape is invalid or doesn't match expected formats
+        raise RuntimeError('Invalid prediction array shape: {0}'.format(prediction.shape))
 
+    return data  # Return the labeled image
 
 def compute_patch_indices():
-    '''
-    Compute indices for extracting patches from the data.
+    """
+    Compute the corner indices for extracting patches from 3D data.
+
+    This function generates a set of indices representing the starting coordinates of patches 
+    to be extracted from the data. These indices correspond to the top-left-front corner of each patch.
+
+    Parameters:
+    -----------
+    None
 
     Returns:
-        np.ndarray: Array of patch indices.
-
-    output look like this: x,y,z
-    array([[ 80,  94, 101],
-       [ 80,  94, 112],
-       [ 80, 114, 101],
-       [ 80, 114, 112],
-       [ 94,  94, 101],
-       [ 94,  94, 112],
-       [ 94, 114, 101],
-       [ 94, 114, 112]])
-    '''
+    --------
+    np.ndarray
+        A numpy array where each row contains the (x, y, z) coordinates of a patch's corner. 
+        The output has the format:
+        array([[ 80,  94, 101],
+               [ 80,  94, 112],
+               [ 80, 114, 101],
+               [ 80, 114, 112],
+               [ 94,  94, 101],
+               [ 94,  94, 112],
+               [ 94, 114, 101],
+               [ 94, 114, 112]])
+    """
+    
+    # Define the starting coordinates for the grid
     start = np.array([80, 94, 101])
+
+    # Define the stopping coordinates for the grid
     stop = np.array([95, 115, 113])
+
+    # Define the step size for the grid along each dimension
     step = np.array([14, 20, 11])
+
+    # Generate a 3D grid using np.mgrid 
     return np.asarray(np.mgrid[start[0]:stop[0]:step[0], 
                                start[1]:stop[1]:step[1],
                                start[2]:stop[2]:step[2]].reshape(3, -1).T, dtype=np.int16)
 
 
 def get_prediction_labels(prediction, threshold=0.5, labels=None):
-    '''
-    Convert prediction scores to labeled arrays based on a threshold.
+    """
+    Convert prediction scores into labeled arrays based on the provided threshold.
 
-    Args:
-        prediction (np.ndarray): Array of prediction scores with shape (n_samples, n_classes, ...).
-        threshold (float): Minimum score to consider for a label. Defaults to 0.5.
-        labels (list, optional): List of labels corresponding to class indices. Defaults to None.
+    This function assigns labels to each spatial location based on the predicted class with the highest score.
+    Locations where the maximum score is below the threshold are labeled as background (0).
+    Optionally, custom labels can be assigned to the classes.
+
+    Parameters:
+    -----------
+    prediction : np.ndarray
+        A numpy array of shape (n_samples, n_classes, ...) containing prediction scores.
+        - 'n_samples' is the number of samples.
+        - 'n_classes' is the number of predicted classes.
+        - The remaining dimensions correspond to the spatial dimensions of the predictions.
+
+    threshold : float, optional
+        Minimum prediction score required to assign a label. Predictions below this value are set to 0 (background).
+        Default is 0.5.
+
+    labels : list, optional
+        A list of custom labels corresponding to class indices. If provided, these labels will replace class indices
+        in the output. Default is None, which keeps the class indices as labels.
 
     Returns:
-        list: List of labeled arrays for each sample.
-    '''
+    --------
+    list
+        A list of labeled arrays, one for each sample. Each array has the same spatial dimensions as the input data,
+        with values representing the assigned class or custom label.
+    """
+    # Number of samples in the prediction array
     n_samples = prediction.shape[0] 
+
+    # Initialize an empty list to store labeled arrays
     label_arrays = []
 
+    # Iterate over each sample in the prediction array
     for sample_number in range(n_samples):
+        # Assign labels based on the highest prediction score for each spatial location
         label_data = np.argmax(prediction[sample_number], axis=0) + 1
+        
+        # Apply the threshold
         label_data[np.max(prediction[sample_number], axis=0) < threshold] = 0
+        
+        # If a list of labels is provided, map class indices to actual labels
         if labels:
+            # Iterate over unique non-zero values in label_data
             for value in np.unique(label_data)[1:]: 
+                # Replace the class index (value) with the corresponding label
                 label_data[label_data == value] = labels[value - 1]
+                
+        # Append the labeled array for this sample to the output list
         label_arrays.append(label_data.astype(np.uint8))
 
     return label_arrays
 
 
 def dice_coefficient_loss(y_true, y_pred):
-    '''
-    Compute the Dice coefficient loss.
+    """
+    Calculate the Dice coefficient loss.
 
-    Args:
-        y_true (tf.Tensor): Ground truth tensor.
-        y_pred (tf.Tensor): Predicted tensor.
+    Parameters:
+    -----------
+    y_true : tf.Tensor
+        Ground truth binary tensor representing the target mask.
+    y_pred : tf.Tensor
+        Predicted binary tensor from the model.
 
     Returns:
-        tf.Tensor: The negative Dice coefficient (as a loss function).
-    '''
+    --------
+    tf.Tensor
+        The negative Dice coefficient value to be minimized during training.
+    """
     return -dice_coefficient(y_true, y_pred)
 
 
 def dice_coefficient(y_true, y_pred, smooth=1.):
-    '''
-    Compute the Dice coefficient for evaluating the similarity 
-    between the ground truth and predicted masks.
+    """
+    Compute the Dice similarity coefficient.
 
-    Args:
-        y_true (tf.Tensor): Ground truth tensor.
-        y_pred (tf.Tensor): Predicted tensor.
-        smooth (float): Smoothing constant to avoid division by zero. Defaults to 1.
+    Parameters:
+    -----------
+    y_true : tf.Tensor
+        Ground truth binary tensor representing the target mask.
+    y_pred : tf.Tensor
+        Predicted binary tensor from the model.
+    smooth : float, optional
+        A small constant added to the numerator and denominator to prevent division by zero. Default is 1.0.
 
     Returns:
-        tf.Tensor: The Dice coefficient.
-    '''
+    --------
+    tf.Tensor
+        The Dice coefficient, a scalar value between 0 and 1, indicating the similarity between 'y_true' and 'y_pred'.
+    """
+    # Flatten the tensors to compute the overlap
     y_true_f = tf.keras.backend.flatten(y_true)
     y_pred_f = tf.keras.backend.flatten(y_pred)
+    
+    # Calculate the intersection between the ground truth and predictions
     intersection = tf.keras.backend.sum(y_true_f * y_pred_f)
 
+    # Compute the Dice coefficient with smoothing
     return (2. * intersection + smooth) / (tf.keras.backend.sum(y_true_f) + tf.keras.backend.sum(y_pred_f) + smooth)
 
 
 def tversky_loss(y_true, y_pred):
-    '''
-    Compute the Tversky loss for imbalanced datasets, which is a generalization of the Dice coefficient.
+    """
+    Compute the Tversky loss for imbalanced datasets, a generalization of the Dice coefficient.
 
-    Args:
-        y_true (tf.Tensor): Ground truth tensor.
-        y_pred (tf.Tensor): Predicted tensor.
+    Parameters:
+    -----------
+    y_true : tf.Tensor
+        Ground truth tensor (binary mask), where 1 represents the presence of the object of interest.
+    
+    y_pred : tf.Tensor
+        Predicted tensor (probability map), with values ranging from 0 to 1 representing the model's confidence.
 
     Returns:
-        tf.Tensor: The Tversky loss.
-    '''
+    --------
+    tf.Tensor
+        A scalar tensor representing the Tversky loss, which quantifies the dissimilarity between 'y_true' and 'y_pred'.
+    """
+    # Constants for false positives and false negatives weighting
     alpha = 0.3
     beta = 0.7
 
+    # Create tensor of ones with the same shape as y_true for calculating complement
     ones = tf.keras.backend.ones(tf.keras.backend.shape(y_true))
+    
     p0 = y_pred       # Probability that voxels are of the predicted class
     p1 = ones - y_pred  # Probability that voxels are not of the predicted class
     g0 = y_true       # Ground truth
     g1 = ones - y_true # Inverse of ground truth
 
+    # Compute the numerator and denominator for the Tversky index
     numerator = tf.keras.backend.sum(p0 * g0, (0, 1, 2, 3))
     denominator = numerator + alpha * tf.keras.backend.sum(p0 * g1, (0, 1, 2, 3)) + beta * tf.keras.backend.sum(p1 * g0, (0, 1, 2, 3))
-
+    
+    # Tversky loss (1 - Tversky index)
     T = tf.keras.backend.sum(numerator / denominator)
-    # when summing over classes, T has dynamic range [0 Ncl]
 
+    # Number of classes (for dynamic scaling)
     Ncl = tf.keras.backend.cast(tf.keras.backend.shape(y_true)[-1], 'float32')
 
     return Ncl - T
 
 
 def tversky_coef(y_true, y_pred):
-    '''
-    Compute the Tversky coefficient, which is the negative Tversky loss.
+    """
+    Compute the Tversky coefficient, which is the negative of the Tversky loss.
 
-    Args:
-        y_true (tf.Tensor): Ground truth tensor.
-        y_pred (tf.Tensor): Predicted tensor.
+    Parameters:
+    -----------
+    y_true : tf.Tensor
+        Ground truth tensor (binary mask), where 1 represents the presence of the object of interest.
+    
+    y_pred : tf.Tensor
+        Predicted tensor (probability map), with values ranging from 0 to 1 representing the model's confidence.
 
     Returns:
-        tf.Tensor: The negative Tversky loss (as a coefficient).
-    '''
+    --------
+    tf.Tensor
+        A scalar tensor representing the Tversky coefficient, which measures the similarity between 'y_true' and 'y_pred'.
+    """
     return -tversky_loss(y_true, y_pred)
 
 
 def generalized_dice_loss(y_true, y_pred):
-    '''
-    Compute the generalized Dice loss, which accounts for class imbalance by 
-    weighting each label's contribution inversely proportional to its volume.
+    """
+    Compute the generalized Dice loss, which accounts for class imbalance by weighting 
+    each label's contribution inversely proportional to its volume.
 
-    Args:
-        y_true (tf.Tensor): Ground truth tensor.
-        y_pred (tf.Tensor): Predicted tensor.
+    Parameters:
+    -----------
+    y_true : tf.Tensor
+        Ground truth tensor with shape (batch_size, height, width, depth, n_classes).
+        The tensor contains the true labels for each class in the segmentation task.
+
+    y_pred : tf.Tensor
+        Predicted tensor with shape (batch_size, height, width, depth, n_classes).
+        The tensor contains the predicted probabilities or logits for each class.
 
     Returns:
-        tf.Tensor: The generalized Dice loss.
-    '''
-
-    Ncl = y_pred.shape[-1]
-    w = np.zeros((Ncl,))
+    --------
+    tf.Tensor
+        A scalar tensor representing the generalized Dice loss. Lower values indicate better performance.
+    """
+    Ncl = y_pred.shape[-1] # Number of classes
+    w = np.zeros((Ncl,))  # Initialize an array to store the weight for each class
+    
+    # Loop through each class to calculate the weight based on the number of true positives for each class
     for l in range(0, Ncl):
+        # Sum the number of true positives for class `l` in y_true
         w[l] = np.sum(np.asarray(y_true[:, :, :, :, l] == 1, np.int8))
+        
+    # Prevent division by zero by adding a small constant (0.00001) and taking the inverse of the class volumes (squared)
     w = 1 / (w**2 + 0.00001)
 
-    # Compute gen dice coef:
+    # Compute the numerator of the generalized Dice coefficient:
     numerator = y_true * y_pred
     numerator = w * tf.keras.backend.sum(numerator, (0, 1, 2, 3))
     numerator = tf.keras.backend.sum(numerator)
 
+    # Compute the denominator of the generalized Dice coefficient:
     denominator = y_true + y_pred
     denominator = w * tf.keras.backend.sum(denominator, (0, 1, 2, 3))
     denominator = tf.keras.backend.sum(denominator)
 
+    # Calculate the generalized Dice coefficient
     gen_dice_coef = numerator / denominator
 
+    # Return the generalized Dice loss
     return 1 - 2 * gen_dice_coef
 
 
 def weighted_dice_coefficient(y_true, y_pred, axis=(-3, -2, -1), smooth=1e-5):
-    '''
+    """
     Compute the weighted Dice coefficient for evaluating the similarity 
-    between the ground truth and predicted masks.
+    between the ground truth and predicted masks, with the option for a smoothing constant.
 
-    Args:
-        y_true (tf.Tensor): Ground truth tensor.
-        y_pred (tf.Tensor): Predicted tensor.
-        axis (tuple of int): Axes along which to compute the Dice coefficient.
-                             Defaults to (-3, -2, -1) assuming 'channels first' data format.
-        smooth (float): Smoothing constant to avoid division by zero. Defaults to 0.00001.
+    Parameters:
+    -----------
+    y_true : tf.Tensor
+        Ground truth tensor, typically with shape (batch_size, height, width, depth, n_classes) 
+        or similar for multi-class segmentation.
+
+    y_pred : tf.Tensor
+        Predicted tensor with the same shape as 'y_true', typically containing probability values 
+        for each class at each voxel location.
+
+    axis : tuple of int, optional
+        Axes along which to compute the Dice coefficient. Defaults to (-3, -2, -1) assuming 'channels first' 
+        data format. Modify for specific dimensionality of the data.
+
+    smooth : float, optional
+        Smoothing constant to avoid division by zero. Defaults to 1e-5.
 
     Returns:
-        tf.Tensor: The mean Dice coefficient.
-    '''
+    --------
+    tf.Tensor
+        A scalar tensor representing the weighted Dice coefficient. Higher values indicate better 
+        similarity between the predicted and true masks.
+    """
     intersection = tf.keras.backend.sum(y_true * y_pred, axis=axis) + smooth / 2
     
     # Compute the sum of y_true and y_pred, and add smooth
@@ -2622,15 +2951,20 @@ def weighted_dice_coefficient(y_true, y_pred, axis=(-3, -2, -1), smooth=1e-5):
 
 
 def get_label_dice_coefficient_function(label_index):
-    '''
+    """
     Create a function to compute the Dice coefficient for a specific label.
 
-    Args:
-        label_index (int): Index of the label for which the Dice coefficient is computed.
+    Parameters:
+    -----------
+    label_index : int
+        The index of the label (class) for which the Dice coefficient function is generated.
 
     Returns:
-        function: A function that computes the Dice coefficient for the specified label.
-    '''
+    --------
+    function
+        A function that computes the Dice coefficient for the specified label when passed 
+        the ground truth and predicted tensors.
+    """
     f = partial(label_wise_dice_coefficient, label_index=label_index)
     f.__setattr__('__name__', 'label_{0}_dice_coef'.format(label_index))
 
@@ -2638,29 +2972,48 @@ def get_label_dice_coefficient_function(label_index):
 
 
 def label_wise_dice_coefficient(y_true, y_pred, label_index):
-    '''
+    """
     Compute the Dice coefficient for a specific label.
 
-    Args:
-        y_true (tf.Tensor): Ground truth tensor.
-        y_pred (tf.Tensor): Predicted tensor.
-        label_index (int): Index of the label for which the Dice coefficient is computed.
+    Parameters:
+    -----------
+    y_true : tf.Tensor
+        Ground truth tensor with shape (batch_size, n_classes, ...). Each slice along 
+        the second axis represents a separate class.
+
+    y_pred : tf.Tensor
+        Predicted tensor with the same shape as 'y_true', containing predicted 
+        probabilities for each class.
+
+    label_index : int
+        The index of the class (label) for which the Dice coefficient will be computed.
 
     Returns:
-        tf.Tensor: The Dice coefficient for the specified label.
-    '''
+    --------
+    tf.Tensor
+        A scalar tensor representing the Dice coefficient for the specified label (class).
+    """
     return dice_coefficient(y_true[:, label_index], y_pred[:, label_index])
 
 
 def weighted_dice_coefficient_loss(y_true, y_pred):
-    '''
-    Compute the weighted Dice coefficient loss.
+    """
+    Compute the weighted Dice coefficient loss for imbalanced segmentation tasks.
+    
+    Parameters:
+    -----------
+    y_true : tf.Tensor
+        Ground truth tensor, typically a binary or multi-class mask with shape 
+        (batch_size, height, width, depth, n_classes).
 
-    Args:
-        y_true (tf.Tensor): Ground truth tensor.
-        y_pred (tf.Tensor): Predicted tensor.
+    y_pred : tf.Tensor
+        Predicted tensor with the same shape as 'y_true', containing the predicted 
+        probabilities or logits for each class.
 
     Returns:
-        tf.Tensor: The negative weighted Dice coefficient (as a loss function).
-    '''
+    --------
+    tf.Tensor
+        A scalar tensor representing the negative weighted Dice coefficient, 
+        which is minimized during training.
+    """
     return -weighted_dice_coefficient(y_true, y_pred)

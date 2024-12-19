@@ -4,10 +4,10 @@ OUTPUT_PATH="/data/"
 STATIC_PATH="/report_data/"
 '''
 import os
+import json
 import logging
 import random
 import numpy as np
-import shutil
 from pathlib import Path
 from typing import Dict, Any
 import dotenv
@@ -46,9 +46,11 @@ class MyCTInput(AbstractInput):
     """
     def validate(self) -> bool:
         maxInstanceNumber = -1
+        
         # Iterate through datasets to find the maximum instance number
         for dataset in self:
             maxInstanceNumber = max(maxInstanceNumber, dataset.InstanceNumber)
+        
         # Check if the number of images matches the maximum instance number
         return self.images == maxInstanceNumber
     
@@ -86,21 +88,29 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
     """
     Main pipeline node for processing PET and CT data, and generating reports.
     """
+    # Factory for creating DICOM objects
     dicom_factory = factory
-    log_path: str = "/var/log/pe2ipetctnode.log"  # Path for logging
-    ae_title: str = "PE2IPETCTNODE" # AE Title for DICOM nodes
+    
+    # Path for logging output
+    log_path: str = "/var/log/pe2ipetctnode.log"
+    
+    # AE Title for DICOM nodes (Application Entity Title)
+    ae_title: str = "PE2IPETCTNODE" 
+    
+    # Directory for processing output
     processing_directory = OUTPUT_PATH
 
     # Network settings
     port: int = 1131
     ip: str = '0.0.0.0'
 
-    # Logger settings
+    # Logger settings: disable pynetdicom logger and set log level
     disable_pynetdicom_logger = True
     log_level: int = logging.DEBUG
     log_output = "log.log"
+    
+    # Blueprint for handling unhandled errors
     unhandled_error_blueprint = error_blueprint
-
 
     # Input types for the pipeline
     input = {
@@ -134,40 +144,64 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
         # Reference DICOM datasets
         ref_pet_dicom = input_data.datasets['PET'][0]
         ref_ct_dicom = input_data.datasets['CT'][0]
+        
+        # Get CT series description (metadata)
         ct_desc = ref_ct_dicom.SeriesDescription
-
-        # Perform various processing steps on PET and CT data
+        # this is added for validation 
+        pt_id = ref_ct_dicom.PatientID
+        with open("/home/zuza/validation/pt_processed.txt", "a") as file:
+            file.write('\n' + pt_id)
+            
+        # Perform preprocessing steps on PET and CT data:
+        # Swap dimensions for PET and CT (function defined in node_functions)
         pet_swap_nii = node_functions.swap_dims(self, pet, 'PET')
         ct_swap_nii = node_functions.swap_dims(self, ct, 'CT') 
         
+        # Skull stripping on CT data
         ct_bet_nii = node_functions.run_skullstripping(self, ct_swap_nii)
+        
+        # Resampling PET, CT, and skull-stripped CT images to the same resolution
         pet_resampled_nii, ct_resampled_nii, ct_bet_resampled_nii = node_functions.resampling(
             self, pet_swap_nii, ct_swap_nii, ct_bet_nii
         ) 
+        
+        # Further processing of CT data (e.g., preprocessing)
         ct_bet_preproc_nii = node_functions.process_ct(self, ct_bet_resampled_nii)
+        
+        # Masking cerebellum cortex in CT data
         cerebellum_nii = node_functions.cerebellum_mask(self, ct_bet_preproc_nii)
-
+        
+        # Get prediction data and statistics based on PET and CT data
         prediction_data = node_functions.get_predition(self.logger, ct_bet_preproc_nii, pet_resampled_nii)
         pet_normalized_data, cerebellum_mask_data, patient_values = node_functions.get_statistics(
             self.logger, pet_resampled_nii, cerebellum_nii, prediction_data
-            ) # doesnt need to be file 
+            )
 
         # Generate the report
         report = node_functions.generate_report(
             self, ref_pet_dicom, ct_desc, pet_normalized_data, ct_resampled_nii, 
             prediction_data, cerebellum_mask_data, patient_values
         )
+        
+        file_path = '/home/zuza/validation/' + str(pt_id) +'.json'
+        with open(file_path, 'w') as json_file:
+            json.dump(patient_values, json_file, indent=4)
 
+        # Extract keys from the patient_values dictionary to add them to the DICOM report
         keys = list(patient_values.keys())
 
-
+        # Define the report name and create a blueprint for encoding the DICOM report
         report_name = f"PE2I Report V2.0 {datetime.now().strftime("%Y/%m/%d %H:%M:%S")}"
         blueprint= Blueprint(SECONDARY_IMAGE_REPORT_BLUEPRINT)
-        blueprint[0x0008_103E] = StaticElement(0x0008_103E, 'LO', 'PE2I report') # Series Description
+        
+        # Populate the blueprint with relevant DICOM tags and values
+        blueprint[0x0008_103E] = StaticElement(0x0008_103E, 'LO', report_name) # Series Description
         blueprint[0x0010_0010] = CopyElement(0x0010_0010) # Patient's Name 
         blueprint[0x0020_0011] = StaticElement(0x0020_0011, 'IS', str(random.randint(5000,100000))) # Series Number
         blueprint[0x0008_0021] = FunctionalElement(0x00080021, 'DA', get_today) #Series Date
         blueprint[0x0008_0031] = FunctionalElement(0x00080031, 'TM', get_time) #Series Time
+        
+        # Add calculated patient values to the blueprint for DICOM output
         for i in range(len(keys)):  
             key = keys[i]
             blueprint[0x3003_0101 + i] = StaticElement(
@@ -176,9 +210,15 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
                 np.round(patient_values[key], 2),
                 name=f"{key} [SBR]" if i < 14 else f"{key}"
         )
-        #blueprint[0x3003_1000] = StaticElement(0x3003_1000, 'LO', patient_values)
+
         # Encode the report as a PDF
         encoded_report = self.dicom_factory.encode_pdf(report, [ref_pet_dicom], blueprint)
+        
+        # Ensure that all encoded report instances have matching series time
+        if encoded_report[0].SeriesTime != encoded_report[1].SeriesTime:
+            for i in range(1, len(encoded_report)):
+                encoded_report[i].SeriesTime = encoded_report[0].SeriesTime
+                
         # Return the file output containing the generated report
         return DicomOutput([(self.endpoint, encoded_report),(PET_ARCHIVE, encoded_report)], self.ae_title)
        
