@@ -40,20 +40,25 @@ error_blueprint = ERROR_BLUEPRINT
 
 PET_ARCHIVE = Address('10.49.144.6', 104, 'GOYA') # These should be  in .env
 
+BISPEBJERG_SCANNER_1 = Address('172.23.48.81', 104, 'BFHKFNM7101')
+BISPEBJERG_SCANNER_2 = Address('172.23.48.82', 104, 'BFHKFNM7102')
+BISPEBJERG_SCANNER_3 = Address('172.23.48.83', 104, 'BFHKFNMMI1')
+BISPEBJERG_PET_ARCHIVE = Address('172.23.48.110', 11112, 'BBHKFNMOSIRIX')
+
 class MyCTInput(AbstractInput):
     """
     Handles input data for CT images.
     """
     def validate(self) -> bool:
         maxInstanceNumber = -1
-        
+
         # Iterate through datasets to find the maximum instance number
         for dataset in self:
             maxInstanceNumber = max(maxInstanceNumber, dataset.InstanceNumber)
-        
+
         # Check if the number of images matches the maximum instance number
         return self.images == maxInstanceNumber
-    
+
     # Image grinder object for processing NIfTI images
     image_grinder = NiftiGrinder()
 
@@ -73,7 +78,7 @@ class MyPETInput(AbstractInput):
             maxInstanceNumber = max(maxInstanceNumber, dataset.InstanceNumber)
         # Check if the number of images matches the maximum instance number
         return self.images == maxInstanceNumber
-    
+
 
     # Image grinder object for processing NIfTI images
     image_grinder = NiftiGrinder()
@@ -90,13 +95,13 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
     """
     # Factory for creating DICOM objects
     dicom_factory = factory
-    
+
     # Path for logging output
     log_path: str = "/var/log/pe2ipetctnode.log"
-    
+
     # AE Title for DICOM nodes (Application Entity Title)
-    ae_title: str = "PE2IPETCTNODE" 
-    
+    ae_title: str = "PE2IPETCTNODE"
+
     # Directory for processing output
     processing_directory = OUTPUT_PATH
 
@@ -108,9 +113,16 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
     disable_pynetdicom_logger = True
     log_level: int = logging.DEBUG
     log_output = "log.log"
-    
+
     # Blueprint for handling unhandled errors
     unhandled_error_blueprint = error_blueprint
+
+    known_endpoints = {
+        BISPEBJERG_SCANNER_1.ae_title : BISPEBJERG_SCANNER_1,
+        BISPEBJERG_SCANNER_2.ae_title : BISPEBJERG_SCANNER_2,
+        BISPEBJERG_SCANNER_3.ae_title : BISPEBJERG_SCANNER_3,
+        BISPEBJERG_PET_ARCHIVE.ae_title : BISPEBJERG_PET_ARCHIVE,
+    }
 
     # Input types for the pipeline
     input = {
@@ -144,27 +156,27 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
         # Reference DICOM datasets
         ref_pet_dicom = input_data.datasets['PET'][0]
         ref_ct_dicom = input_data.datasets['CT'][0]
-        
+
         # Get CT series description (metadata)
         ct_desc = ref_ct_dicom.SeriesDescription
-        # this is added for validation 
+        # this is added for validation
         pt_id = ref_ct_dicom.PatientID
         with open("/home/zuza/validation/pt_processed.txt", "a") as file:
             file.write('\n' + pt_id)
-            
+
         # Perform preprocessing steps on PET and CT data:
         # Swap dimensions for PET and CT (function defined in node_functions)
         pet_swap_nii = node_functions.swap_dims(self, pet, 'PET')
-        ct_swap_nii = node_functions.swap_dims(self, ct, 'CT') 
-        
+        ct_swap_nii = node_functions.swap_dims(self, ct, 'CT')
+
         # Skull stripping on CT data
         ct_bet_nii = node_functions.run_skullstripping(self, ct_swap_nii)
-        
+
         # Resampling PET, CT, and skull-stripped CT images to the same resolution
         pet_resampled_nii, ct_resampled_nii, ct_bet_resampled_nii = node_functions.resampling(
             self, pet_swap_nii, ct_swap_nii, ct_bet_nii
-        ) 
-        
+        )
+
         # Further processing of CT data (e.g., preprocessing)
         ct_bet_preproc_nii = node_functions.process_ct(self, ct_bet_resampled_nii)
         
@@ -218,10 +230,13 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
         if encoded_report[0].SeriesTime != encoded_report[1].SeriesTime:
             for i in range(1, len(encoded_report)):
                 encoded_report[i].SeriesTime = encoded_report[0].SeriesTime
-                
+
         # Return the file output containing the generated report
+        if input_data.responding_address.ae_title in [BISPEBJERG_SCANNER_1.ae_title, BISPEBJERG_SCANNER_2.ae_title, BISPEBJERG_SCANNER_3.ae_title, BISPEBJERG_PET_ARCHIVE.ae_title]:
+            return DicomOutput([(BISPEBJERG_PET_ARCHIVE, encoded_report)], self.ae_title)
+
         return DicomOutput([(self.endpoint, encoded_report),(PET_ARCHIVE, encoded_report)], self.ae_title)
-       
+
 # Entry point for running the node
 if __name__ == "__main__":
    node = Pe2iPetCtNode()
