@@ -40,6 +40,11 @@ error_blueprint = ERROR_BLUEPRINT
 
 PET_ARCHIVE = Address('10.49.144.6', 104, 'GOYA') # These should be  in .env
 
+BISPEBJERG_SCANNER_1 = Address('172.23.48.81', 104, 'BFHKFNM7101')
+BISPEBJERG_SCANNER_2 = Address('172.23.48.82', 104, 'BFHKFNM7102')
+BISPEBJERG_SCANNER_3 = Address('172.23.48.83', 104, 'BFHKFNMMI1')
+BISPEBJERG_PET_ARCHIVE = Address('172.23.48.110', 11112, 'BBHKFNMOSIRIX')
+
 class MyCTInput(AbstractInput):
     """
     Handles input data for CT images.
@@ -101,6 +106,13 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
     log_output = "log.log"
     unhandled_error_blueprint = error_blueprint
 
+    known_endpoints = {
+        BISPEBJERG_SCANNER_1.ae_title : BISPEBJERG_SCANNER_1,
+        BISPEBJERG_SCANNER_2.ae_title : BISPEBJERG_SCANNER_2,
+        BISPEBJERG_SCANNER_3.ae_title : BISPEBJERG_SCANNER_3,
+        BISPEBJERG_PET_ARCHIVE.ae_title : BISPEBJERG_PET_ARCHIVE,
+    }
+    
 
     # Input types for the pipeline
     input = {
@@ -180,6 +192,9 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
         # Encode the report as a PDF
         encoded_report = self.dicom_factory.encode_pdf(report, [ref_pet_dicom], blueprint)
         # Return the file output containing the generated report
+        if input_data.responding_address.ae_title in [BISPEBJERG_SCANNER_1.ae_title, BISPEBJERG_SCANNER_2.ae_title, BISPEBJERG_SCANNER_3.ae_title, BISPEBJERG_PET_ARCHIVE.ae_title]:
+            return DicomOutput([(BISPEBJERG_PET_ARCHIVE, encoded_report)], self.ae_title)
+
         return DicomOutput([(self.endpoint, encoded_report),(PET_ARCHIVE, encoded_report)], self.ae_title)
        
 # Entry point for running the node
