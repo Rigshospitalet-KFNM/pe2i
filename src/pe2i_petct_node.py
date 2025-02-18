@@ -22,7 +22,7 @@ from dicomnode.server.pipeline_tree import InputContainer
 from dicomnode.server.input import AbstractInput
 from dicomnode.server.output import DicomOutput
 from dicomnode.server.nodes import AbstractQueuedPipeline
-from dicomnode.server.grinders import NiftiGrinder
+from dicomnode.server.grinders import NiftiGrinder, ManyGrinder, IdentityGrinder
 from dicomnode.dicom.blueprints import Blueprint, StaticElement, CopyElement, FunctionalElement, get_today, get_time
 from dicomnode.dicom.blueprints.secondary_image_report_blueprint import SECONDARY_IMAGE_REPORT_BLUEPRINT
 from dicomnode.dicom.blueprints.error_blueprint_english import ERROR_BLUEPRINT
@@ -44,6 +44,7 @@ BISPEBJERG_SCANNER_1 = Address('172.23.48.81', 104, 'BFHKFNM7101')
 BISPEBJERG_SCANNER_2 = Address('172.23.48.82', 104, 'BFHKFNM7102')
 BISPEBJERG_SCANNER_3 = Address('172.23.48.83', 104, 'BFHKFNMMI1')
 BISPEBJERG_PET_ARCHIVE = Address('172.23.48.110', 11112, 'BBHKFNMOSIRIX')
+BISPEBJERG_PROD_ARCHIVE = Address('172.23.48.76', 11112, 'BBHKFAGW1')
 
 class MyCTInput(AbstractInput):
     """
@@ -60,7 +61,7 @@ class MyCTInput(AbstractInput):
         return self.images == maxInstanceNumber
 
     # Image grinder object for processing NIfTI images
-    image_grinder = NiftiGrinder()
+    image_grinder = ManyGrinder(NiftiGrinder(), IdentityGrinder()) 
 
     # Required DICOM tags and their expected values
     required_values: Dict[int, Any] = {
@@ -86,6 +87,28 @@ class MyPETInput(AbstractInput):
     # Required DICOM tags and their expected values
     required_values: Dict[int, Any] = {
         0x00080060 : "PT"  # DICOM Modality Tag
+    }
+
+
+class MyMRInput(AbstractInput):
+    """
+    Handles input data for PET images.
+    """
+    def validate(self) -> bool:
+        maxInstanceNumber = -1
+        # Iterate through datasets to find the maximum instance number
+        for dataset in self:
+            maxInstanceNumber = max(maxInstanceNumber, dataset.InstanceNumber)
+        # Check if the number of images matches the maximum instance number (+1 DD starts with 0)
+        return self.images == maxInstanceNumber + 1
+
+
+    # Image grinder object for processing NIfTI images
+    image_grinder = ManyGrinder(NiftiGrinder(), IdentityGrinder())
+
+    # Required DICOM tags and their expected values
+    required_values: Dict[int, Any] = {
+        0x00080060 : "MR"  # DICOM Modality Tag
     }
 
 
@@ -122,11 +145,12 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
         BISPEBJERG_SCANNER_2.ae_title : BISPEBJERG_SCANNER_2,
         BISPEBJERG_SCANNER_3.ae_title : BISPEBJERG_SCANNER_3,
         BISPEBJERG_PET_ARCHIVE.ae_title : BISPEBJERG_PET_ARCHIVE,
+        BISPEBJERG_PROD_ARCHIVE.ae_title : BISPEBJERG_PROD_ARCHIVE
     }
 
     # Input types for the pipeline
     input = {
-        'CT': MyCTInput,
+        'anatomical': MyCTInput | MyMRInput,
         'PET': MyPETInput
     }
 
@@ -151,48 +175,54 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
 
         # Extract PET and CT data from input
         pet = input_data['PET'] # NIfTI PET data
-        ct = input_data['CT'] # NIfTI CT data
+        anatomical_nifti, inputContainer = input_data['anatomical'] # NIfTI CT or DD data and input class
 
         # Reference DICOM datasets
         ref_pet_dicom = input_data.datasets['PET'][0]
-        ref_ct_dicom = input_data.datasets['CT'][0]
+        ref_anatomical_dicom = input_data.datasets['anatomical'][0]
 
         # Get CT series description (metadata)
-        ct_desc = ref_ct_dicom.SeriesDescription
+        anatomical_desc = ref_anatomical_dicom.SeriesDescription
         # this is added for validation
-        pt_id = ref_ct_dicom.PatientID
+        pt_id = ref_anatomical_dicom.PatientID
         with open("/home/zuza/validation/pt_processed.txt", "a") as file:
             file.write('\n' + pt_id)
 
-        # Perform preprocessing steps on PET and CT data:
-        # Swap dimensions for PET and CT (function defined in node_functions)
+        # Perform preprocessing steps on PET and CT/DD data:
+        # Swap dimensions for PET and CT/DD (function defined in node_functions)
         pet_swap_nii = node_functions.swap_dims(self, pet, 'PET')
-        ct_swap_nii = node_functions.swap_dims(self, ct, 'CT')
-
+        if isinstance(inputContainer, MyMRInput):
+            dd_swap_nii = node_functions.swap_dims(self, anatomical_nifti, 'DD')
+            anatomical_swap_nii = node_functions.convert_LAC_to_HU(self, dd_swap_nii) # converting Linear Attenuation Coefficient units to Hounsefield Units
+            MR_flag = True # MR flag for report settings
+        else:
+            anatomical_swap_nii = node_functions.swap_dims(self, anatomical_nifti, 'CT')
+            MR_flag = False# MR flag for report settings
+            
         # Skull stripping on CT data
-        ct_bet_nii = node_functions.run_skullstripping(self, ct_swap_nii)
+        anatomical_bet_nii = node_functions.run_skullstripping(self, anatomical_swap_nii)
 
         # Resampling PET, CT, and skull-stripped CT images to the same resolution
-        pet_resampled_nii, ct_resampled_nii, ct_bet_resampled_nii = node_functions.resampling(
-            self, pet_swap_nii, ct_swap_nii, ct_bet_nii
+        pet_resampled_nii, anatomical_resampled_nii, anatomical_bet_resampled_nii = node_functions.resampling(
+            self, pet_swap_nii, anatomical_swap_nii, anatomical_bet_nii
         )
 
         # Further processing of CT data (e.g., preprocessing)
-        ct_bet_preproc_nii = node_functions.process_ct(self, ct_bet_resampled_nii)
+        anatomical_bet_preproc_nii = node_functions.process_anatomical(self, anatomical_bet_resampled_nii)
         
         # Masking cerebellum cortex in CT data
-        cerebellum_nii = node_functions.cerebellum_mask(self, ct_bet_preproc_nii)
+        cerebellum_nii = node_functions.cerebellum_mask(self, anatomical_bet_preproc_nii)
         
         # Get prediction data and statistics based on PET and CT data
-        prediction_data = node_functions.get_predition(self.logger, ct_bet_preproc_nii, pet_resampled_nii)
+        prediction_data = node_functions.get_predition(self.logger, anatomical_bet_preproc_nii, pet_resampled_nii)
         pet_normalized_data, cerebellum_mask_data, patient_values = node_functions.get_statistics(
             self.logger, pet_resampled_nii, cerebellum_nii, prediction_data
             )
 
         # Generate the report
         report = node_functions.generate_report(
-            self, ref_pet_dicom, ct_desc, pet_normalized_data, ct_resampled_nii, 
-            prediction_data, cerebellum_mask_data, patient_values
+            self, ref_pet_dicom, anatomical_desc, pet_normalized_data, anatomical_resampled_nii, 
+            prediction_data, cerebellum_mask_data, patient_values, MR_flag
         )
         
         file_path = '/home/zuza/validation/' + str(pt_id) +'.json'
@@ -232,8 +262,12 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
                 encoded_report[i].SeriesTime = encoded_report[0].SeriesTime
 
         # Return the file output containing the generated report
-        if input_data.responding_address.ae_title in [BISPEBJERG_SCANNER_1.ae_title, BISPEBJERG_SCANNER_2.ae_title, BISPEBJERG_SCANNER_3.ae_title, BISPEBJERG_PET_ARCHIVE.ae_title]:
-            return DicomOutput([(BISPEBJERG_PET_ARCHIVE, encoded_report)], self.ae_title)
+        if input_data.responding_address.ae_title in [BISPEBJERG_SCANNER_1.ae_title,\
+                                                      BISPEBJERG_SCANNER_2.ae_title,\
+                                                      BISPEBJERG_SCANNER_3.ae_title,\
+                                                      BISPEBJERG_PET_ARCHIVE.ae_title,\
+                                                      BISPEBJERG_PROD_ARCHIVE.ae_title]:
+            return DicomOutput([(BISPEBJERG_PROD_ARCHIVE, encoded_report)], self.ae_title)
 
         return DicomOutput([(self.endpoint, encoded_report),(PET_ARCHIVE, encoded_report)], self.ae_title)
 

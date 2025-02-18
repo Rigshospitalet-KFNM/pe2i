@@ -5,6 +5,7 @@ import cv2 as cv
 import numpy as np
 import pandas as pd
 import nibabel as nib
+import scipy
 import matplotlib
 from matplotlib.lines import Line2D
 from matplotlib.ticker import FormatStrFormatter
@@ -189,21 +190,45 @@ class ColorBox(Environment):
 
 def swap_dims(self, modality, name):
     """
-    Adjust the orientation of a given NIfTI image (modality) from radiological to neurological if needed, 
-    and save the modified image to the specified output directory.
+    Reorients a given NIfTI image from radiological to neurological orientation if necessary 
+    and saves the reoriented image to a specified output path. This ensures consistency in image orientation, 
+    particularly for PET scans, which often require neurological orientation for further processing.
 
     Parameters:
     -----------
-    modality : nib.Nifti1Image
-        The NIfTI image to be processed.
+    modality : nibabel.Nifti1Image
+        The NIfTI image object to be processed and potentially reoriented.
+    
     name : str
-        The name of the file to be saved, which will also be used to determine if the image is a PET scan.
+        The base name for the output file. The full output file name will include the suffix `_swap.nii.gz`.
 
     Returns:
     --------
     modality_nii : str
-        The file path to the reoriented and saved NIfTI image.
+        The file path to the saved, reoriented NIfTI image.
+
+    Raises:
+    -------
+    ValueError
+        If the `modality` parameter is not a `nibabel.Nifti1Image` object.
+    IOError
+        If the function fails to save the reoriented NIfTI image to the specified path.
+
+    Notes:
+    ------
+    - The function first checks the image's orientation using the affine transformation and determines whether it 
+      is in radiological orientation (i.e., the first axis is labeled 'R' for right).
+    - If the orientation is radiological, it flips the image data along the left-right axis to convert it to neurological orientation.
+    - The flipped image is saved with the suffix `_swap.nii.gz` in the current working directory.
+    - This function logs the process, indicating when an orientation change is made and confirming the successful saving of the image.
+
+    Example:
+    --------
+    >>> modality = nib.load("example_image.nii.gz")
+    >>> output_path = swap_dims(self, modality, "example_image")
+    >>> print(f"Reoriented image saved at: {output_path}")
     """
+        
     # Validate input type
     if not isinstance(modality, nib.Nifti1Image):
         raise ValueError("Input modality must be a Nifti1Image object.")
@@ -240,26 +265,86 @@ def swap_dims(self, modality, name):
     
     return modality_nii
 
+def convert_LAC_to_HU(self, dd_nii):
+    """
+    Converts a Deep Dixon (DD) NIfTI image from Linear Attenuation Coefficient (LAC) units to Hounsfield Units (HU) 
+    and saves the converted image to a new file.
+
+    Parameters:
+    -----------
+    dd_nii : str
+        File path to the input NIfTI image in LAC units.
+
+    Returns:
+    --------
+    converted_path : str
+        File path to the converted NIfTI image in HU units.
+
+    Notes:
+    ------
+    - LAC values below 1016.7 are converted using a linear formula (`LAC / 0.95 - 1000`).
+    - LAC values equal to or above 1016.7 are converted using a different formula: `(LAC / 10000 - 0.0471) / 0.000051 - 1000`.
+    - The converted image is saved with the name `DD_swap_HU.nii.gz` in the current working directory.
+    """
+
+    # Log the conversion process
+    self.logger.info('converting Deep Dixon from LAC to HU')
+    
+    # Define the output file path
+    converted_path = f'{os.getcwd()}/DD_swap_HU.nii.gz'
+    
+    # Load the input NIfTI image
+    dd_nib = nib.load(dd_nii)
+    dd = dd_nib.get_fdata() # Get the image data as a NumPy array
+
+    # Create a copy of the image data for conversion
+    dd_copy = dd.copy()
+
+    # Initialize an array of zeros with the same shape as the input data for storing HU values
+    dd_hu =np.zeros_like(dd_copy)
+
+    # Convert LAC values to HU using two different formulas based on the value threshold (1016.7)
+    hu_lower = dd_copy/0.95-1000 # Conversion for values below 1016.7
+    hu_upper = (dd_copy/10000-0.0471)/0.000051-1000 # Conversion for values >= 1016.7
+
+    # Apply the appropriate conversion formula to each element in the array
+    dd_hu[dd_copy<1016.7] = hu_lower[dd_copy<1016.7]
+    dd_hu[dd_copy>=1016.7] = hu_upper[dd_copy>=1016.7]
+
+    # Create a new NIfTI image with the converted data and the same affine transformation as the original image
+    im = nib.Nifti1Image(dd_hu, dd_nib.affine)
+     # Save the new NIfTI image to the specified path
+    nib.save(im, converted_path)
+
+    # Return the file path of the converted image
+    return converted_path
 
 def run_skullstripping(self, input_modality_nii):
     """
-    Perform skull stripping on a CT scan using the hd_ctbet method.
+    Perform skull stripping on a anatomical scan using the `hd_ctbet` method to remove non-brain tissues.
 
     Parameters:
     -----------
     input_modality_nii : str
-        The file path to the NIfTI image to be processed.
+        File path to the input NIfTI image (anatomical scan) to be skull-stripped.
 
     Returns:
     --------
     output_filename : str
-         The file path to the resulting skull-stripped NIfTI image.
+        File path to the resulting skull-stripped NIfTI image (`anatomical_swap_BET.nii.gz`).
+
+    Notes:
+    ------
+    - The skull stripping is performed using the `hd_ctbet` function in `fast` mode.
+    - The operation is executed on the CPU without test-time augmentation (`do_tta=False`).
+    - The output file is saved in the current working directory.
     """
+
     # Log the beginning of the skull stripping process
     self.logger.info('Running skullstripping')
 
     # Define the output filename for the skull-stripped image
-    output_filename = os.getcwd() + '/CT_swap_BET.nii.gz'
+    output_filename = os.getcwd() + '/anatomical_swap_BET.nii.gz'
 
     # Call the hd_ctbet function to perform skull stripping
     run_hd_ctbet(str(input_modality_nii), str(output_filename), mode='fast', device='cpu', do_tta =False)
@@ -267,19 +352,27 @@ def run_skullstripping(self, input_modality_nii):
     return output_filename
 
 
-def process_ct(self, brain_nii):
+def process_anatomical(self, brain_nii):
     """
-    Preprocess a CT scan by applying thresholding and smoothing operations before segmentation.
+    Preprocess a anatomical scan by applying thresholding to limit HU values and smoothing to reduce noise 
+    before performing segmentation.
 
     Parameters:
     -----------
     brain_nii : str
-        The file path to the NIfTI image of the brain CT scan.
+        File path to the NIfTI image of the brain anatomical scan to be preprocessed.
 
     Returns:
     --------
     brain_sm_th_nii : str
-        The file path to the preprocessed and saved NIfTI image.
+        File path to the preprocessed and saved NIfTI image (`brain_preprocessed.nii.gz`).
+
+    Notes:
+    ------
+    - The thresholding operation keeps values in the range of 0-100 Hounsfield units (HU). 
+      Values outside this range are set to 0.
+    - Smoothing is performed on the thresholded image using a specified Full Width at Half Maximum (FWHM) value.
+    - The output file is saved as `brain_preprocessed.nii.gz` in the current working directory.
     """
     # Generate the output file path for the preprocessed image
     brain_sm_th_nii = os.getcwd() + '/brain_preprocessed.nii.gz'
@@ -311,21 +404,30 @@ def process_ct(self, brain_nii):
 
 def cerebellum_mask(self, input_file):
     """
-    Generate a cerebellum mask using the LabelFusion tool with the STEPS algorithm.
+    Generate a cerebellum mask by segmenting the cerebellum gray matter using the LabelFusion tool 
+    with the STEPS algorithm. The process uses pre-defined templates and classifier settings for 
+    accurate segmentation.
 
     Parameters:
     -----------
     input_file : str
-        The file path to the input NIfTI image that needs segmentation.
+        The file path to the input NIfTI image (e.g., a brain MRI or anatomical scan) that needs cerebellum 
+        segmentation.
 
     Returns:
     --------
     str
-        The file path to the generated cerebellum mask NIfTI image.
+        The file path to the generated cerebellum mask NIfTI image (`cerebellum.nii.gz`).
 
     Exceptions:
     -----------
-    Raises an exception if the LabelFusion process fails.
+    Raises `FileNotFoundError` if the LabelFusion process fails to generate the output file.
+
+    Notes:
+    ------
+    - The segmentation uses the STEPS algorithm, which is a machine learning-based method for 
+      segmentation.
+    - The function uses predefined static files (atlas and templates) for the segmentation.
     """
     self.logger.info('Segmenting cerebellum gray matter mask')
     # Initialize LabelFusion with the necessary inputs
@@ -351,22 +453,22 @@ def cerebellum_mask(self, input_file):
     return out_file
 
 
-def resampling(self, pet_nii, ct_nii, brain_nii):
+def resampling(self, pet_nii, anatomical_nii, brain_nii):
     """
-    Resample and register PET and CT scans to a brain template, ensuring that all steps 
+    Resample and register PET and anatomical scans to a brain template, ensuring that all steps 
     are performed only if the corresponding output files do not already exist.
 
     This function performs the following operations:
-    1. Registers the CT brain image to an average brain template.
-    2. Resamples the CT brain and CT images to match the brain template.
-    3. Registers and resamples the PET image to the CT image and brain template.
+    1. Registers the anatomical brain modality to an average brain template.
+    2. Resamples the anatomical brain modality and anatomical modality to match the brain template.
+    3. Registers and resamples the PET image to the anatomical modality and brain template.
 
     Parameters:
     -----------
     pet_nii : nib.Nifti1Image
         The NIfTI image representing the PET scan.
-    ct_nii : nib.Nifti1Image
-        The NIfTI image representing the CT scan.
+    anatomical_nii : nib.Nifti1Image
+        The NIfTI image representing the anatomical scan.
     brain_nii : nib.Nifti1Image
         The NIfTI image representing the brain scan.
 
@@ -374,42 +476,48 @@ def resampling(self, pet_nii, ct_nii, brain_nii):
     --------
     petrsltemplate_nii : str
         File path to the PET image resampled to the brain template.
-    ctrsl_nii : str
-        File path to the CT image resampled to the brain template.
+    anatomicalrsl_nii : str
+        File path to the anatomical image resampled to the brain template.
     brainrsl_nii : str
         File path to the brain image resampled to the brain template.
+    
+    Exceptions:
+    -----------
+    Raises IOError if any of the registration or resampling steps fail to create the expected output files.
+
+    Notes:
+    ------
+    The function uses the `reg_aladin` tool for image registration and the `reg_resample` tool for resampling.
     """
 
     # Define file paths for templates and output files
     template_nii = STATIC_FILES / 'avg_template_swap.nii.gz'
     brainreg_nii = os.getcwd() + '/brain_reg_avg.nii.gz'
     brainrsl_nii = os.getcwd() + '/brain_rsl_avg.nii.gz'
-    trans_ct = os.getcwd() + '/brain_to_avg.txt'
-    ctrsl_nii = os.getcwd() + '/ct_rsl_avg.nii.gz'
-    petrsl_nii = os.getcwd() + '/pet_reg_ct.nii.gz'
-    petreg_nii = os.getcwd() + '/pet_rsl_ct.nii.gz'
+    trans_anatomical = os.getcwd() + '/brain_to_avg.txt'
+    anatomicalrsl_nii = os.getcwd() + '/anatomical_rsl_avg.nii.gz'
+    petreg_nii = os.getcwd() + '/pet_rsl_anatomical.nii.gz'
     petrsltemplate_nii = os.getcwd() + '/pet_rsl_avg.nii.gz'
-    trans_pet = os.getcwd() + '/pet_to_ct-new.txt'
+    trans_pet = os.getcwd() + '/pet_to_anatomical-new.txt'
 
-    # Step 1: Register CT brain to the average template if the transformation doesn't exist
-    self.logger.info(f'Registering CT brain to template')
+    # Step 1: Register anatomical brain to the average template if the transformation doesn't exist
+    self.logger.info(f'Registering anatomical brain to template')
     reg_aladin(ref_file=template_nii, 
                 flo_file=brain_nii,
-                aff_file=trans_ct,
-                in_aff_file=None,
+                aff_file=trans_anatomical,
                 res_file=brainreg_nii,
                 verbosity='none')
     
     # Verify if registration was successful
-    if not Path(trans_ct).is_file():
-        self.logger.error(f"Failed to save CT brain registration at {trans_ct}")
-        raise IOError(f"CT brain registration not saved: {trans_ct}")
+    if not Path(trans_anatomical).is_file():
+        self.logger.error(f"Failed to save anatomical brain registration at {trans_anatomical}")
+        raise IOError(f"Anatomical brain registration not saved: {trans_anatomical}")
 
-    # Step 2: Resample CT brain to the template if not already resampled  
-    self.logger.info(f'Resampling CT brain to template')
+    # Step 2: Resample anatomical brain to the template if not already resampled  
+    self.logger.info(f'Resampling anatomical brain to template')
     reg_resample(ref_file=template_nii, 
                     flo_file=brain_nii,
-                    trans_file=trans_ct,
+                    trans_file=trans_anatomical,
                     out_file=brainrsl_nii,
                     interpol='LIN',
                     pad_val=-1024,
@@ -417,30 +525,29 @@ def resampling(self, pet_nii, ct_nii, brain_nii):
     
     # Check if brain resampling was successful
     if not Path(brainrsl_nii).is_file():
-        self.logger.error(f"Failed to save resampled CT brain at {brainrsl_nii}")
-        raise IOError(f"Resampled CT brain not saved: {brainrsl_nii}")
+        self.logger.error(f"Failed to save resampled anatomical brain at {brainrsl_nii}")
+        raise IOError(f"Resampled anatomical brain not saved: {brainrsl_nii}")
         
-    # Step 3: Resample CT to the template if not already resampled
-    self.logger.info('Resampling CT to template')
+    # Step 3: Resample anatomical modality to the template if not already resampled
+    self.logger.info('Resampling anatomical to template')
     reg_resample(ref_file=template_nii,
-                    flo_file=ct_nii,
-                    trans_file=trans_ct,
-                    out_file=ctrsl_nii,
+                    flo_file=anatomical_nii,
+                    trans_file=trans_anatomical,
+                    out_file=anatomicalrsl_nii,
                     interpol='LIN',
                     pad_val=-1024,
                     verbosity='none')
     
-    # Check if CT resampling was successful
-    if not Path(ctrsl_nii).is_file():
-        self.logger.error(f"Failed to save resampled CT at {ctrsl_nii}")
-        raise IOError(f"Resampled CT not saved: {ctrsl_nii}")
+    # Check if anatomical resampling was successful
+    if not Path(anatomicalrsl_nii).is_file():
+        self.logger.error(f"Failed to save resampled anatomical at {anatomicalrsl_nii}")
+        raise IOError(f"Resampled anatomical not saved: {anatomicalrsl_nii}")
 
-    # Step 4: Register PET to CT if the transformation doesn't exist
-    self.logger.info('Registering PET to CT')
-    reg_aladin(ref_file=ct_nii, 
+    # Step 4: Register PET to anatomical modality if the transformation doesn't exist
+    self.logger.info('Registering PET to anatomical')
+    reg_aladin(ref_file=anatomical_nii, 
                 flo_file=pet_nii,
                 aff_file=trans_pet,
-                in_aff_file=None,
                 res_file=petreg_nii,
                 verbosity='none')
     
@@ -449,26 +556,11 @@ def resampling(self, pet_nii, ct_nii, brain_nii):
         self.logger.error(f"Failed to save PET registration at {trans_pet}")
         raise IOError(f"PET registration not saved: {trans_pet}")
 
-    # Step 5: Resample PET to CT if not already resampled
-    self.logger.info('Resampling PET to CT')
-    reg_resample(ref_file=ct_nii,
-                    flo_file=pet_nii,
-                    trans_file=trans_pet,
-                    out_file=petrsl_nii,
-                    interpol='LIN',
-                    pad_val=0,
-                    verbosity='none')
-
-    # Check if PET resampling to CT was successful
-    if not Path(petrsl_nii).is_file():
-        self.logger.error(f"Failed to save resampled PET at {petrsl_nii}")
-        raise IOError(f"Resampled PET not saved: {petrsl_nii}")
-
-    # Step 6: Resample PET to the brain template if not already resampled
+    # Step 5: Resample PET to the brain template if not already resampled
     self.logger.info('Resampling PET to template')
     reg_resample(ref_file=template_nii,
-                    flo_file=petrsl_nii,
-                    trans_file=trans_ct,
+                    flo_file=petreg_nii,
+                    trans_file=trans_anatomical,
                     out_file=petrsltemplate_nii,
                     interpol='LIN',
                     pad_val=0,
@@ -479,32 +571,46 @@ def resampling(self, pet_nii, ct_nii, brain_nii):
         self.logger.error(f"Failed to save resampled PET at {petrsltemplate_nii}")
         raise IOError(f"Resampled PET not saved: {petrsltemplate_nii}")
 
-    return petrsltemplate_nii, ctrsl_nii, brainrsl_nii
+    return petrsltemplate_nii, anatomicalrsl_nii, brainrsl_nii
 
 
-def get_predition(logger, ct_brain_nii, pet_nii):
+def get_predition(logger, brain_nii, pet_nii):
     """
-    Obtains the prediction for brain segmentation using a trained model.
+    Obtain the segmentation prediction for basal ganglia using a trained deep learning model.
+
+    This function normalizes the input anatomical and PET images, loads a pre-trained model, and generates 
+    a segmentation prediction for the basal ganglia. It ensures TensorFlow resources are properly 
+    released after prediction.
 
     Parameters:
     -----------
     logger : Logger object
         Logger for logging the process information.
-    ct_brain_nii : str
-        File path to the CT brain NIfTI image.
+    brain_nii : str
+        File path to the anatomical brain modality NIfTI image.
     pet_nii : str
         File path to the PET NIfTI image.
 
     Returns:
     --------
     prediction_image : numpy array
-        The segmentation prediction image of basal ganglia. # TODO CHANGE THIS?
+        The segmentation prediction image of basal ganglia.
+    
+    Exceptions:
+    -----------
+    Logs an exception if there is an error while clearing the TensorFlow session.
+
+    Notes:
+    ------
+    - Normalization of input images is performed before prediction.
+    - The model expects normalized anatomical and PET images as inputs and predicts three label values (0, 2, 3).
+    - TensorFlow session is cleared to manage memory usage after prediction.
     """
 
     logger.info('Getting predition.')
     
-    # Normalize CT and PET images
-    input_files = normalize(logger, ct_brain_nii, pet_nii) 
+    # Normalize anatomical and PET images
+    input_files = normalize(logger, brain_nii, pet_nii) 
     
     try:
         # Define the path to the trained model
@@ -550,7 +656,16 @@ def get_statistics(logger, pet_nii, cerebellum_nii, prediction):
     cerebellum_mask : np.array
         The mask of the cerebellum.
     data : dict
-        Dictionary containing various statistics such as SBR, asymmetries, and ratios.
+        A dictionary containing various statistics:
+        - SBR values for putamen, caudate nucleus, striatum, and posterior putamen.
+        - Ratios of putamen to caudate nucleus.
+        - Asymmetry indices for different brain regions and ratios.
+
+    Notes:
+    ------
+    - SBR (Specific Binding Ratio) is calculated as the ratio between the mean PET uptake 
+      in the target region and the median uptake in the cerebellum cortex.
+    - Asymmetry index is calculated as the relative difference between left and right regions.
     """
     # Step 1: Load and normalize PET data by cerebellum cortex median
     logger.info('Calculating cerebellum cortex median') 
@@ -646,8 +761,15 @@ def get_split(data, direction):
     --------
     numpy array
         The split data for the specified hemisphere.
+    Raises:
+    -------
+    ValueError
+        If the direction is not 'left' or 'right'.
     """
-    if direction == 'left':
+    if direction.lower() not in ['left', 'right']:
+        raise ValueError("Invalid direction. Choose 'left' or 'right'.")
+
+    if direction.lower() == 'left':
         # Return the left hemisphere (assumes image width is 256, splits at index 128)
         return data[:128, :, :]
     else:
@@ -1533,20 +1655,20 @@ def plot_nine_pet(doc, pet, mask, pet_desc, slices):
         add_colormap_plot(doc, plt, vmin=0, vmax=max_value, step=1 if max_value < 5 else 2)
 
     
-def plot_ct(doc, ct, mask, ct_desc, slices):
+def plot_ct(doc, anatomical, mask, anatomical_desc, slices, MR=False):
     """
-    Plots a 3x3 grid of CT images with overlays of segmentations.
+    Plots a 3x3 grid of anatomical images with overlays of segmentations.
 
     Parameters:
     -----------
     doc : Document
         LaTeX document to append the plot.
-    ct : array
-        CT image as a numpy array.
+    anatomical : array
+        anatomical image as a numpy array.
     mask : array
-        Segmentation mask for the CT image.
-    ct_desc : str
-        Description of the CT study.
+        Segmentation mask for the anatomical image.
+    anatomical_desc : str
+        Description of the anatomical study.
     slices : list
         List of slice indices to use for plotting.
 
@@ -1555,35 +1677,35 @@ def plot_ct(doc, ct, mask, ct_desc, slices):
     None
     """
 
-    # Define intensity range for CT display
+    # Define intensity range for anatomical display
     min_value = 0
     max_value = 100
 
 
     doc.append(NoEscape(r'\vspace*{-0.3cm}'))
     
-    # Create figure for CT plots
+    # Create figure for anatomical plots
     with doc.create(Figure(position='h!')) as plot:
         doc.append(Command('centering'))
         with doc.create(SubFigure(position='t', width=NoEscape(r'0.8\linewidth'))) as subplot1:  
-            # Create a 3x3 grid for displaying CT images
+            # Create a 3x3 grid for displaying anatomical images
             fig, axes = plt.subplots(3, 3, gridspec_kw={'wspace': 0, 'hspace': 0}, figsize=(15, 15))
             
             # Adjust margins to minimize whitespace
             margins = {'left': 0, 'bottom': 0, 'right': 1, 'top': 1}
             fig.subplots_adjust(**margins)
 
-            cmap = 'Greys_r'  # Define colormap for CT images
+            cmap = 'Greys_r'  # Define colormap for anatomical images
             segmentations = mask
 
-            # Iterate through 3x3 grid positions to plot CT slices
+            # Iterate through 3x3 grid positions to plot anatomical slices
             for k, (i, j) in enumerate([(i, j) for i in range(0, 3) for j in range(0, 3)]):
                 axes[i, j].axis('off')  # Turn off axis for each subplot
                 ind = slices[k]  # Select slice index
-                ct_crop = ct[FIRST_DIM_CROPPED, SECOND_DIM_CROPPED, ind]  # Crop the CT image
+                anatomical_crop = anatomical[FIRST_DIM_CROPPED, SECOND_DIM_CROPPED, ind]  # Crop the anatomical image
                 
-                # Plot CT image with segmentation overlay
-                get_overlaying_plots(axes[i, j], segmentations[:, :, ind], ct_crop, min_value, max_value, False, cmap, c_map_contour='autumn_r')
+                # Plot anatomical image with segmentation overlay
+                get_overlaying_plots(axes[i, j], segmentations[:, :, ind], anatomical_crop, min_value, max_value, False, cmap, c_map_contour='autumn_r')
                 get_image_sides(axes[i, j])  # Add R/L labels
 
             subplot1.add_plot()  # Add plot to the LaTeX document
@@ -1591,12 +1713,16 @@ def plot_ct(doc, ct, mask, ct_desc, slices):
     doc.append(NoEscape(r'\vspace{-0.7cm}'))
 
     # Add study description to the LaTeX document
-    doc.append(NoEscape(r'{\scriptsize{' + ct_desc + r'}}\\'))
-    
-    # Add note on CT image usage for anatomical reference
-    doc.append(
-        NoEscape(r'{\hspace*{0.3cm}\footnotesize CT is for anatomical reference and is ' +
-                 r'not for clinical reading. Please refer to original CT for this purpose.}'))
+    doc.append(NoEscape(r'{\scriptsize{' + anatomical_desc + r'}}\\'))
+    if MR:
+        doc.append(
+        NoEscape(r'{\hspace*{0.3cm}\footnotesize Synthetic AI generated CT Cerebrum based on the MRI Dixon sequence. ' +
+                 r'Only for anatomical reference.}'))
+    else:
+        # Add note on anatomical image usage for anatomical reference
+        doc.append(
+            NoEscape(r'{\hspace*{0.3cm}\footnotesize CT is for anatomical reference and is ' +
+                    r'not for clinical reading. Please refer to original CT for this purpose.}'))
 
 
 def produce_row(patient_values, name, normal_stat_values, pt_age):
@@ -2066,23 +2192,42 @@ def normal_reference_SD_plot(mu, sigma, sbr, measure_type):
 
 def plots_normal_values(doc, normal_values, patient_values, pt_age):
     """
-    Generates a LaTeX figure containing two subplots that compare the patient's SBR values 
-    against the normal reference intervals for the Putamen and the Putamen/Caudate Nucleus ratio.
+    Generates a LaTeX figure with two subplots comparing the patient's Striatal Binding Ratio (SBR) values 
+    to normal reference intervals for the Putamen region and the Putamen/Caudate Nucleus ratio.
+
+    This function creates visual plots and inserts them into the given LaTeX document (`doc`) using the `pylatex` library. 
+    It visually represents how the patient’s SBR values compare to reference values, highlighting deviations from the norm.
 
     Parameters:
     -----------
-    doc : Document
-        The LaTeX document object.
-    normal_values : DataFrame
-        DataFrame containing normal reference values for comparison.
-    patient_values : DataFrame
-        DataFrame containing the patient's SBR values.
+    doc : pylatex.Document
+        The LaTeX document object to which the plots will be added.
+    
+    normal_values : pandas.DataFrame
+        DataFrame containing the normal reference intervals for SBR values, stratified by age and region.
+    
+    patient_values : pandas.DataFrame
+        DataFrame containing the patient’s specific SBR values for different regions of the brain.
+    
     pt_age : int
-        The age of the patient.
+        The age of the patient, used to select the appropriate reference interval from `normal_values`.
 
     Returns:
     --------
     None
+        This function modifies the `doc` in place by adding a LaTeX figure with two subplots.
+
+    Notes:
+    ------
+    - The first subplot compares the patient’s SBR values with the normal reference range for the Putamen.
+    - The second subplot compares the Putamen/Caudate Nucleus ratio with the reference range.
+    - The plots are generated using a helper function `plot_normal()`, which handles the actual plotting.
+    - The `SubFigure` objects are laid out side by side with a defined width and spacing for consistent alignment.
+
+    Example:
+    --------
+    >>> plots_normal_values(doc, normal_df, patient_df, pt_age=65)
+    >>> doc.generate_pdf("report", clean_tex=False)
     """
 
     subfig_width = r'8cm'
@@ -2109,30 +2254,57 @@ def plots_normal_values(doc, normal_values, patient_values, pt_age):
             subplot2.add_plot(width=subfig_width)
 
 
-def generate_report(self, ref_pet_dcm, ct_desc, normalised_pet, ct_nii, prediction, cerebellum, patient_values):
+def generate_report(self, ref_pet_dcm, anatomical_desc, normalised_pet, anatomical_nii, prediction, cerebellum, patient_values, MR=False):
     """
-    Generates a comprehensive report including PET and CT scan analysis, patient data, and reference comparisons.
+    Generates a comprehensive clinical report for a PET/CT or PET/MR(DeepDixon protocol) scan using LaTeX-based PDF.
+
+
+    The report includes sections on dopamine transporter PET imaging, statistical analysis, and a detailed comparison 
+    of the patient’s data with reference populations. It also plots the relevant PET and anatomical scan slices for visual inspection.
 
     Parameters:
     -----------
-    ref_pet_dcm : DICOM
-        Reference DICOM metadata for PET scan.
-    ct_desc : str
-        Description of the CT scan.
-    normalised_pet : array
-        normalised PET scan data array.
-    ct_nii : str
-        CT scan path.
-    prediction : array
-        Predicted scan data array.
-    cerebellum : array
-        Cerebellum scan data array.
-    patient_values : DataFrame
-        DataFrame containing patient-specific values.
+    ref_pet_dcm : pydicom.FileDataset
+        Reference DICOM metadata for the PET scan, used to extract patient information and scan details.
+    
+    anatomical_desc : str
+        Description of the anatomical scan, typically indicating the anatomical region or scanning protocol.
+    
+    normalised_pet : numpy.ndarray
+        Normalized PET scan data array representing tracer uptake.
+    
+    anatomical_nii : str
+        File path to the anatomical scan in NIfTI format (.nii), used to load and process anatomical image data.
+    
+    prediction : numpy.ndarray
+        Array representing the predicted regions of interest (ROI) from model-based analysis.
+    
+    cerebellum : numpy.ndarray
+        Array representing the cerebellum region for comparison with predicted regions.
+    
+    patient_values : pandas.DataFrame
+        DataFrame containing patient-specific clinical values and measurements.
+    
+    MR : bool, optional (default=False)
+        Specifies whether the report should use MRI-based data for cerebrum analysis. 
+        If `True`, the report will label the section as "Synthetic CT Cerebrum"; otherwise, it will be "CT Cerebrum".
 
     Returns:
     --------
-    path
+    str
+        File path to the generated PDF report.
+    
+    Notes:
+    ------
+    - The function processes and flips the input PET, prediction, cerebellum, and CT scan data to ensure correct orientation.
+    - It dynamically selects statistical reference values based on the institution extracted from the PET DICOM metadata.
+    - Visual plots are created for PET scan slices, basal ganglia SBR values, and statistical comparisons with a reference population.
+    - The report is formatted using the `pylatex` library, with LaTeX commands for customization.
+
+    Example:
+    --------
+    >>> report_path = generate_report(ref_pet_dcm, "CT Head", pet_data, "ct_scan.nii", pred_data, cereb_data, patient_df, MR=False)
+    >>> print(f"Report generated at: {report_path}")
     """
     self.logger.info('Generating report')
     # Flip PET, prediction, and cerebellum arrays along the axis 0 (typically to adjust orientation)
@@ -2140,8 +2312,8 @@ def generate_report(self, ref_pet_dcm, ct_desc, normalised_pet, ct_nii, predicti
     pet_flipped = np.nan_to_num(pet_flipped)
     prediction_flipped = np.flip(prediction, axis=0)
     cerebellum_flipped= np.flip(cerebellum, axis=0)
-    ct = nib.load(ct_nii).get_fdata()
-    ct_flipped = np.flip(ct, axis=0) 
+    anatomical = nib.load(anatomical_nii).get_fdata()
+    ct_flipped = np.flip(anatomical, axis=0) 
     ct_flipped = np.nan_to_num(ct_flipped)
 
     # Create mask by summing flipped prediction and cerebellum arrays
@@ -2151,21 +2323,23 @@ def generate_report(self, ref_pet_dcm, ct_desc, normalised_pet, ct_nii, predicti
     pet_desc = ref_pet_dcm.SeriesDescription
     if '_' in pet_desc:
         pet_desc = pet_desc.replace('_', r'\_')
-    if '_' in ct_desc:
-        ct_desc = ct_desc.replace('_', r'\_')
+    if '_' in anatomical_desc:
+        anatomical_desc = anatomical_desc.replace('_', r'\_')
     institution = ref_pet_dcm.InstitutionName 
     if institution == 'Nuklearmedicin':
         institution = 'Rigshospitalet'
+    elif institution in ['OUH', 'Region Syd']:
+        institution = 'Bispebjerg'
 
     # Load normal values and statistical data
-    normal_values = pd.read_csv(os.path.join(STATIC_FILES, 'normal_values1.csv'), index_col=0)
+    normal_values = pd.read_csv(os.path.join(STATIC_FILES, 'normal_values-rig+aff.csv'), index_col=0)
 
     # Select statistical data based on the institution
     if 'Bispebjerg' in institution:
-        normal_stat_values = pd.read_csv(os.path.join(STATIC_FILES, 'stats_bbh1.csv'), index_col=0)
+        normal_stat_values = pd.read_csv(os.path.join(STATIC_FILES, 'stats_BBH_rig+aff.csv'), index_col=0)
         normal_values = normal_values[normal_values['institution'] == 'BBH']
     else:
-        normal_stat_values = pd.read_csv(os.path.join(STATIC_FILES, 'stats_rh_auh1.csv'), index_col=0)   
+        normal_stat_values = pd.read_csv(os.path.join(STATIC_FILES, 'stats_RH_rig+aff.csv'), index_col=0)   
         normal_values = normal_values[normal_values['institution'] != 'BBH']
     
     # Extract age range and patient age
@@ -2243,12 +2417,20 @@ def generate_report(self, ref_pet_dcm, ct_desc, normalised_pet, ct_nii, predicti
     # Add new page and report header
     doc.append(NoEscape(r'\newpage'))
     get_report_header(doc, institution)
-    
+
+    # Choose section name based on input anatomical modality 
+    if MR:
+        page_title ='Synthetic CT Cerebrum'
+        
+    else:
+        page_title = 'CT Cerebrum'
+        
     # Create section for CT Cerebrum
-    with doc.create(Section('CT Cerebrum', numbering=False)):
+    with doc.create(Section(page_title, numbering=False)):
         doc.append(NoEscape(r'\vspace{-0.2cm}'))
         doc.append(Command('centering'))
-        plot_ct(doc, ct_flipped, mask, ct_desc, slices)
+        plot_ct(doc, ct_flipped, mask, anatomical_desc, slices, MR)
+
 
     # Close all plots
     plt.close('all')
@@ -2260,18 +2442,18 @@ def generate_report(self, ref_pet_dcm, ct_desc, normalised_pet, ct_nii, predicti
     return str(header_doc)+'.pdf'
 
 
-def normalize(logger,ct_brain_nii, pet_nii): 
+def normalize(logger,brain_nii, pet_nii): 
     """
-    Normalizes the PET and CT brain images. 
-    PET is normalized by subtracting the mean value within a mask, and CT is thresholded and normalized.
+    Normalizes the PET and anatomical brain images. 
+    PET is normalized by subtracting the mean value within a mask, and anatomical is thresholded and normalized.
    
     Function that normalizes pet with mean value from (mask) NORMALIZATION MASK - which is a big region surrounding and containing putamens and caudate nucleui
-    it also normalizes ct by taking mean value form thresholded ct between 30-50 HU
+    it also normalizes anatomical by taking mean value form thresholded anatomical between 30-50 HU
     
     Parameters:
     -----------
-    ct_brain_nii : str
-        File path to the CT brain NIfTI image.
+    brain_nii : str
+        File path to the anatomical brain NIfTI image.
     pet_nii : str
         File path to the PET NIfTI image.
     logger : Logger object
@@ -2279,8 +2461,8 @@ def normalize(logger,ct_brain_nii, pet_nii):
         
     Returns:
     --------
-    normalized_data : np.array
-        Array containing the normalized PET and CT data.
+    np.array
+        Array containing the normalized PET and anatomical data.
     
     Raises:
     -------
@@ -2289,15 +2471,15 @@ def normalize(logger,ct_brain_nii, pet_nii):
     """
 
     # Check if input files exist
-    if not Path(ct_brain_nii).is_file():
-        logger.error(f"CT brain file not found: {ct_brain_nii}")
-        raise FileNotFoundError(f"CT brain file not found: {ct_brain_nii}")
+    if not Path(brain_nii).is_file():
+        logger.error(f"anatomical brain file not found: {brain_nii}")
+        raise FileNotFoundError(f"anatomical brain file not found: {brain_nii}")
     if not Path(pet_nii).is_file():
         logger.error(f"PET file not found: {pet_nii}")
         raise FileNotFoundError(f"PET file not found: {pet_nii}")
     
-    # Load CT and PET images
-    ct_brain = nib.load(ct_brain_nii).get_fdata()
+    # Load anatomical and PET images
+    brain = nib.load(brain_nii).get_fdata()
     pet = nib.load(pet_nii).get_fdata()
 
     # Load the normalization mask
@@ -2308,15 +2490,15 @@ def normalize(logger,ct_brain_nii, pet_nii):
     pet_norm_mean_mask = np.mean(pet[mask != 0])
     normalized_pet = pet - pet_norm_mean_mask
 
-    # Normalize CT by thresholding between 30-50 HU and subtracting the mean value
-    filtered_data = ct_brain[(ct_brain != 0) & (ct_brain > 30) & (ct_brain < 50)]
-    ct_norm_mean_mask = np.mean(filtered_data)
-    normalized_ct = ct_brain - ct_norm_mean_mask
+    # Normalize anatomical by thresholding between 30-50 HU and subtracting the mean value
+    filtered_data = brain[(brain != 0) & (brain > 30) & (brain < 50)]
+    brain_norm_mean_mask = np.mean(filtered_data)
+    normalized_brain = brain - brain_norm_mean_mask
 
-    return  np.asarray([normalized_pet, normalized_ct])
+    return  np.asarray([normalized_pet, normalized_brain])
 
 
-def reg_aladin(ref_file, flo_file, aff_file, rig_only_flag=False, in_aff_file=None, aff_direct_flag=True, res_file=None, verbosity=None):
+def reg_aladin(ref_file, flo_file, aff_file, rig_only_flag=False, aff_direct_flag=False, res_file=None, verbosity=None):
     """
     Perform symmetric global registration using the Block Matching algorithm.
 
@@ -2502,7 +2684,7 @@ def patch_wise_prediction(model, data):
         and outputting predicted values for the caudate nuclei and putamen.
     
     data : np.ndarray
-        A 3D numpy array containing the PET and CT data. The data should be in a format that 
+        A 3D numpy array containing the PET and anatomical data. The data should be in a format that 
         can be divided into smaller patches for processing by the model.
 
     Returns:
@@ -2541,14 +2723,14 @@ def patch_wise_prediction(model, data):
 
 def get_patch_from_3d_data(data, patch_shape, patch_index):
     """
-    Extract a patch from a 3D numpy array containing CT and PET data.
+    Extract a patch from a 3D numpy array containing anatomical and PET data.
 
     This function crops a subregion (patch) from the input 3D array based on the provided shape and corner index.
 
     Parameters:
     -----------
     data : np.ndarray
-        A 3D numpy array containing CT and PET data from which the patch will be extracted.
+        A 3D numpy array containing anatomical and PET data from which the patch will be extracted.
 
     patch_shape : tuple
         A tuple specifying the dimensions (depth, height, width) of the patch to be extracted.
@@ -2559,7 +2741,7 @@ def get_patch_from_3d_data(data, patch_shape, patch_index):
     Returns:
     --------
     np.ndarray
-        A numpy array containing the extracted patch of CT and PET data with the specified shape.
+        A numpy array containing the extracted patch of anatomical and PET data with the specified shape.
     """
     return data[..., 
                 patch_index[0]: patch_index[0] + patch_shape[0], 
@@ -2651,8 +2833,72 @@ def prediction_to_image(prediction, threshold=0.5, labels=None):
     else:
         # Raise an error if the prediction array shape is invalid or doesn't match expected formats
         raise RuntimeError('Invalid prediction array shape: {0}'.format(prediction.shape))
+    # return data
+    # Filter largest clusters for each label
+    largest_clusters_label_2 = filter_largest_clusters(data, target_label=2.0, num_clusters=2)
+    largest_clusters_label_3 = filter_largest_clusters(data, target_label=3.0, num_clusters=2)
+    final_prediction = largest_clusters_label_2 + largest_clusters_label_3
+    return final_prediction  # Return the labeled image
 
-    return data  # Return the labeled image
+
+def filter_largest_clusters(mask, target_label=2.0, num_clusters=2):
+    """
+    Filters and retains the largest connected clusters in a given mask for a specified label.
+
+    This function identifies connected components in a binary mask derived from the input `mask` 
+    and retains only the largest connected clusters corresponding to a specified label. 
+    It returns a mask containing these largest clusters while preserving the original label value.
+
+    Parameters:
+    -----------
+    mask : ndarray
+        Input 2D or 3D array representing the labeled mask. Elements with `target_label` will be processed.
+    
+    target_label : float, optional (default=2.0)
+        The label value to filter within the mask. Only regions with this label will be processed.
+    
+    num_clusters : int, optional (default=2)
+        The number of largest clusters to retain. If the number of clusters found is less than or equal to this value,
+        all clusters are retained.
+
+    Returns:
+    --------
+    largest_clusters_mask : ndarray
+        A binary mask (with the same shape as the input mask) that contains only the largest clusters
+        with the specified label value. All other regions are set to zero.
+
+    Example:
+    --------
+    >>> import numpy as np
+    >>> from scipy import ndimage
+    >>> mask = np.array([[0, 2, 2, 0], [0, 2, 0, 0], [3, 3, 2, 2]])
+    >>> filtered_mask = filter_largest_clusters(mask, target_label=2.0, num_clusters=1)
+    >>> print(filtered_mask)
+    [[0. 2. 2. 0.]
+     [0. 2. 0. 0.]
+     [0. 0. 0. 0.]]
+    """
+    # Step 1: Isolate the region with the target label
+    binary_mask = (mask == target_label).astype(float)
+    
+    # Step 2: Label connected components
+    labeled_array, num_features = scipy.ndimage.label(binary_mask)
+    
+    # Step 3: Count sizes of each component
+    sizes = np.bincount(labeled_array.ravel().astype(int))[1:]  # Exclude background count at index 0
+    
+    if len(sizes) > num_clusters:
+        # Step 4: Find the indices of the largest clusters
+        largest_cluster_indices = np.argsort(sizes)[-num_clusters:] + 1  # +1 because labels start at 1
+
+        # Step 5: Create a mask for the largest clusters with the original float label
+        largest_clusters_mask = np.isin(labeled_array, largest_cluster_indices).astype(float) * target_label
+    else:
+        # If there are fewer clusters than required, keep them all with the original label
+        largest_clusters_mask = (labeled_array > 0).astype(float) * target_label
+    
+    return largest_clusters_mask
+
 
 def compute_patch_indices():
     """
