@@ -3,6 +3,7 @@ add to .env file:
 OUTPUT_PATH="/data/"
 STATIC_PATH="/report_data/"
 '''
+import re
 import os
 import json
 import logging
@@ -13,7 +14,7 @@ from typing import Dict, Any
 import dotenv
 dotenv.load_dotenv()
 from datetime import datetime
-
+from pydicom.uid import PositronEmissionTomographyImageStorage, CTImageStorage, MRImageStorage
 import pe2i_petct_functions as node_functions
 import dicomnode
 import dicomnode.server
@@ -27,6 +28,7 @@ from dicomnode.dicom.blueprints import Blueprint, StaticElement, CopyElement, Fu
 from dicomnode.dicom.blueprints.secondary_image_report_blueprint import SECONDARY_IMAGE_REPORT_BLUEPRINT
 from dicomnode.dicom.blueprints.error_blueprint_english import ERROR_BLUEPRINT
 from dicomnode.dicom.dicom_factory import DicomFactory
+from dicomnode.lib.validators import RegexValidator, NegatedValidator, CaselessRegexValidator
 import pydicom.config
 import warnings
 # Suppress specific warnings
@@ -40,6 +42,8 @@ error_blueprint = ERROR_BLUEPRINT
 
 PET_ARCHIVE = Address('10.49.144.6', 104, 'GOYA') # These should be  in .env
 
+DICOM_ROUTER = Address('10.143.10.61', 104, 'VIPDICOM')
+
 BISPEBJERG_SCANNER_1 = Address('172.23.48.81', 104, 'BFHKFNM7101')
 BISPEBJERG_SCANNER_2 = Address('172.23.48.82', 104, 'BFHKFNM7102')
 BISPEBJERG_SCANNER_3 = Address('172.23.48.83', 104, 'BFHKFNMMI1')
@@ -50,6 +54,9 @@ class MyCTInput(AbstractInput):
     """
     Handles input data for CT images.
     """
+
+    enforce_single_series = True
+
     def validate(self) -> bool:
         maxInstanceNumber = -1
 
@@ -61,17 +68,22 @@ class MyCTInput(AbstractInput):
         return self.images == maxInstanceNumber
 
     # Image grinder object for processing NIfTI images
-    image_grinder = ManyGrinder(NiftiGrinder(), IdentityGrinder()) 
+    image_grinder = ManyGrinder(NiftiGrinder(), IdentityGrinder())
 
     # Required DICOM tags and their expected values
     required_values: Dict[int, Any] = {
-        0x00080060 : "CT"  # DICOM Modality Tag
+        0x00080016 : CTImageStorage,
+        0x00080060 : "CT",  # DICOM Modality Tag
+        0x0008_103E : NegatedValidator(CaselessRegexValidator("topogram")),
     }
 
 class MyPETInput(AbstractInput):
     """
     Handles input data for PET images.
     """
+
+    enforce_single_series = True
+
     def validate(self) -> bool:
         maxInstanceNumber = -1
         # Iterate through datasets to find the maximum instance number
@@ -86,6 +98,7 @@ class MyPETInput(AbstractInput):
 
     # Required DICOM tags and their expected values
     required_values: Dict[int, Any] = {
+        0x00080016 : PositronEmissionTomographyImageStorage,
         0x00080060 : "PT"  # DICOM Modality Tag
     }
 
@@ -94,6 +107,9 @@ class MyMRInput(AbstractInput):
     """
     Handles input data for PET images.
     """
+
+    enforce_single_series = True
+
     def validate(self) -> bool:
         maxInstanceNumber = -1
         # Iterate through datasets to find the maximum instance number
@@ -108,6 +124,7 @@ class MyMRInput(AbstractInput):
 
     # Required DICOM tags and their expected values
     required_values: Dict[int, Any] = {
+        0x00080016 : MRImageStorage,
         0x00080060 : "MR"  # DICOM Modality Tag
     }
 
@@ -120,14 +137,14 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
     dicom_factory = factory
 
     # Path for logging output
-    log_path: str = "/var/log/pe2ipetctnode.log"
+    #log_path: str = "/home/zuza/pe2i/pe2ipetctnode.log"
 
     # AE Title for DICOM nodes (Application Entity Title)
     ae_title: str = "PE2IPETCTNODE"
 
     # Directory for processing output
     processing_directory = OUTPUT_PATH
-
+    data_directory = "/tmp/dicomnode/data_dir"
     # Network settings
     port: int = 1131
     ip: str = '0.0.0.0'
@@ -135,7 +152,9 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
     # Logger settings: disable pynetdicom logger and set log level
     disable_pynetdicom_logger = True
     log_level: int = logging.DEBUG
-    log_output = "log.log"
+    log_output = "/home/zuza/pe2i/log.log"
+
+    error_on_rejected_dataset = False
 
     # Blueprint for handling unhandled errors
     unhandled_error_blueprint = error_blueprint
@@ -169,7 +188,7 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
 
         Returns:
         --------
-        DicomOutput 
+        DicomOutput:
             The generated report in DICOM format.
         """
 
@@ -269,7 +288,10 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
                                                       BISPEBJERG_PROD_ARCHIVE.ae_title]:
             return DicomOutput([(BISPEBJERG_PROD_ARCHIVE, encoded_report)], self.ae_title)
 
-        return DicomOutput([(self.endpoint, encoded_report),(PET_ARCHIVE, encoded_report)], self.ae_title)
+        return DicomOutput([
+                 (self.endpoint, encoded_report),
+                 (PET_ARCHIVE, encoded_report),
+                 (DICOM_ROUTER, encoded_report)], self.ae_title)
 
 # Entry point for running the node
 if __name__ == "__main__":

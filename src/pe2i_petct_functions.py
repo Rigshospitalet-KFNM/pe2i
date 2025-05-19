@@ -29,7 +29,7 @@ from nilearn.image import smooth_img
 from nipype.interfaces.niftyseg import LabelFusion
 from nipype.interfaces.niftyreg import RegAladin, RegResample
 from pylatex import Figure, Command, NoEscape, Tabular, Document, Package,Section, SubFigure, MultiColumn
-from pylatex.utils import bold, NoEscape
+from pylatex.utils import bold, NoEscape, escape_latex
 from pylatex.base_classes import Environment
 
 from HD_CTBET.run import run_hd_ctbet
@@ -170,7 +170,7 @@ class MidPointNorm(matplotlib.colors.Normalize):
 
 class ColorBox(Environment):
     """
-    Create a colored box environment in LaTeX using the \colorbox command.
+    Create a colored box environment in LaTeX using the colorbox command.
 
     Parameters:
     -----------
@@ -1006,11 +1006,16 @@ def get_name(patient_name):
     name_parts = name_str.split('^')
 
     # Extract surname and first name
-    surname = name_parts[0]
-    first_name = name_parts[1]
+    #surname = name_parts[0]
+    #first_name = name_parts[1]
 
-    # Return the name in "FirstName Surname" format
-    return first_name + ' ' + surname
+    if len(name_parts) == 0:
+        return "Ukendt Navn"
+    elif len(name_parts) == 1:
+        return name_parts[0]
+    else:
+        # Return the name in "FirstName Surname" format
+        return name_parts[0] + ' ' + name_parts[1]
 
 
 def get_age(patient_age):
@@ -1131,11 +1136,42 @@ def get_patient_table(doc, ref):
     ref : Dataset
         The DICOM dataset from which patient information will be extracted.
     """
-    
+
+    # Dataset might not have all the data we wish to display
+    patient_name = "Missing name"
+    if 'PatientName' in ref:
+        patient_name = escape_latex(get_name(ref.PatientName))
+
+    patient_id = "Missing ID"
+    if "PatientID" in ref:
+        patient_id = escape_latex(ref.PatientID)
+
+    patient_age = "Missing age"
+    if "PatientAge" in ref:
+        patient_age = escape_latex(ref.PatientAge)
+
+    patient_sex = "Missing sex"
+    if "PatientSex" in ref:
+         patient_sex = escape_latex(ref.PatientSex)
+
+    study_date = "Missing study date"
+    if 'StudyDate' in ref:
+        study_date = escape_latex(get_date(ref.StudyDate))
+
+    patient_weight = "Missing weight"
+    if "PatientWeight" in ref:
+        patient_weight = int(ref.PatientWeight)
+
+    patient_dose = "Missing dosis"
+    if "RadiopharmaceuticalInformationSequence" in ref:
+        seq = ref.RadiopharmaceuticalInformationSequence[0]
+        if "RadionuclideTotalDose" in seq:
+            patient_dose = int(seq.RadionuclideTotalDose / 1e6)
+
     # Create the table data including headers and patient information
     table_data = [
         ['Patient name', 'CPR', 'Age', 'Sex', 'Scan date', 'Weight [kg]', 'Dose [MBq]'],
-        [get_name(ref.PatientName), ref.PatientID, get_age(ref.PatientAge), ref.PatientSex, get_date(ref.StudyDate), int(ref.PatientWeight), int(ref.RadiopharmaceuticalInformationSequence[0].RadionuclideTotalDose/1e6)],
+        [patient_name, patient_id, patient_age, patient_sex, study_date, patient_weight, patient_dose],
     ]
 
     # Center the table content
