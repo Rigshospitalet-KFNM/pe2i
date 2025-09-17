@@ -1,38 +1,52 @@
 import os
-from datetime import datetime
+import random
+import datetime
 from pathlib import Path
-import cv2 as cv
-import numpy as np
-import pandas as pd
-import nibabel as nib
-import scipy
-import matplotlib
-from matplotlib.lines import Line2D
-from matplotlib.ticker import FormatStrFormatter
-from matplotlib import colors
-import matplotlib.pyplot as plt
+import cv2 as cv 
+import numpy as np 
+import pandas as pd 
+import nibabel as nib 
+import scipy 
+import matplotlib 
+from matplotlib.lines import Line2D 
+from matplotlib.ticker import FormatStrFormatter 
+from matplotlib import colors 
+import matplotlib.pyplot as plt 
 matplotlib.use('Agg')
 matplotlib.rc('font', **{'family': 'serif', 'serif': ['Palatino']})
 matplotlib.rc('text', usetex=True)
 from functools import partial
 from itertools import islice
-from sklearn.linear_model import LinearRegression
-from tensorflow import keras
-import tensorflow as tf
-import keras_contrib
-import dotenv
+from sklearn.linear_model import LinearRegression 
+from tensorflow import keras  # type: ignore
+import tensorflow as tf 
+import keras_contrib 
+import dotenv # type: ignore
 dotenv.load_dotenv()
 # tf.config.list_physical_devices('GPU')
 # tf.config.list_physical_devices('CPU')
 
-from nilearn.image import smooth_img
-from nipype.interfaces.niftyseg import LabelFusion
-from nipype.interfaces.niftyreg import RegAladin, RegResample
-from pylatex import Figure, Command, NoEscape, Tabular, Document, Package,Section, SubFigure, MultiColumn
+from nilearn.image import smooth_img, resample_to_img # type: ignore
+from nipype.interfaces.niftyseg import LabelFusion # type: ignore
+from nipype.interfaces.niftyreg import RegAladin, RegResample, RegTransform # type: ignore
+from pylatex import Figure, Command, NoEscape, Tabular, Document, Package,Section, SubFigure, MultiColumn 
 from pylatex.utils import bold, NoEscape, escape_latex
 from pylatex.base_classes import Environment
+from pylatex.table import Tabularx
+import pydicom
+from pydicom import Dataset 
+from pydicom.uid import PositronEmissionTomographyImageStorage, generate_uid
+from pydicom.dataset import Dataset, FileMetaDataset
+from dicomnode.dicom.series import DicomSeries
+from dicomnode.lib.io import load_dicoms, save_dicom 
+from dicomnode.math import transpose_nifti_coords 
+from dicomnode.dicom import create_dicom_coordinate_system 
+from dicomnode.dicom.dicom_factory import DicomFactory, CopyOrElseElement,\
+    Blueprint, InstanceCopyElement, StaticElement, CopyElement, FunctionalElement,\
+    InstanceEnvironment, SeriesElement 
+from dicomnode.dicom.blueprints import get_time, get_today, add_UID_tag 
+from HD_CTBET.run import run_hd_ctbet # type: ignore
 
-from HD_CTBET.run import run_hd_ctbet
 
 STATIC_FILES = Path(os.environ.get("STATIC_PATH")) # path to static files
 FWHM = 2.35482 # converting sigma of 1 to FWHM 2.35482*1 mm
@@ -204,7 +218,7 @@ def swap_dims(self, modality, name):
 
     Returns:
     --------
-    modality_nii : str
+    modality_path : str
         The file path to the saved, reoriented NIfTI image.
 
     Raises:
@@ -234,7 +248,7 @@ def swap_dims(self, modality, name):
         raise ValueError("Input modality must be a Nifti1Image object.")
     
     # Construct the full output path for the new NIfTI image
-    modality_nii = os.getcwd() + '/' + name + '_swap.nii.gz'
+    modality_path = os.getcwd() + '/' + name + '_swap.nii.gz'
 
     # Convert the input image to the closest canonical orientation
     img = nib.as_closest_canonical(modality)
@@ -254,25 +268,25 @@ def swap_dims(self, modality, name):
         img = nib.Nifti1Image(img_data_swap, img.affine)
 
     # Save the new NIfTI image to the specified path
-    nib.save(img, modality_nii)
+    nib.save(img, modality_path)
 
     # Check if the file is saved successfully
-    if os.path.exists(modality_nii):
-        self.logger.info(f'NIfTI image saved successfully at: {modality_nii}')
+    if os.path.exists(modality_path):
+        self.logger.info(f'NIfTI image saved successfully at: {modality_path}')
     else:
-        self.logger.error(f'Failed to save NIfTI image at: {modality_nii}')
-        raise IOError(f"Failed to save NIfTI image at {modality_nii}")
+        self.logger.error(f'Failed to save NIfTI image at: {modality_path}')
+        raise IOError(f"Failed to save NIfTI image at {modality_path}")
     
-    return modality_nii
+    return modality_path
 
-def convert_LAC_to_HU(self, dd_nii):
+def convert_LAC_to_HU(self, dd_path):
     """
     Converts a Deep Dixon (DD) NIfTI image from Linear Attenuation Coefficient (LAC) units to Hounsfield Units (HU) 
     and saves the converted image to a new file.
 
     Parameters:
     -----------
-    dd_nii : str
+    dd_path : str
         File path to the input NIfTI image in LAC units.
 
     Returns:
@@ -294,7 +308,7 @@ def convert_LAC_to_HU(self, dd_nii):
     converted_path = f'{os.getcwd()}/DD_swap_HU.nii.gz'
     
     # Load the input NIfTI image
-    dd_nib = nib.load(dd_nii)
+    dd_nib = nib.load(dd_path)
     dd = dd_nib.get_fdata() # Get the image data as a NumPy array
 
     # Create a copy of the image data for conversion
@@ -319,13 +333,13 @@ def convert_LAC_to_HU(self, dd_nii):
     # Return the file path of the converted image
     return converted_path
 
-def run_skullstripping(self, input_modality_nii):
+def run_skullstripping(self, input_modality_path):
     """
     Perform skull stripping on a anatomical scan using the `hd_ctbet` method to remove non-brain tissues.
 
     Parameters:
     -----------
-    input_modality_nii : str
+    input_modality_path : str
         File path to the input NIfTI image (anatomical scan) to be skull-stripped.
 
     Returns:
@@ -347,24 +361,24 @@ def run_skullstripping(self, input_modality_nii):
     output_filename = os.getcwd() + '/anatomical_swap_BET.nii.gz'
 
     # Call the hd_ctbet function to perform skull stripping
-    run_hd_ctbet(str(input_modality_nii), str(output_filename), mode='fast', device='cpu', do_tta =False)
+    run_hd_ctbet(str(input_modality_path), str(output_filename), mode='fast', device='cpu', do_tta =False)
 
     return output_filename
 
 
-def process_anatomical(self, brain_nii):
+def process_anatomical(self, brain_path):
     """
     Preprocess a anatomical scan by applying thresholding to limit HU values and smoothing to reduce noise 
     before performing segmentation.
 
     Parameters:
     -----------
-    brain_nii : str
+    brain_path : str
         File path to the NIfTI image of the brain anatomical scan to be preprocessed.
 
     Returns:
     --------
-    brain_sm_th_nii : str
+    brain_sm_th_path : str
         File path to the preprocessed and saved NIfTI image (`brain_preprocessed.nii.gz`).
 
     Notes:
@@ -375,11 +389,11 @@ def process_anatomical(self, brain_nii):
     - The output file is saved as `brain_preprocessed.nii.gz` in the current working directory.
     """
     # Generate the output file path for the preprocessed image
-    brain_sm_th_nii = os.getcwd() + '/brain_preprocessed.nii.gz'
+    brain_sm_th_path = os.getcwd() + '/brain_preprocessed.nii.gz'
     self.logger.info('Applying thresholding and smoothing')
 
     # Load the NIfTI image
-    brain_nib = nib.load(brain_nii)
+    brain_nib = nib.load(brain_path)
 
     # Convert the NIfTI image data to a NumPy array 
     brain_data = brain_nib.get_fdata()
@@ -395,11 +409,11 @@ def process_anatomical(self, brain_nii):
     brain_sm_th = smooth_img(brain_th_nib, FWHM) 
     
     # Save the preprocessed image
-    nib.save(brain_sm_th, brain_sm_th_nii)
-    self.logger.info(f'saved {brain_sm_th_nii }')
+    nib.save(brain_sm_th, brain_sm_th_path)
+    self.logger.info(f'saved {brain_sm_th_path }')
 
     # Return the path to the preprocessed image
-    return brain_sm_th_nii
+    return brain_sm_th_path
 
 
 def cerebellum_mask(self, input_file):
@@ -474,13 +488,16 @@ def resampling(self, pet_nii, anatomical_nii, brain_nii):
 
     Returns:
     --------
-    petrsltemplate_nii : str
+    petrsltemplate_path : str
         File path to the PET image resampled to the brain template.
-    anatomicalrsl_nii : str
+    anatomicalrsl_path : str
         File path to the anatomical image resampled to the brain template.
-    brainrsl_nii : str
+    brainrsl_path : str
         File path to the brain image resampled to the brain template.
-    
+    trans_pet : pathlike object 
+        The transformation matrix file that defines the transformation from PET space to CT space
+    trans_anatomical : pathlike object 
+        The transformation matrix file that defines the transformation from CT space to MNI space.
     Exceptions:
     -----------
     Raises IOError if any of the registration or resampling steps fail to create the expected output files.
@@ -491,21 +508,21 @@ def resampling(self, pet_nii, anatomical_nii, brain_nii):
     """
 
     # Define file paths for templates and output files
-    template_nii = STATIC_FILES / 'avg_template_swap.nii.gz'
-    brainreg_nii = os.getcwd() + '/brain_reg_avg.nii.gz'
-    brainrsl_nii = os.getcwd() + '/brain_rsl_avg.nii.gz'
+    template_path = STATIC_FILES / 'avg_template_swap.nii.gz'
+    brainreg_path = os.getcwd() + '/brain_reg_avg.nii.gz'
+    brainrsl_path = os.getcwd() + '/brain_rsl_avg.nii.gz'
     trans_anatomical = os.getcwd() + '/brain_to_avg.txt'
-    anatomicalrsl_nii = os.getcwd() + '/anatomical_rsl_avg.nii.gz'
-    petreg_nii = os.getcwd() + '/pet_rsl_anatomical.nii.gz'
-    petrsltemplate_nii = os.getcwd() + '/pet_rsl_avg.nii.gz'
-    trans_pet = os.getcwd() + '/pet_to_anatomical-new.txt'
+    anatomicalrsl_path = os.getcwd() + '/anatomical_rsl_avg.nii.gz'
+    petreg_path = os.getcwd() + '/pet_rsl_anatomical.nii.gz'
+    petrsltemplate_path = os.getcwd() + '/pet_rsl_avg.nii.gz'
+    trans_pet = os.getcwd() + '/pet_to_anatomical.txt'
 
     # Step 1: Register anatomical brain to the average template if the transformation doesn't exist
     self.logger.info(f'Registering anatomical brain to template')
-    reg_aladin(ref_file=template_nii, 
+    reg_aladin(ref_file=template_path, 
                 flo_file=brain_nii,
                 aff_file=trans_anatomical,
-                res_file=brainreg_nii,
+                res_file=brainreg_path,
                 verbosity='none')
     
     # Verify if registration was successful
@@ -515,40 +532,40 @@ def resampling(self, pet_nii, anatomical_nii, brain_nii):
 
     # Step 2: Resample anatomical brain to the template if not already resampled  
     self.logger.info(f'Resampling anatomical brain to template')
-    reg_resample(ref_file=template_nii, 
+    reg_resample(ref_file=template_path, 
                     flo_file=brain_nii,
                     trans_file=trans_anatomical,
-                    out_file=brainrsl_nii,
+                    out_file=brainrsl_path,
                     interpol='LIN',
                     pad_val=-1024,
                     verbosity='none')
     
     # Check if brain resampling was successful
-    if not Path(brainrsl_nii).is_file():
-        self.logger.error(f"Failed to save resampled anatomical brain at {brainrsl_nii}")
-        raise IOError(f"Resampled anatomical brain not saved: {brainrsl_nii}")
+    if not Path(brainrsl_path).is_file():
+        self.logger.error(f"Failed to save resampled anatomical brain at {brainrsl_path}")
+        raise IOError(f"Resampled anatomical brain not saved: {brainrsl_path}")
         
     # Step 3: Resample anatomical modality to the template if not already resampled
     self.logger.info('Resampling anatomical to template')
-    reg_resample(ref_file=template_nii,
+    reg_resample(ref_file=template_path,
                     flo_file=anatomical_nii,
                     trans_file=trans_anatomical,
-                    out_file=anatomicalrsl_nii,
+                    out_file=anatomicalrsl_path,
                     interpol='LIN',
                     pad_val=-1024,
                     verbosity='none')
     
     # Check if anatomical resampling was successful
-    if not Path(anatomicalrsl_nii).is_file():
-        self.logger.error(f"Failed to save resampled anatomical at {anatomicalrsl_nii}")
-        raise IOError(f"Resampled anatomical not saved: {anatomicalrsl_nii}")
+    if not Path(anatomicalrsl_path).is_file():
+        self.logger.error(f"Failed to save resampled anatomical at {anatomicalrsl_path}")
+        raise IOError(f"Resampled anatomical not saved: {anatomicalrsl_path}")
 
     # Step 4: Register PET to anatomical modality if the transformation doesn't exist
     self.logger.info('Registering PET to anatomical')
     reg_aladin(ref_file=anatomical_nii, 
                 flo_file=pet_nii,
                 aff_file=trans_pet,
-                res_file=petreg_nii,
+                res_file=petreg_path,
                 verbosity='none')
     
     # Verify if PET registration was successful
@@ -558,23 +575,23 @@ def resampling(self, pet_nii, anatomical_nii, brain_nii):
 
     # Step 5: Resample PET to the brain template if not already resampled
     self.logger.info('Resampling PET to template')
-    reg_resample(ref_file=template_nii,
-                    flo_file=petreg_nii,
+    reg_resample(ref_file=template_path,
+                    flo_file=petreg_path,
                     trans_file=trans_anatomical,
-                    out_file=petrsltemplate_nii,
+                    out_file=petrsltemplate_path,
                     interpol='LIN',
                     pad_val=0,
                     verbosity='none')
     
     # Check if PET resampling to template was successful
-    if not Path(petrsltemplate_nii).is_file():
-        self.logger.error(f"Failed to save resampled PET at {petrsltemplate_nii}")
-        raise IOError(f"Resampled PET not saved: {petrsltemplate_nii}")
+    if not Path(petrsltemplate_path).is_file():
+        self.logger.error(f"Failed to save resampled PET at {petrsltemplate_path}")
+        raise IOError(f"Resampled PET not saved: {petrsltemplate_path}")
 
-    return petrsltemplate_nii, anatomicalrsl_nii, brainrsl_nii
+    return petrsltemplate_path, anatomicalrsl_path, brainrsl_path, trans_pet, trans_anatomical
 
 
-def get_predition(logger, brain_nii, pet_nii):
+def get_predition(logger, brain_path, pet_path):
     """
     Obtain the segmentation prediction for basal ganglia using a trained deep learning model.
 
@@ -586,9 +603,9 @@ def get_predition(logger, brain_nii, pet_nii):
     -----------
     logger : Logger object
         Logger for logging the process information.
-    brain_nii : str
+    brain_path : str
         File path to the anatomical brain modality NIfTI image.
-    pet_nii : str
+    pet_path : str
         File path to the PET NIfTI image.
 
     Returns:
@@ -610,7 +627,7 @@ def get_predition(logger, brain_nii, pet_nii):
     logger.info('Getting predition.')
     
     # Normalize anatomical and PET images
-    input_files = normalize(logger, brain_nii, pet_nii) 
+    input_files = normalize(logger, brain_path, pet_path) 
     
     try:
         # Define the path to the trained model
@@ -633,7 +650,7 @@ def get_predition(logger, brain_nii, pet_nii):
     return prediction_image
 
 
-def get_statistics(logger, pet_nii, cerebellum_nii, prediction):
+def get_statistics(logger, pet_path, cerebellum_path, prediction):
     """
     Calculates various statistics on PET and prediction data, including median normalization, SBR, 
     asymmetry calculations, and putamen/caudate ratios.
@@ -642,9 +659,9 @@ def get_statistics(logger, pet_nii, cerebellum_nii, prediction):
     -----------
     logger : Logger object
         The logger used for logging information.
-    pet_nii : str
+    pet_path : str
         File path to the PET NIfTI image.
-    cerebellum_nii : str
+    cerebellum_path : str
         File path to the cerebellum mask NIfTI image.
     prediction : np.array
         Prediction mask (segmentation) containing regions of interest.
@@ -669,9 +686,9 @@ def get_statistics(logger, pet_nii, cerebellum_nii, prediction):
     """
     # Step 1: Load and normalize PET data by cerebellum cortex median
     logger.info('Calculating cerebellum cortex median') 
-    pet_data = nib.load(pet_nii).get_fdata()
+    pet_data = nib.load(pet_path).get_fdata()
     pet_data = np.nan_to_num(pet_data, nan=0.0)
-    cerebellum_mask = nib.load(cerebellum_nii).get_fdata()
+    cerebellum_mask = nib.load(cerebellum_path).get_fdata()
 
     # Calculate the median from the cerebellum region (where mask == CEREBELLUM_INDEX)
     cerebellum_median = np.median(pet_data[(cerebellum_mask == CEREBELLUM_INDEX)])
@@ -743,7 +760,7 @@ def get_statistics(logger, pet_nii, cerebellum_nii, prediction):
 
     logger.info('Statistics calculation complete.')
 
-    return pet_normalized, cerebellum_mask, data
+    return pet_normalized, cerebellum_mask, data, cerebellum_median
 
 
 def get_split(data, direction):
@@ -920,7 +937,467 @@ def run_prediction(logger, model_file, labels, input_data, threshold=0.5):
         raise RuntimeError(f"Failed to run prediction: {e}")
 
 
-def get_logo(institution):
+def reg_transform(input_affine_file, inverse_affine_file, logger, verbosity='none'):
+    """
+    Inverts an affine transformation matrix using Nipype RegTransform.
+
+    Parameters:
+    -----------
+    input_affine_file : pathlike object or str
+        The input transformation file to be inverted.
+    inverse_affine_file : pathlike object or str
+        The output file path for the inverted affine matrix.
+    logger : logging.Logger
+        Logger instance for logging messages.
+    verbosity : str, optional
+        Nipype terminal output verbosity. Default is 'none'.
+
+    Returns:
+    --------
+    str
+        Path to the generated inverted affine file.
+
+    Raises:
+    -------
+    RuntimeError
+        If the Nipype RegTransform command fails.
+    FileNotFoundError
+        If the output inverted affine file is not created.
+    """
+    rt = RegTransform()
+    rt.inputs.inv_aff_input = str(input_affine_file)
+    rt.inputs.out_file = str(inverse_affine_file) # Output for inverted affine
+    rt.terminal_output = verbosity
+    try:
+        result = rt.run()
+
+        if result.runtime.returncode != 0:
+            stderr_output = result.runtime.stderr or "No stderr output"
+            stdout_output = result.runtime.stdout or "No stdout output"
+            logger.error(f"Nipype RegTransform failed with return code {result.runtime.returncode}. "
+                         f"Error: {stderr_output}. Output: {stdout_output}")
+            raise RuntimeError(f"Nipype RegTransform failed for {input_affine_file}. Error: {stderr_output}")
+
+        # result.outputs.inv_aff_file should be the path to the output
+        output_path_from_nipype = Path(result.inputs['out_file'])
+        if not output_path_from_nipype.is_file():
+            logger.error(f"Nipype RegTransform ran but output file '{output_path_from_nipype}' was not created.")
+            raise FileNotFoundError(f"Output file '{output_path_from_nipype}' not found after RegTransform.")
+        logger.info(f"Inverted affine transform saved to: '{output_path_from_nipype}'")
+        return str(output_path_from_nipype)
+
+    except Exception as e:
+        logger.error(f"Exception during Nipype RegTransform for '{input_affine_file}': {e}")
+        raise
+
+
+def reverse_pet_resampling(self,
+                               pet_normalized_data,
+                               pet_resampled_path, 
+                               original_pet_swap_path,
+                               original_anatomical_bet_path,
+                               trans_anatomical_path,
+                               trans_pet_path):
+    """
+    Reverses the resampling steps applied to the PET image.
+
+    Parameters:
+    -----------
+    pet_normalized_data : #TODO
+    original_pet_swap_path : str or Path
+        Path to the PET image *after* initial swap_dims, but *before* resampling.
+        This is the target space for the final reversed PET.
+    original_anatomical_bet_path : str or Path
+        Path to the skull-stripped anatomical image that was used to derive trans_anatomical.
+        This serves as the reference space for the first part of the reversal.
+    trans_anatomical_path : str
+        Path to the transformation file from anatomical (brain) to template (e.g., 'brain_to_avg.txt').
+    trans_pet_path : str 
+        Path to the transformation file from original PET to anatomical (e.g., 'pet_to_anatomical.txt').
+
+    Returns:
+    --------
+    str :
+        File path to the PET image resampled back to the 'pet_swap' space.
+    """
+    self.logger.info("Starting reversal of PET resampling using Nipype functions...")
+    pet_normalized_path = os.getcwd() +  "/pet_normalized.nii.gz"
+    pet_resampled_nii = nib.load(pet_resampled_path)
+    pet_normalized_nii = nib.Nifti1Image(pet_normalized_data, pet_resampled_nii.affine)
+    nib.save(pet_normalized_nii, pet_normalized_path)
+    # 1. Invert trans_anatomical (template to anatomical_bet space)
+    inv_trans_anatomical_path = os.getcwd() +  "/inv_anatomical_to_template.txt"
+    self.logger.info(f"Inverting anatomical-to-template transform: '{trans_anatomical_path}'")
+    # Use the new Nipype wrapper for reg_transform
+    reg_transform(
+        input_affine_file=trans_anatomical_path,
+        inverse_affine_file=inv_trans_anatomical_path,
+        logger=self.logger,
+        verbosity='none' # Or your preferred verbosity
+    )
+    # Error handling is within reg_transform_invert_affine_nipype which raises on failure
+
+    # 2. Resample pet_normalized_data from template space back to anatomical_bet space
+    pet_reverted_to_anatomical_space_path = os.getcwd() +  "/pet_reverted_to_anatomical_space.nii.gz"
+    self.logger.info(f"Resampling PET from template space to anatomical_bet space ('{original_anatomical_bet_path}')")
+    # Use the provided reg_resample function
+    result_step2 = reg_resample(
+        ref_file=original_anatomical_bet_path,
+        flo_file=pet_normalized_path,
+        trans_file=inv_trans_anatomical_path,
+        out_file=pet_reverted_to_anatomical_space_path,
+        interpol='LIN', # Common choice for PET
+        pad_val=-1,      # Match original padding for PET if possible
+        verbosity='none'
+    )
+    if result_step2.runtime.returncode != 0 or not Path(result_step2.outputs.out_file).is_file():
+        self.logger.error(f"Step 2 resampling failed. Stderr: {result_step2.runtime.stderr}")
+        raise IOError(f"Failed to create resampled PET: '{pet_reverted_to_anatomical_space_path}'")
+
+    # 3. Invert trans_pet (anatomical to original PET space)
+    inv_trans_pet_path = os.getcwd() +  "/inv_pet_to_anatomical.txt"
+    self.logger.info(f"Inverting PET-to-anatomical transform: '{trans_pet_path}'")
+    reg_transform(
+        input_affine_file=trans_pet_path,
+        inverse_affine_file=inv_trans_pet_path,
+        logger=self.logger,
+        verbosity='none'
+    )
+
+    # 4. Resample the result from step 2 back to the original pet_swap space
+    final_reversed_pet_path = os.getcwd() +  "/pet_reverted_to_original_swapped_space.nii.gz"
+    self.logger.info(f"Resampling PET from anatomical space to original PET_swap space ('{original_pet_swap_path}')")
+    result_step4 = reg_resample(
+        ref_file=original_pet_swap_path,
+        flo_file=pet_reverted_to_anatomical_space_path,
+        trans_file=inv_trans_pet_path,
+        out_file=final_reversed_pet_path,
+        interpol='LIN',
+        pad_val=0,
+        verbosity='none'
+    )
+    if result_step4.runtime.returncode != 0 or not Path(result_step4.outputs.out_file).is_file():
+        self.logger.error(f"Step 4 resampling failed. Stderr: {result_step4.runtime.stderr}")
+        raise IOError(f"Failed to create final reversed PET: '{final_reversed_pet_path}'")
+
+    self.logger.info(f"Successfully reversed PET resampling. Output: '{final_reversed_pet_path}'")
+    return final_reversed_pet_path
+
+
+def reverse_swap_dims(self,
+                        normalized_pet_path,
+                        original_pet):
+    """
+    Reverses the dimension swapping if it was originally applied.
+
+    Parameters:
+    -----------
+    normalized_pet_path : str
+        Path to the NIfTI image that needs potential un-swapping (output from reverse_pet_resampling).
+    original_pet : nib.Nifti1Image
+        The nibabel NIfTI image object of the *very original* PET scan,
+        before any processing.
+
+    Returns:
+    --------
+    nib.Nifti1Image :
+        The unswapped NIfTI image.
+    """
+    self.logger.info(f"Starting reversal of swap_dims for normalized pet")
+
+    resampled_image = resample_to_img(
+            source_img=nib.load(normalized_pet_path),
+            target_img=original_pet,
+            interpolation='linear', 
+            force_resample=True
+        )
+    nib.save(resampled_image, os.getcwd() +  "/normalised_pet_back_to_original.nii.gz")
+    return resampled_image
+
+
+def get_pet_dicom(self, pet_nii, ref_pet_dicom, modality_name):
+    self.logger.info('Conversion of normalized PET nifti to DICOM')
+    pet_data = pet_nii.get_fdata()
+    # pet_data =  pet_data.T
+    pet_data = (pet_nii.get_fdata().T)[::-1,:, :] # maybe this not necessery 
+    ref_pet_dicom.sort(key=lambda dcm: int(dcm.InstanceNumber))
+    # write mine function for getting points 
+    # points, voxel_dim, orientation, startpoint = create_dicom_coordinate_system(pet_nii)
+
+    # x_dim, y_dim, z_dim = voxel_dim
+
+    # def add_image_index(ie: InstanceEnvironment):
+    #     return ie.instance_number + 1
+
+    # def add_patient_position(ie):
+    #     return points[ie.instance_number]
+
+    # def add_slice_location(ie):
+    #     return points[ie.instance_number][2]
+
+    PET_BLUEPRINT = Blueprint([
+        # 0008
+        StaticElement(0x0008_0008, 'CS', ['DERIVED', 'SECONDARY']),
+        CopyOrElseElement(0x0008_0014, 'LO', 'MISSING'),
+        StaticElement(0x0008_0016, 'UI', PositronEmissionTomographyImageStorage),
+        FunctionalElement(0x0008_0018, 'UI', add_UID_tag),
+        CopyOrElseElement(0x0008_0021, 'DA', "MISSING"), # Series Date
+        CopyOrElseElement(0x0008_0022, 'LO', 'MISSING'), # Acquisition Date
+        FunctionalElement(0x0008_0023, 'DA', get_today), # Content Date
+        CopyOrElseElement(0x0008_0031, 'TM', "MISSING"), # Series Time
+        CopyOrElseElement(0x0008_0032, 'LO', 'MISSING'), # Acquisition Time
+        FunctionalElement(0x0008_0033, 'TM', get_time), # Content Time
+        CopyOrElseElement(0x0008_0050, 'SH', "MISSING"),
+        StaticElement(0x0008_0060, 'CS', 'PT'),
+        StaticElement(0x0008_0070, 'LO', 'PE2I pipeline'),
+        CopyOrElseElement(0x0008_0080, 'LO', 'MISSING'),
+        CopyOrElseElement(0x0008_1030, 'LO', "PE2I PIPELINE PRODUCED STUDY"),
+        StaticElement(0x0008_103E, 'LO', modality_name),
+        StaticElement(0x0008_1090, 'LO', 'PE2I pipeline'),
+
+        # 0010 ____
+        CopyOrElseElement(0x0010_0010, 'PN', "Missing Patient Name"),
+        CopyOrElseElement(0x0010_0020, 'LO', "Missing Patient ID"),
+        CopyOrElseElement(0x0010_0030, 'DA', datetime.date(1970,1,1)),
+
+        # 0018 ____
+        # StaticElement(0x0018_0050, 'DS', z_dim),
+        CopyElement(0x0018_0050),
+        CopyOrElseElement(0x0018_0060, 'LO', ''),
+        CopyOrElseElement(0x0018_1000, 'LO', 'MISSING'),
+        CopyOrElseElement(0x0018_1020, 'LO', 'MISSING'),
+        CopyOrElseElement(0x0018_1181, 'LO', 'MISSING'),
+        CopyOrElseElement(0x0018_1242, 'LO', 'MISSING'),
+        CopyOrElseElement(0x0018_5100, 'LO', 'MISSING'),
+        #CopyOrElseElement(0x0018_5100, Optional=True), # Patient Position
+
+        # 0020 ____
+        SeriesElement(0x0020_000E, 'UI', add_UID_tag),
+        CopyOrElseElement(0x0020_000D, 'UI', SeriesElement(0x0020_000D, 'UI', add_UID_tag)),
+        CopyOrElseElement(0x0020_0010, 'SH', "Missing Study ID"),
+        StaticElement(0x0020_0011, 'IS', str(random.randint(5000,100000))),
+        InstanceCopyElement(0x0020_0032, 'DS'),
+        # FunctionalElement(0x0020_0032, 'DS', add_patient_position),
+        CopyOrElseElement(0x0020_0037, 'LO', 'MISSING'),
+        CopyOrElseElement(0x0020_0052, 'LO', 'MISSING'),
+        CopyOrElseElement(0x0020_1040, 'LO', 'MISSING'),
+        StaticElement(0x0020_4000, 'LO', 'Unit: SBR'),
+        #InstanceCopyOrElseElement(0x0020_1041, 'DS'),
+        # InstanceCopyElement(0x0020_1041, 'DS'),
+        InstanceCopyElement(0x0020_1041, 'DS'),
+        
+        # FunctionalElement(0x0020_1041, 'DS', add_slice_location),
+
+
+        # 0028 ____
+        # StaticElement(0x0028_0030, 'DS', [x_dim, y_dim]),
+        CopyElement(0x0028_0030),
+        CopyOrElseElement(0x0028_0051, 'LO', 'MISSING'),
+        CopyOrElseElement(0x0028_1054, 'LO', 'MISSING'),
+
+        # 0054 ____
+        CopyOrElseElement(0x0054_0013, 'LO', 'MISSING'),
+        CopyOrElseElement(0x0054_0081, 'LO', 'MISSING'),
+        CopyOrElseElement(0x0054_0101, 'LO', 'MISSING'),
+        CopyOrElseElement(0x0054_0410, 'LO', 'MISSING'),
+        CopyOrElseElement(0x0054_0414, 'LO', 'MISSING'),
+        CopyOrElseElement(0x0054_1002, 'LO', 'MISSING'),
+        CopyOrElseElement(0x0054_1100, 'LO', 'MISSING'),
+        CopyOrElseElement(0x0054_1105, 'LO', 'MISSING'),
+        CopyOrElseElement(0x0054_1300, 'LO', 'MISSING'),
+        CopyOrElseElement(0x0054_0016, 'LO', 'MISSING'),  #RadiopharmaceuticalInformationSequence
+        StaticElement(0x0054_1000, 'CS', ["STATIC", "IMAGE"]),
+        StaticElement(0x0054_1001, 'CS', "MLML"),
+        StaticElement(0x0054_1102, 'CS', "NONE"),
+
+        # FunctionalElement(0x0054_1330, 'US', add_image_index),
+        InstanceCopyElement(0x0054_1330, 'US'),
+        # FunctionalElement(0x0054_1330, 'US', add_image_index),
+    ])
+
+    # swapped_pet_data = np.swapaxes(pet_data.T, 1, 2)[:,::-1,:]
+    # transposed_data = transpose_nifti_coords(swapped_pet_data)
+
+    factory = DicomFactory()
+
+    return factory.build_series(
+        pet_data, PET_BLUEPRINT, ref_pet_dicom
+        # transposed_data, PET_BLUEPRINT, ref_pet_dicom
+    )
+
+
+def nifti_to_pet_dicom(self, pet_nifti, ref_dicom, modality_name):
+    """
+    Converts a NIfTI image to a DICOM PET series using a reference DICOM series as a template.
+
+    Args:
+        nifti_path (N1ftiImage): Path to the input NIfTI file (.nii or .nii.gz).
+        ref_dicom_dir (str): Path to the directory containing the reference DICOM series.
+        output_dir (str): Path to the directory where the new DICOM files will be saved.
+    """
+    # --- 1. Load NIfTI Image ---
+    try:
+        # Load NIfTI data and transpose it so the slice dimension (z) is first.
+        # NIfTI is typically (x, y, z), transpose makes it (z, y, x).
+        nifti_data = pet_nifti.get_fdata().T[:,::-1,::-1]
+        nifti_affine = pet_nifti.affine
+    except Exception as e:
+        self.logger.error(f"Error: Could not read NIfTI file. {e}")
+        return
+
+    # # --- 2. Load Reference DICOM as Template ---
+    # self.logger.info(f"Loading reference DICOM from: {ref_dicom_dir}")
+    # try:
+    #     ref_files = [os.path.join(ref_dicom_dir, f) for f in os.listdir(ref_dicom_dir)]
+    #     if not ref_files:
+    #         self.logger.error(f"Error: No DICOM files (.dcm) found in {ref_dicom_dir}")
+    #         return
+    #     # Use the first file as the main template
+    #     ds_template = pydicom.dcmread(ref_files[0])
+    # except Exception as e:
+    #     self.logger.error(f"Error: Could not read reference DICOM files. {e}")
+    #     return
+    ds_template = ref_dicom[0]
+
+    # Generate a new SeriesInstanceUID for the entire series. This is critical.
+    new_series_uid = generate_uid()
+    
+    # Get current date and time for series/acquisition metadata
+    now = datetime.datetime.now()
+    series_date = now.strftime('%Y%m%d')
+    series_time = now.strftime('%H%M%S.%f')
+
+    # --- 4. Handle Pixel Data Scaling ---
+    # DICOM stores pixel data as integers. NIfTI often uses floats.
+    # We need to scale the float data to fit into a 16-bit unsigned integer range.
+    # This involves finding the min/max of the data and calculating a Rescale Slope and Intercept.
+    
+    # Set the target DICOM data type
+    output_dtype = np.uint16
+    
+    # Calculate scale factors. Add a small epsilon to avoid division by zero.
+    min_val = np.min(nifti_data)
+    max_val = np.max(nifti_data)
+    
+    # RescaleSlope * raw_pixel_value + RescaleIntercept = real_world_value
+    # We want to store uint16, so raw_pixel_value will be in [0, 65535]
+    if max_val - min_val < 1e-6:
+        rescale_slope = 1.0
+        rescale_intercept = 0.0
+    else:
+        rescale_slope = (max_val - min_val) / (np.iinfo(output_dtype).max - 1)
+        rescale_intercept = 0
+
+    # Scale the NIfTI data to the integer range
+    scaled_pixel_data = (nifti_data - rescale_intercept) / rescale_slope
+    scaled_pixel_data = scaled_pixel_data.astype(output_dtype)
+
+    self.logger.info(f"Pixel data scaling: Slope={rescale_slope:.6f}, Intercept={rescale_intercept:.6f}")
+
+
+    # --- 5. Create and Save Each DICOM Slice ---
+    num_slices = nifti_data.shape[0]
+    self.logger.info(f"Found {num_slices} slices. Starting DICOM creation...")
+    datasets = []
+    for i in range(num_slices):
+        # Make a copy of the template dataset for each slice
+        ds = ds_template
+
+        # --- Part A: Set File Meta Information ---
+        file_meta = FileMetaDataset()
+        file_meta.FileMetaInformationGroupLength = 200 # A reasonable default
+        file_meta.FileMetaInformationVersion = b'\x00\x01'
+        file_meta.MediaStorageSOPClassUID = pydicom.uid.PositronEmissionTomographyImageStorage
+        file_meta.MediaStorageSOPInstanceUID = generate_uid() # Each file gets a unique media storage UID
+        file_meta.TransferSyntaxUID = pydicom.uid.ExplicitVRLittleEndian
+        file_meta.ImplementationClassUID = pydicom.uid.PYDICOM_IMPLEMENTATION_UID
+        file_meta.ImplementationVersionName = 'PYDICOM 2.X.X'
+        ds.file_meta = file_meta
+
+        # --- Part B: Update Main DICOM Tags ---
+        # Set new UIDs
+        ds.SOPInstanceUID = file_meta.MediaStorageSOPInstanceUID
+        ds.SOPClassUID = pydicom.uid.PositronEmissionTomographyImageStorage
+        ds.SeriesInstanceUID = new_series_uid
+        
+        # Update date/time
+        ds.InstanceCreationDate = series_date
+        ds.InstanceCreationTime = series_time
+        ds.SeriesDate = series_date
+        ds.SeriesTime = series_time
+        ds.AcquisitionDate = series_date
+        ds.AcquisitionTime = series_time
+        ds.ContentDate = series_date
+        ds.ContentTime = series_time
+        
+        # Update series/instance numbers
+        ds.InstanceNumber = str(i + 1)
+        ds.SeriesNumber = ds_template.SeriesNumber if 'SeriesNumber' in ds_template else "99"
+
+        # --- Part C: Set PET-Specific Tags and Geometry ---
+        ds.Modality = "PT"
+        ds.Rows, ds.Columns = nifti_data.shape[1], nifti_data.shape[2]
+        
+        # Pixel Spacing and Slice Thickness from NIfTI header
+        # Note: NIfTI pixdim order is (junk, x, y, z, ...). After transpose, our data is (z,y,x)
+        pix_spacing_row = pet_nifti.header['pixdim'][2] # Corresponds to y-axis
+        pix_spacing_col = pet_nifti.header['pixdim'][1] # Corresponds to x-axis
+        slice_thickness = pet_nifti.header['pixdim'][3] # Corresponds to z-axis
+        
+        ds.PixelSpacing = [str(pix_spacing_row), str(pix_spacing_col)]
+        ds.SliceThickness = str(slice_thickness)
+        
+        # Image Position and Orientation
+        # This is the most complex part. We derive the ImagePositionPatient for the
+        # current slice from the NIfTI affine matrix. The affine maps voxel coordinates
+        # (i,j,k) to world coordinates (x,y,z). ImagePositionPatient is the (x,y,z)
+        # of the top-left corner of the slice.
+        # We calculate the position for the center of the first voxel of the slice.
+        # Voxel coordinate is (x,y,z) = (0,0,i), where i is the slice number.
+        position = nifti_affine @ [0, 0, i, 1]
+
+        ds.ImagePositionPatient = [str(p) for p in position[:3]]
+        
+        # The ImageOrientationPatient defines the direction of rows and columns.
+        # It's derived from the first two columns of the affine's rotation matrix.
+        row_cosine = nifti_affine[:3, 0] / np.linalg.norm(nifti_affine[:3, 0])
+        col_cosine = nifti_affine[:3, 1] / np.linalg.norm(nifti_affine[:3, 1])
+        ds.ImageOrientationPatient = [str(v) for v in np.concatenate((row_cosine, col_cosine))]
+
+        # Slice Location: z-coordinate from the ImagePositionPatient
+        ds.SliceLocation = str(position[2])
+
+        # --- Part D: Set Pixel Data and Rescaling Info ---
+        ds.PixelRepresentation = 0  # 0 for unsigned integer
+        ds.BitsAllocated = 16
+        ds.BitsStored = 16
+        ds.HighBit = 15
+        
+        # Add the scaling tags we calculated earlier
+        ds.RescaleIntercept = str(rescale_intercept)
+        ds.RescaleSlope = str(rescale_slope)
+        ds.WindowCenter = (max_val*0.8)/2
+        ds.WindowWidth = max_val*0.8
+        # Set Units to reflect that these are raw counts. If you have SUV values,
+        # you would set this to 'BQML' and adjust the scaling accordingly.
+        if 'Units' in ds:
+            ds.Units = "MLMLMIN" # Counts
+        if 'CorrectedImage' in ds:
+             # Assuming normalized, not fully corrected (ATTN, SCAT, DECAY)
+            ds.CorrectedImage = "NONE"
+
+        # Finally, set the pixel data for the current slice
+        ds.PixelData = scaled_pixel_data[i].tobytes()
+
+        # Update Series Description
+        ds.SeriesDescription = f"{modality_name}" 
+
+        datasets.append(ds)
+    # self.logger.info(len(datasets))
+    return datasets
+
+############## report part ############
+def get_logo(institution: str):
     """
     Retrieves the logo abbreviation based on the institution name.
 
@@ -1080,17 +1557,33 @@ def get_report_header(doc, institution):
     
     # Center the header content
     doc.append(Command('centering'))
+    ##### TODO changed for test
+    # # Add the logo image to the header
+    # doc.append(NoEscape(r'\begin{minipage}{0.6\textwidth}'))  # Adjust width as needed
+    # doc.append(NoEscape(r'\includegraphics[height=1cm]{%s}' % icon_path))
+    # doc.append(NoEscape(r'\end{minipage}'))
 
-    # Add the logo image to the header
-    doc.append(NoEscape(r'\begin{minipage}{0.6\textwidth}'))  # Adjust width as needed
-    doc.append(NoEscape(r'\includegraphics[height=1cm]{%s}' % icon_path))
-    doc.append(NoEscape(r'\end{minipage}'))
+    # # Add the footnote about the institution
+    # doc.append(NoEscape(r'\begin{minipage}{0.5\textwidth}'))  # Adjust width as needed
+    # doc.append(NoEscape(r'{\footnotesize \begin{tabular}{r}' +
+    #                        get_footnote(institution) +
+    #                        r'\end{tabular}}'))
+    # doc.append(NoEscape(r'\end{minipage}'))
+    # doc.append(NoEscape(r'\newline'))
+    ##### TODO changed for test
 
-    # Add the footnote about the institution
-    doc.append(NoEscape(r'\begin{minipage}{0.5\textwidth}'))  # Adjust width as needed
-    doc.append(NoEscape(r'{\footnotesize \begin{tabular}{r}' +
-                           get_footnote(institution) +
-                           r'\end{tabular}}'))
+    address = get_footnote(institution) 
+
+    doc.append(NoEscape(r'\noindent'))
+    # Minipage for the logo (left part)
+    doc.append(NoEscape(r'\begin{minipage}[b]{0.5\linewidth}'))
+    doc.append(NoEscape(r'\includegraphics[height=1.2cm]{%s}' % icon_path))
+    doc.append(NoEscape(r'\end{minipage}%'))
+    # Minipage for the address (right part)
+    doc.append(NoEscape(r'\begin{minipage}[b]{0.5\linewidth}'))
+    doc.append(NoEscape(r'\raggedleft')) # Right-aligns all content in this minipage
+    doc.append(NoEscape(r'\footnotesize '))
+    doc.append(NoEscape(address))
     doc.append(NoEscape(r'\end{minipage}'))
     doc.append(NoEscape(r'\newline'))
 
@@ -1122,10 +1615,12 @@ def create_document(fname):
     
     # Add the graphicx package for handling images
     doc.packages.append(Package('graphicx'))
+    doc.packages.append(Package('tabularx')) ### TODO new code
+
     return doc
 
 
-def get_patient_table(doc, ref):
+def get_patient_table(doc, ref, pt_age):
     """
     Adds a table with patient information to the LaTeX document.
 
@@ -1146,9 +1641,7 @@ def get_patient_table(doc, ref):
     if "PatientID" in ref:
         patient_id = escape_latex(ref.PatientID)
 
-    patient_age = "Missing age"
-    if "PatientAge" in ref:
-        patient_age = escape_latex(ref.PatientAge)
+    patient_age = pt_age
 
     patient_sex = "Missing sex"
     if "PatientSex" in ref:
@@ -1174,21 +1667,30 @@ def get_patient_table(doc, ref):
         [patient_name, patient_id, patient_age, patient_sex, study_date, patient_weight, patient_dose],
     ]
 
-    # Center the table content
-    doc.append(NoEscape(r'\centering'))
+    # # Center the table content
+    # doc.append(NoEscape(r'\centering'))
 
-    # Create the table with column alignment
-    with doc.create(Tabular('lccccccc')) as table:
-        table.append(NoEscape(r'\hline'))
+    # # Create the table with column alignment
+    # with doc.create(Tabular('lccccccc')) as table:
+    #     table.append(NoEscape(r'\hline'))
 
+    #     # Add header row with bold text
+    #     table.append(NoEscape(' & '.join([r'\textbf{' + element + '}' for element in table_data[0]]) + r' \\ '))
+
+    #      # Add data rows
+    #     for row in table_data[1:]:
+    #         table.append(NoEscape(' & '.join(map(str, row)) + r' \\'))
+
+    #     table.append(NoEscape(r'\hline'))
+    # TODO this code added
+    with doc.create(Tabularx('Xcccccc', width_argument=NoEscape(r'\linewidth'))) as table:
+        table.add_hline()
         # Add header row with bold text
-        table.append(NoEscape(' & '.join([r'\textbf{' + element + '}' for element in table_data[0]]) + r' \\ '))
-
-         # Add data rows
+        table.add_row(table_data[0], mapper=bold)
+        # Add data rows
         for row in table_data[1:]:
-            table.append(NoEscape(' & '.join(map(str, row)) + r' \\'))
-
-        table.append(NoEscape(r'\hline'))
+            table.add_row(row)
+        table.add_hline()
 
 
 def contours_mask_slice(slice):
@@ -1901,7 +2403,7 @@ def first_values(doc, patient_values, normal_stat_values, pt_age, pet_desc, age_
 
         table.add_hline()
 
-    now = datetime.now()
+    now = datetime.datetime.now()
     # Add explanatory footnotes to the LaTeX document
     doc.append(NoEscape(r"\begin{flushleft} {\hspace*{0.3cm}\footnotesize Specific Binding Ratio (SBR) is relative to cerebellar grey matter.\newline}"))
     doc.append(NoEscape(r" {\hspace*{0.3cm}\footnotesize LLN: lower limit of normal at -2SD.\newline}"))
@@ -2289,8 +2791,28 @@ def plots_normal_values(doc, normal_values, patient_values, pt_age):
 
             subplot2.add_plot(width=subfig_width)
 
+def get_age_from_dataset(ref_pet_dcm):
 
-def generate_report(self, ref_pet_dcm, anatomical_desc, normalised_pet, anatomical_nii, prediction, cerebellum, patient_values, MR=False):
+    if hasattr(ref_pet_dcm, "PatientAge"):
+        pt_age = get_age(ref_pet_dcm.PatientAge)
+    else:
+        pt_age = get_age_from_birth(ref_pet_dcm.PatientBirthDate)
+    return pt_age
+
+def get_age_from_birth_easy(patient_birth):
+ 
+    year_now = datetime.date.today().year
+    year = int(patient_birth[:4])
+    return year_now-year
+
+def get_age_from_birth(patient_birth):
+
+    today = datetime.date.today()
+    birth_date = datetime.datetime.strptime(patient_birth, "%Y%m%d").date()
+    age = today.year - birth_date.year - ((today.month, today.day) < (birth_date.month, birth_date.day))
+    return age
+
+def generate_report(self, ref_pet_dcm, anatomical_desc, normalised_pet, anatomical_path, prediction, cerebellum, patient_values, MR=False):
     """
     Generates a comprehensive clinical report for a PET/CT or PET/MR(DeepDixon protocol) scan using LaTeX-based PDF.
 
@@ -2309,7 +2831,7 @@ def generate_report(self, ref_pet_dcm, anatomical_desc, normalised_pet, anatomic
     normalised_pet : numpy.ndarray
         Normalized PET scan data array representing tracer uptake.
     
-    anatomical_nii : str
+    anatomical_path : str
         File path to the anatomical scan in NIfTI format (.nii), used to load and process anatomical image data.
     
     prediction : numpy.ndarray
@@ -2340,7 +2862,7 @@ def generate_report(self, ref_pet_dcm, anatomical_desc, normalised_pet, anatomic
     Example:
     --------
     >>> report_path = generate_report(ref_pet_dcm, "CT Head", pet_data, "ct_scan.nii", pred_data, cereb_data, patient_df, MR=False)
-    >>> print(f"Report generated at: {report_path}")
+
     """
     self.logger.info('Generating report')
     # Flip PET, prediction, and cerebellum arrays along the axis 0 (typically to adjust orientation)
@@ -2348,7 +2870,7 @@ def generate_report(self, ref_pet_dcm, anatomical_desc, normalised_pet, anatomic
     pet_flipped = np.nan_to_num(pet_flipped)
     prediction_flipped = np.flip(prediction, axis=0)
     cerebellum_flipped= np.flip(cerebellum, axis=0)
-    anatomical = nib.load(anatomical_nii).get_fdata()
+    anatomical = nib.load(anatomical_path).get_fdata()
     ct_flipped = np.flip(anatomical, axis=0) 
     ct_flipped = np.nan_to_num(ct_flipped)
 
@@ -2380,7 +2902,7 @@ def generate_report(self, ref_pet_dcm, anatomical_desc, normalised_pet, anatomic
     
     # Extract age range and patient age
     age_range = (normal_values[['age']].values).astype(int)
-    pt_age = get_age(ref_pet_dcm.PatientAge)
+    pt_age = get_age_from_dataset(ref_pet_dcm)
     
     # Generate slices from prediction and cerebellum data
     slices = get_slices(prediction_flipped, indices = [2,3], num_slices = 9)[2:8] + get_slices(cerebellum_flipped, indices = [CEREBELLUM_INDEX], num_slices = 4)[1:]
@@ -2395,9 +2917,10 @@ def generate_report(self, ref_pet_dcm, anatomical_desc, normalised_pet, anatomic
     
     # Add report header with institution name
     get_report_header(doc, institution) 
-    
+    # Add a small, clean vertical space to separate the header from the blue box below.
+    doc.append(NoEscape(r'\vspace{4pt}'))
     doc.append(NoEscape(r'\vspace{-1.2cm}'))
-    doc.append(NoEscape(r'\colorbox{babyblue}{\begin{minipage}{\linewidth}'))
+    doc.append(NoEscape(r'\noindent\colorbox{babyblue}{\begin{minipage}{\linewidth}'))
     doc.append(NoEscape(r'\vspace{-0.5cm}'))
     # Create a section with the flushleft alignment for the title
     with doc.create(Section(NoEscape(r'\begin{flushleft}{Dopamine transporter (DAT) {[\textsuperscript{18}F]}FE-PE2I PET scanning}\end{flushleft}'), numbering=False)):
@@ -2412,7 +2935,7 @@ def generate_report(self, ref_pet_dcm, anatomical_desc, normalised_pet, anatomic
         doc.append(NoEscape(r'\newline'))
         doc.append(NoEscape(r'\newline'))
         # Add patient information table
-        get_patient_table(doc, ref_pet_dcm)
+        get_patient_table(doc, ref_pet_dcm, pt_age)
         
         # Generate and add plots for PET scan data
         get_first_plots(doc, pet_flipped, mask, slices)
@@ -2430,11 +2953,13 @@ def generate_report(self, ref_pet_dcm, anatomical_desc, normalised_pet, anatomic
     # Add new page and report header
     doc.append(NoEscape(r'\newpage'))
     get_report_header(doc, institution)    
-    
+    doc.append(NoEscape(r'\vspace{-0.5cm}'))
+
     # Create section for average basal ganglia SBR
     with doc.create(Section('Average basal ganglia SBR', numbering=False)):
         doc.append(NoEscape(r'\vspace{-0.2cm}'))
         plot_average(doc, pet_flipped, mask, slices)
+    doc.append(NoEscape(r'\vspace{-0.2cm}'))
 
     # Create section for subject relative to mean of reference population
     with doc.create(Section('Subject relative to mean of reference population', numbering=False)):
@@ -2478,7 +3003,7 @@ def generate_report(self, ref_pet_dcm, anatomical_desc, normalised_pet, anatomic
     return str(header_doc)+'.pdf'
 
 
-def normalize(logger,brain_nii, pet_nii): 
+def normalize(logger,brain_path, pet_path): 
     """
     Normalizes the PET and anatomical brain images. 
     PET is normalized by subtracting the mean value within a mask, and anatomical is thresholded and normalized.
@@ -2488,9 +3013,9 @@ def normalize(logger,brain_nii, pet_nii):
     
     Parameters:
     -----------
-    brain_nii : str
+    brain_path : str
         File path to the anatomical brain NIfTI image.
-    pet_nii : str
+    pet_path : str
         File path to the PET NIfTI image.
     logger : Logger object
         Logger for logging the process information.
@@ -2507,20 +3032,20 @@ def normalize(logger,brain_nii, pet_nii):
     """
 
     # Check if input files exist
-    if not Path(brain_nii).is_file():
-        logger.error(f"anatomical brain file not found: {brain_nii}")
-        raise FileNotFoundError(f"anatomical brain file not found: {brain_nii}")
-    if not Path(pet_nii).is_file():
-        logger.error(f"PET file not found: {pet_nii}")
-        raise FileNotFoundError(f"PET file not found: {pet_nii}")
+    if not Path(brain_path).is_file():
+        logger.error(f"anatomical brain file not found: {brain_path}")
+        raise FileNotFoundError(f"anatomical brain file not found: {brain_path}")
+    if not Path(pet_path).is_file():
+        logger.error(f"PET file not found: {pet_path}")
+        raise FileNotFoundError(f"PET file not found: {pet_path}")
     
     # Load anatomical and PET images
-    brain = nib.load(brain_nii).get_fdata()
-    pet = nib.load(pet_nii).get_fdata()
+    brain = nib.load(brain_path).get_fdata()
+    pet = nib.load(pet_path).get_fdata()
 
     # Load the normalization mask
-    mask_nii = STATIC_FILES / 'truth_merge_mask_dil10.nii.gz'
-    mask = nib.load(mask_nii).get_fdata()
+    mask_path = STATIC_FILES / 'truth_merge_mask_dil10.nii.gz'
+    mask = nib.load(mask_path).get_fdata()
 
     # Normalize PET by subtracting the mean value within the mask
     pet_norm_mean_mask = np.mean(pet[mask != 0])

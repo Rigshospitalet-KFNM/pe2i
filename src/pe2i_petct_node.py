@@ -9,8 +9,10 @@ import json
 import logging
 import random
 import numpy as np
+import nibabel as nib
 from pathlib import Path
 from typing import Dict, Any
+import shutil
 import dotenv
 dotenv.load_dotenv()
 from datetime import datetime
@@ -21,7 +23,7 @@ import dicomnode.server
 from dicomnode.dicom.dimse import Address
 from dicomnode.server.pipeline_tree import InputContainer
 from dicomnode.server.input import AbstractInput
-from dicomnode.server.output import DicomOutput
+from dicomnode.server.output import DicomOutput, MultiOutput
 from dicomnode.server.nodes import AbstractQueuedPipeline
 from dicomnode.server.grinders import NiftiGrinder, ManyGrinder, IdentityGrinder
 from dicomnode.dicom.blueprints import Blueprint, StaticElement, CopyElement, FunctionalElement, get_today, get_time
@@ -195,9 +197,10 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
         # Extract PET and CT data from input
         pet = input_data['PET'] # NIfTI PET data
         anatomical_nifti, inputContainer = input_data['anatomical'] # NIfTI CT or DD data and input class
-
+        nib.save(pet, os.getcwd() +  "/pet.nii.gz")
         # Reference DICOM datasets
         ref_pet_dicom = input_data.datasets['PET'][0]
+        ref_pet_dicoms = input_data.datasets['PET']
         ref_anatomical_dicom = input_data.datasets['anatomical'][0]
 
         # Get CT series description (metadata)
@@ -209,58 +212,71 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
 
         # Perform preprocessing steps on PET and CT/DD data:
         # Swap dimensions for PET and CT/DD (function defined in node_functions)
-        pet_swap_nii = node_functions.swap_dims(self, pet, 'PET')
+        pet_swap_path = node_functions.swap_dims(self, pet, 'PET')
         if isinstance(inputContainer, MyMRInput):
-            dd_swap_nii = node_functions.swap_dims(self, anatomical_nifti, 'DD')
-            anatomical_swap_nii = node_functions.convert_LAC_to_HU(self, dd_swap_nii) # converting Linear Attenuation Coefficient units to Hounsefield Units
+            dd_swap_path = node_functions.swap_dims(self, anatomical_nifti, 'DD')
+            anatomical_swap_path = node_functions.convert_LAC_to_HU(self, dd_swap_path) # converting Linear Attenuation Coefficient units to Hounsefield Units
             MR_flag = True # MR flag for report settings
         else:
-            anatomical_swap_nii = node_functions.swap_dims(self, anatomical_nifti, 'CT')
+            anatomical_swap_path = node_functions.swap_dims(self, anatomical_nifti, 'CT')
             MR_flag = False# MR flag for report settings
             
         # Skull stripping on CT data
-        anatomical_bet_nii = node_functions.run_skullstripping(self, anatomical_swap_nii)
+        anatomical_bet_path = node_functions.run_skullstripping(self, anatomical_swap_path)
 
         # Resampling PET, CT, and skull-stripped CT images to the same resolution
-        pet_resampled_nii, anatomical_resampled_nii, anatomical_bet_resampled_nii = node_functions.resampling(
-            self, pet_swap_nii, anatomical_swap_nii, anatomical_bet_nii
+        pet_resampled_path, anatomical_resampled_path, anatomical_bet_resampled_path, trans_pet, trans_anatomical = node_functions.resampling(
+            self, pet_swap_path, anatomical_swap_path, anatomical_bet_path
         )
 
         # Further processing of CT data (e.g., preprocessing)
-        anatomical_bet_preproc_nii = node_functions.process_anatomical(self, anatomical_bet_resampled_nii)
+        anatomical_bet_preproc_path = node_functions.process_anatomical(self, anatomical_bet_resampled_path)
         
         # Masking cerebellum cortex in CT data
-        cerebellum_nii = node_functions.cerebellum_mask(self, anatomical_bet_preproc_nii)
+        cerebellum_path = node_functions.cerebellum_mask(self, anatomical_bet_preproc_path)
         
         # Get prediction data and statistics based on PET and CT data
-        prediction_data = node_functions.get_predition(self.logger, anatomical_bet_preproc_nii, pet_resampled_nii)
-        pet_normalized_data, cerebellum_mask_data, patient_values = node_functions.get_statistics(
-            self.logger, pet_resampled_nii, cerebellum_nii, prediction_data
+        prediction_data = node_functions.get_predition(self.logger, anatomical_bet_preproc_path, pet_resampled_path)
+        pet_normalized_data, cerebellum_mask_data, patient_values, cerebellum_median = node_functions.get_statistics(
+            self.logger, pet_resampled_path, cerebellum_path, prediction_data
             )
 
         # Generate the report
         report = node_functions.generate_report(
-            self, ref_pet_dicom, anatomical_desc, pet_normalized_data, anatomical_resampled_nii, 
+            self, ref_pet_dicom, anatomical_desc, pet_normalized_data, anatomical_resampled_path, 
             prediction_data, cerebellum_mask_data, patient_values, MR_flag
         )
-        
-        file_path = '/home/zuza/validation/' + str(pt_id) +'.json'
-        with open(file_path, 'w') as json_file:
-            json.dump(patient_values, json_file, indent=4)
+
+        # pet_normalized_pet_space = node_functions.reverse_pet_resampling(self, pet_normalized_data, pet_resampled_path, pet_swap_path, anatomical_bet_path, trans_anatomical, trans_pet)
+        pet_sbr_data = pet.get_fdata() / cerebellum_median - 1
+        self.logger.info(np.max(pet_sbr_data))
+        pet_normalized_org = nib.Nifti1Image(pet_sbr_data, pet.affine)
+        time_now = datetime.now().strftime("%Y/%m/%d %H:%M:%S")
+        modality_name = f"PET PE2I SBR {time_now}"
+        self.logger.info(len(ref_pet_dicoms))
+        if not isinstance(ref_pet_dicoms, list):
+            ref_pet_dicoms = [ref_pet_dicoms]
+        pet_dcm = node_functions.get_pet_dicom(self, pet_normalized_org, ref_pet_dicoms, modality_name)
+        # pet_dcm = node_functions.nifti_to_pet_dicom(self, pet_normalized_swapped, ref_pet_dicoms, modality_name)
+        # file_path = '/home/zuza/validation/' + str(pt_id) +'.json'
+        # with open(file_path, 'w') as json_file:
+        #     json.dump(patient_values, json_file, indent=4)
 
         # Extract keys from the patient_values dictionary to add them to the DICOM report
         keys = list(patient_values.keys())
 
         # Define the report name and create a blueprint for encoding the DICOM report
-        report_name = f"PE2I Report V2.0 {datetime.now().strftime("%Y/%m/%d %H:%M:%S")}"
+        report_name = f"PE2I Report V2.0 {time_now}"
         blueprint= Blueprint(SECONDARY_IMAGE_REPORT_BLUEPRINT)
         
         # Populate the blueprint with relevant DICOM tags and values
+        blueprint[0x0008_0021] = CopyElement(0x0008_0021) # Series Date 
+        blueprint[0x0008_0023] = FunctionalElement(0x00080023, 'DA', get_today) # Content Date
+        blueprint[0x0008_0031] = CopyElement(0x0008_0031) # Series Time
+        blueprint[0x0008_0033] = FunctionalElement(0x00080033, 'TM', get_time) # Content Time
         blueprint[0x0008_103E] = StaticElement(0x0008_103E, 'LO', report_name) # Series Description
         blueprint[0x0010_0010] = CopyElement(0x0010_0010) # Patient's Name 
         blueprint[0x0020_0011] = StaticElement(0x0020_0011, 'IS', str(random.randint(5000,100000))) # Series Number
-        blueprint[0x0008_0021] = FunctionalElement(0x00080021, 'DA', get_today) #Series Date
-        blueprint[0x0008_0031] = FunctionalElement(0x00080031, 'TM', get_time) #Series Time
         
         # Add calculated patient values to the blueprint for DICOM output
         for i in range(len(keys)):  
@@ -286,12 +302,23 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
                                                       BISPEBJERG_SCANNER_3.ae_title,\
                                                       BISPEBJERG_PET_ARCHIVE.ae_title,\
                                                       BISPEBJERG_PROD_ARCHIVE.ae_title]:
-            return DicomOutput([(BISPEBJERG_PROD_ARCHIVE, encoded_report)], self.ae_title)
+            # return DicomOutput([(BISPEBJERG_PROD_ARCHIVE, encoded_report)], self.ae_title)
+            return DicomOutput([(BISPEBJERG_PROD_ARCHIVE, encoded_report), 
+                                (BISPEBJERG_PROD_ARCHIVE, pet_dcm)],
+                                self.ae_title)
 
+        # return DicomOutput([
+        #          (self.endpoint, encoded_report),
+        #          (PET_ARCHIVE, encoded_report),
+                #  (DICOM_ROUTER, encoded_report)], self.ae_title)
         return DicomOutput([
                  (self.endpoint, encoded_report),
                  (PET_ARCHIVE, encoded_report),
-                 (DICOM_ROUTER, encoded_report)], self.ae_title)
+                 (DICOM_ROUTER, encoded_report),
+                 (self.endpoint, pet_dcm),
+                 (PET_ARCHIVE, pet_dcm),
+                 (DICOM_ROUTER, pet_dcm)
+                 ], self.ae_title)
 
 # Entry point for running the node
 if __name__ == "__main__":
