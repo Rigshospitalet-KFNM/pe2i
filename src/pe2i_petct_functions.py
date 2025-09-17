@@ -2,56 +2,58 @@ import os
 import random
 import datetime
 from pathlib import Path
-import cv2 as cv 
-import numpy as np 
-import pandas as pd 
-import nibabel as nib 
-import scipy 
-import matplotlib 
-from matplotlib.lines import Line2D 
-from matplotlib.ticker import FormatStrFormatter 
-from matplotlib import colors 
-import matplotlib.pyplot as plt 
+import cv2 as cv
+import numpy as np
+import pandas as pd
+import nibabel as nib
+import scipy
+import matplotlib
+from matplotlib.lines import Line2D
+from matplotlib.ticker import FormatStrFormatter
+from matplotlib import colors
+import matplotlib.pyplot as plt
 matplotlib.use('Agg')
 matplotlib.rc('font', **{'family': 'serif', 'serif': ['Palatino']})
 matplotlib.rc('text', usetex=True)
 from functools import partial
 from itertools import islice
-from sklearn.linear_model import LinearRegression 
+from sklearn.linear_model import LinearRegression
 from tensorflow import keras  # type: ignore
-import tensorflow as tf 
-import keras_contrib 
+import tensorflow as tf
+import keras_contrib
 import dotenv # type: ignore
 dotenv.load_dotenv()
+
+from pe2i_environment import environment as env
 # tf.config.list_physical_devices('GPU')
 # tf.config.list_physical_devices('CPU')
 
 from nilearn.image import smooth_img, resample_to_img # type: ignore
 from nipype.interfaces.niftyseg import LabelFusion # type: ignore
 from nipype.interfaces.niftyreg import RegAladin, RegResample, RegTransform # type: ignore
-from pylatex import Figure, Command, NoEscape, Tabular, Document, Package,Section, SubFigure, MultiColumn 
+from pylatex import Figure, Command, NoEscape, Tabular, Document, Package,Section, SubFigure, MultiColumn
 from pylatex.utils import bold, NoEscape, escape_latex
 from pylatex.base_classes import Environment
 from pylatex.table import Tabularx
 import pydicom
-from pydicom import Dataset 
+from pydicom import Dataset
 from pydicom.uid import PositronEmissionTomographyImageStorage, generate_uid
 from pydicom.dataset import Dataset, FileMetaDataset
 from dicomnode.dicom.series import DicomSeries
-from dicomnode.lib.io import load_dicoms, save_dicom 
-from dicomnode.math import transpose_nifti_coords 
-from dicomnode.dicom import create_dicom_coordinate_system 
+from dicomnode.lib.io import load_dicoms, save_dicom
+from dicomnode.math import transpose_nifti_coords
+from dicomnode.dicom import create_dicom_coordinate_system
 from dicomnode.dicom.dicom_factory import DicomFactory, CopyOrElseElement,\
     Blueprint, InstanceCopyElement, StaticElement, CopyElement, FunctionalElement,\
-    InstanceEnvironment, SeriesElement 
-from dicomnode.dicom.blueprints import get_time, get_today, add_UID_tag 
+    InstanceEnvironment, SeriesElement
+from dicomnode.dicom.blueprints import get_time, get_today, add_UID_tag
 from HD_CTBET.run import run_hd_ctbet # type: ignore
 
 
-STATIC_FILES = Path(os.environ.get("STATIC_PATH")) # path to static files
+STATIC_FILES = env.STATIC_PATH # path to static files
 FWHM = 2.35482 # converting sigma of 1 to FWHM 2.35482*1 mm
 CEREBELLUM_INDEX = 4 # label for Cerebellum cortex
-MID_POINTS = [0] # for graphical visualisation 
+MID_POINTS = [0] # for graphical visualisation
 DEF_MIDS = [0.07] # shifting PET colormap parameter
 
 # Colormap to be used when displaying images.
@@ -119,16 +121,16 @@ _PETRainbowCMAP = matplotlib.colors.LinearSegmentedColormap(
     256)
 
 # defining slices to include in cropped image for visualisation purposes
-FIRST_DIM = (22, 234) 
-SECOND_DIM = (4, 216)  
+FIRST_DIM = (22, 234)
+SECOND_DIM = (4, 216)
 FIRST_DIM_CROPPED = slice(*FIRST_DIM)
 SECOND_DIM_CROPPED = slice(*SECOND_DIM)
 
 
 class MidPointNorm(matplotlib.colors.Normalize):
     """
-    Class defining normalization of colors to be used when plotting using matplotlib. 
-    The class allows one to define the minimum and maximum used in normalization, as usual, 
+    Class defining normalization of colors to be used when plotting using matplotlib.
+    The class allows one to define the minimum and maximum used in normalization, as usual,
     while it also allows one to define a "mid-point" -- this allows one to have values
     between the provided minimum and maximum mapped to something other than 0.5 in the colormap.
 
@@ -204,15 +206,15 @@ class ColorBox(Environment):
 
 def swap_dims(self, modality, name):
     """
-    Reorients a given NIfTI image from radiological to neurological orientation if necessary 
-    and saves the reoriented image to a specified output path. This ensures consistency in image orientation, 
+    Reorients a given NIfTI image from radiological to neurological orientation if necessary
+    and saves the reoriented image to a specified output path. This ensures consistency in image orientation,
     particularly for PET scans, which often require neurological orientation for further processing.
 
     Parameters:
     -----------
     modality : nibabel.Nifti1Image
         The NIfTI image object to be processed and potentially reoriented.
-    
+
     name : str
         The base name for the output file. The full output file name will include the suffix `_swap.nii.gz`.
 
@@ -230,7 +232,7 @@ def swap_dims(self, modality, name):
 
     Notes:
     ------
-    - The function first checks the image's orientation using the affine transformation and determines whether it 
+    - The function first checks the image's orientation using the affine transformation and determines whether it
       is in radiological orientation (i.e., the first axis is labeled 'R' for right).
     - If the orientation is radiological, it flips the image data along the left-right axis to convert it to neurological orientation.
     - The flipped image is saved with the suffix `_swap.nii.gz` in the current working directory.
@@ -242,11 +244,11 @@ def swap_dims(self, modality, name):
     >>> output_path = swap_dims(self, modality, "example_image")
     >>> print(f"Reoriented image saved at: {output_path}")
     """
-        
+
     # Validate input type
     if not isinstance(modality, nib.Nifti1Image):
         raise ValueError("Input modality must be a Nifti1Image object.")
-    
+
     # Construct the full output path for the new NIfTI image
     modality_path = os.getcwd() + '/' + name + '_swap.nii.gz'
 
@@ -254,7 +256,7 @@ def swap_dims(self, modality, name):
     img = nib.as_closest_canonical(modality)
 
     # Check if the first dimension is in the 'R' (Right) direction
-    if nib.aff2axcodes(modality.affine)[0] == 'R': 
+    if nib.aff2axcodes(modality.affine)[0] == 'R':
         # Log that we're changing from radiological to neurological orientation
         self.logger.info('Changing to neurological orientation')
 
@@ -276,12 +278,12 @@ def swap_dims(self, modality, name):
     else:
         self.logger.error(f'Failed to save NIfTI image at: {modality_path}')
         raise IOError(f"Failed to save NIfTI image at {modality_path}")
-    
+
     return modality_path
 
 def convert_LAC_to_HU(self, dd_path):
     """
-    Converts a Deep Dixon (DD) NIfTI image from Linear Attenuation Coefficient (LAC) units to Hounsfield Units (HU) 
+    Converts a Deep Dixon (DD) NIfTI image from Linear Attenuation Coefficient (LAC) units to Hounsfield Units (HU)
     and saves the converted image to a new file.
 
     Parameters:
@@ -303,10 +305,10 @@ def convert_LAC_to_HU(self, dd_path):
 
     # Log the conversion process
     self.logger.info('converting Deep Dixon from LAC to HU')
-    
+
     # Define the output file path
     converted_path = f'{os.getcwd()}/DD_swap_HU.nii.gz'
-    
+
     # Load the input NIfTI image
     dd_nib = nib.load(dd_path)
     dd = dd_nib.get_fdata() # Get the image data as a NumPy array
@@ -368,7 +370,7 @@ def run_skullstripping(self, input_modality_path):
 
 def process_anatomical(self, brain_path):
     """
-    Preprocess a anatomical scan by applying thresholding to limit HU values and smoothing to reduce noise 
+    Preprocess a anatomical scan by applying thresholding to limit HU values and smoothing to reduce noise
     before performing segmentation.
 
     Parameters:
@@ -383,7 +385,7 @@ def process_anatomical(self, brain_path):
 
     Notes:
     ------
-    - The thresholding operation keeps values in the range of 0-100 Hounsfield units (HU). 
+    - The thresholding operation keeps values in the range of 0-100 Hounsfield units (HU).
       Values outside this range are set to 0.
     - Smoothing is performed on the thresholded image using a specified Full Width at Half Maximum (FWHM) value.
     - The output file is saved as `brain_preprocessed.nii.gz` in the current working directory.
@@ -395,19 +397,19 @@ def process_anatomical(self, brain_path):
     # Load the NIfTI image
     brain_nib = nib.load(brain_path)
 
-    # Convert the NIfTI image data to a NumPy array 
+    # Convert the NIfTI image data to a NumPy array
     brain_data = brain_nib.get_fdata()
 
     # Apply thresholding to keep values in the range of 0-100 HU
     brain_th =  brain_data.copy()
-    brain_th[(brain_th<0)|(brain_th>100)] = 0 
+    brain_th[(brain_th<0)|(brain_th>100)] = 0
 
     # Convert the thresholded NumPy array back to a NIfTI image
     brain_th_nib = nib.Nifti1Image(brain_th, brain_nib.affine)
 
     # Apply smoothing to the thresholded image using the specified FWHM
-    brain_sm_th = smooth_img(brain_th_nib, FWHM) 
-    
+    brain_sm_th = smooth_img(brain_th_nib, FWHM)
+
     # Save the preprocessed image
     nib.save(brain_sm_th, brain_sm_th_path)
     self.logger.info(f'saved {brain_sm_th_path }')
@@ -418,14 +420,14 @@ def process_anatomical(self, brain_path):
 
 def cerebellum_mask(self, input_file):
     """
-    Generate a cerebellum mask by segmenting the cerebellum gray matter using the LabelFusion tool 
-    with the STEPS algorithm. The process uses pre-defined templates and classifier settings for 
+    Generate a cerebellum mask by segmenting the cerebellum gray matter using the LabelFusion tool
+    with the STEPS algorithm. The process uses pre-defined templates and classifier settings for
     accurate segmentation.
 
     Parameters:
     -----------
     input_file : str
-        The file path to the input NIfTI image (e.g., a brain MRI or anatomical scan) that needs cerebellum 
+        The file path to the input NIfTI image (e.g., a brain MRI or anatomical scan) that needs cerebellum
         segmentation.
 
     Returns:
@@ -439,7 +441,7 @@ def cerebellum_mask(self, input_file):
 
     Notes:
     ------
-    - The segmentation uses the STEPS algorithm, which is a machine learning-based method for 
+    - The segmentation uses the STEPS algorithm, which is a machine learning-based method for
       segmentation.
     - The function uses predefined static files (atlas and templates) for the segmentation.
     """
@@ -469,7 +471,7 @@ def cerebellum_mask(self, input_file):
 
 def resampling(self, pet_nii, anatomical_nii, brain_nii):
     """
-    Resample and register PET and anatomical scans to a brain template, ensuring that all steps 
+    Resample and register PET and anatomical scans to a brain template, ensuring that all steps
     are performed only if the corresponding output files do not already exist.
 
     This function performs the following operations:
@@ -494,9 +496,9 @@ def resampling(self, pet_nii, anatomical_nii, brain_nii):
         File path to the anatomical image resampled to the brain template.
     brainrsl_path : str
         File path to the brain image resampled to the brain template.
-    trans_pet : pathlike object 
+    trans_pet : pathlike object
         The transformation matrix file that defines the transformation from PET space to CT space
-    trans_anatomical : pathlike object 
+    trans_anatomical : pathlike object
         The transformation matrix file that defines the transformation from CT space to MNI space.
     Exceptions:
     -----------
@@ -519,32 +521,32 @@ def resampling(self, pet_nii, anatomical_nii, brain_nii):
 
     # Step 1: Register anatomical brain to the average template if the transformation doesn't exist
     self.logger.info(f'Registering anatomical brain to template')
-    reg_aladin(ref_file=template_path, 
+    reg_aladin(ref_file=template_path,
                 flo_file=brain_nii,
                 aff_file=trans_anatomical,
                 res_file=brainreg_path,
                 verbosity='none')
-    
+
     # Verify if registration was successful
     if not Path(trans_anatomical).is_file():
         self.logger.error(f"Failed to save anatomical brain registration at {trans_anatomical}")
         raise IOError(f"Anatomical brain registration not saved: {trans_anatomical}")
 
-    # Step 2: Resample anatomical brain to the template if not already resampled  
+    # Step 2: Resample anatomical brain to the template if not already resampled
     self.logger.info(f'Resampling anatomical brain to template')
-    reg_resample(ref_file=template_path, 
+    reg_resample(ref_file=template_path,
                     flo_file=brain_nii,
                     trans_file=trans_anatomical,
                     out_file=brainrsl_path,
                     interpol='LIN',
                     pad_val=-1024,
                     verbosity='none')
-    
+
     # Check if brain resampling was successful
     if not Path(brainrsl_path).is_file():
         self.logger.error(f"Failed to save resampled anatomical brain at {brainrsl_path}")
         raise IOError(f"Resampled anatomical brain not saved: {brainrsl_path}")
-        
+
     # Step 3: Resample anatomical modality to the template if not already resampled
     self.logger.info('Resampling anatomical to template')
     reg_resample(ref_file=template_path,
@@ -554,7 +556,7 @@ def resampling(self, pet_nii, anatomical_nii, brain_nii):
                     interpol='LIN',
                     pad_val=-1024,
                     verbosity='none')
-    
+
     # Check if anatomical resampling was successful
     if not Path(anatomicalrsl_path).is_file():
         self.logger.error(f"Failed to save resampled anatomical at {anatomicalrsl_path}")
@@ -562,12 +564,12 @@ def resampling(self, pet_nii, anatomical_nii, brain_nii):
 
     # Step 4: Register PET to anatomical modality if the transformation doesn't exist
     self.logger.info('Registering PET to anatomical')
-    reg_aladin(ref_file=anatomical_nii, 
+    reg_aladin(ref_file=anatomical_nii,
                 flo_file=pet_nii,
                 aff_file=trans_pet,
                 res_file=petreg_path,
                 verbosity='none')
-    
+
     # Verify if PET registration was successful
     if not Path(trans_pet).is_file():
         self.logger.error(f"Failed to save PET registration at {trans_pet}")
@@ -582,7 +584,7 @@ def resampling(self, pet_nii, anatomical_nii, brain_nii):
                     interpol='LIN',
                     pad_val=0,
                     verbosity='none')
-    
+
     # Check if PET resampling to template was successful
     if not Path(petrsltemplate_path).is_file():
         self.logger.error(f"Failed to save resampled PET at {petrsltemplate_path}")
@@ -595,8 +597,8 @@ def get_predition(logger, brain_path, pet_path):
     """
     Obtain the segmentation prediction for basal ganglia using a trained deep learning model.
 
-    This function normalizes the input anatomical and PET images, loads a pre-trained model, and generates 
-    a segmentation prediction for the basal ganglia. It ensures TensorFlow resources are properly 
+    This function normalizes the input anatomical and PET images, loads a pre-trained model, and generates
+    a segmentation prediction for the basal ganglia. It ensures TensorFlow resources are properly
     released after prediction.
 
     Parameters:
@@ -612,7 +614,7 @@ def get_predition(logger, brain_path, pet_path):
     --------
     prediction_image : numpy array
         The segmentation prediction image of basal ganglia.
-    
+
     Exceptions:
     -----------
     Logs an exception if there is an error while clearing the TensorFlow session.
@@ -625,16 +627,16 @@ def get_predition(logger, brain_path, pet_path):
     """
 
     logger.info('Getting predition.')
-    
+
     # Normalize anatomical and PET images
-    input_files = normalize(logger, brain_path, pet_path) 
-    
+    input_files = normalize(logger, brain_path, pet_path)
+
     try:
         # Define the path to the trained model
         MODEL_PATH  = STATIC_FILES / 'new_model_other.keras'
-        
+
         # Run prediction using the model
-        prediction_image = run_prediction(logger, 
+        prediction_image = run_prediction(logger,
                                           model_file=MODEL_PATH,  # Path to the trained model
                                           labels=(0, 2, 3),       # The label values (0, 2, 3) that the model will predict
                                           input_data=input_files  # The normalized input data
@@ -652,7 +654,7 @@ def get_predition(logger, brain_path, pet_path):
 
 def get_statistics(logger, pet_path, cerebellum_path, prediction):
     """
-    Calculates various statistics on PET and prediction data, including median normalization, SBR, 
+    Calculates various statistics on PET and prediction data, including median normalization, SBR,
     asymmetry calculations, and putamen/caudate ratios.
 
     Parameters:
@@ -680,12 +682,12 @@ def get_statistics(logger, pet_path, cerebellum_path, prediction):
 
     Notes:
     ------
-    - SBR (Specific Binding Ratio) is calculated as the ratio between the mean PET uptake 
+    - SBR (Specific Binding Ratio) is calculated as the ratio between the mean PET uptake
       in the target region and the median uptake in the cerebellum cortex.
     - Asymmetry index is calculated as the relative difference between left and right regions.
     """
     # Step 1: Load and normalize PET data by cerebellum cortex median
-    logger.info('Calculating cerebellum cortex median') 
+    logger.info('Calculating cerebellum cortex median')
     pet_data = nib.load(pet_path).get_fdata()
     pet_data = np.nan_to_num(pet_data, nan=0.0)
     cerebellum_mask = nib.load(cerebellum_path).get_fdata()
@@ -699,7 +701,7 @@ def get_statistics(logger, pet_path, cerebellum_path, prediction):
     logger.info(f'Found cerebellum median: {cerebellum_median}')
 
     # Normalize PET data by the cerebellum median
-    pet_normalized = pet_data / cerebellum_median - 1 
+    pet_normalized = pet_data / cerebellum_median - 1
 
     # Step 2: Split data and prediction masks into left and right hemispheres
     logger.info('Calculating statistics')
@@ -710,15 +712,15 @@ def get_statistics(logger, pet_path, cerebellum_path, prediction):
 
     # Step 3: Get posterior putamen masks
     posterior_putamen_mask_left = get_posterior_putamen(prediction, 'left')
-    posterior_putamen_mask_right = get_posterior_putamen(prediction, 'right')  
+    posterior_putamen_mask_right = get_posterior_putamen(prediction, 'right')
 
     # Step 4: Calculate SBR (Specific Binding Ratio) for each region
     putamen_left = get_sbr(pet_left[prediction_left == 2], cerebellum_median)
     putamen_right = get_sbr(pet_right[prediction_right == 2], cerebellum_median)
     caudate_left = get_sbr(pet_left[prediction_left == 3], cerebellum_median)
     caudate_right = get_sbr(pet_right[prediction_right == 3], cerebellum_median)
-    striatum_left = get_sbr(pet_left[prediction_left != 0 ], cerebellum_median) 
-    striatum_right = get_sbr(pet_right[prediction_right != 0 ], cerebellum_median) 
+    striatum_left = get_sbr(pet_left[prediction_left != 0 ], cerebellum_median)
+    striatum_right = get_sbr(pet_right[prediction_right != 0 ], cerebellum_median)
     posterior_putamen_left = get_sbr(pet_data[posterior_putamen_mask_left == 2], cerebellum_median)
     posterior_putamen_right = get_sbr(pet_data[posterior_putamen_mask_right == 2], cerebellum_median)
 
@@ -735,7 +737,7 @@ def get_statistics(logger, pet_path, cerebellum_path, prediction):
     striatum_asymmetry = get_asymmetry(striatum_right, striatum_left)
     ratio_asymmetry = get_asymmetry(ratio_right, ratio_left)
     ratio_posterior_asymmetry = get_asymmetry(ratio_posterior_right, ratio_posterior_left)
-    
+
     # Step 7: Compile statistics into a dictionary
     data = {
         'Putamen left': putamen_left,
@@ -855,11 +857,11 @@ def get_posterior_putamen(prediction_data, direction):
     prediciton_hemisphere = prediction_data.copy()
 
     # Zero out the opposite hemisphere to isolate the hemisphere of interest
-    if direction == 'left':  
+    if direction == 'left':
         prediciton_hemisphere[128:,:,:] = 0 # Zero out the right hemisphere
     else:
         prediciton_hemisphere[:128, :, :] = 0 # Zero out the left hemisphere
-    
+
     # Identify voxels labeled as putamen (assumed to have label '2')
     putamen = prediciton_hemisphere == 2
 
@@ -922,13 +924,13 @@ def run_prediction(logger, model_file, labels, input_data, threshold=0.5):
     try:
         # Load the pre-trained model
         model = load_model(logger, model_file)
-        
+
         # Perform patch-wise prediction using the model
         prediction = patch_wise_prediction(model=model, data=input_data)[np.newaxis]
-        
+
         # Convert the prediction to an image format based on the threshold and labels
         prediction_image = prediction_to_image(prediction, threshold=threshold, labels=labels)
-        
+
         # Return the resulting prediction image
         return prediction_image
 
@@ -993,7 +995,7 @@ def reg_transform(input_affine_file, inverse_affine_file, logger, verbosity='non
 
 def reverse_pet_resampling(self,
                                pet_normalized_data,
-                               pet_resampled_path, 
+                               pet_resampled_path,
                                original_pet_swap_path,
                                original_anatomical_bet_path,
                                trans_anatomical_path,
@@ -1012,7 +1014,7 @@ def reverse_pet_resampling(self,
         This serves as the reference space for the first part of the reversal.
     trans_anatomical_path : str
         Path to the transformation file from anatomical (brain) to template (e.g., 'brain_to_avg.txt').
-    trans_pet_path : str 
+    trans_pet_path : str
         Path to the transformation file from original PET to anatomical (e.g., 'pet_to_anatomical.txt').
 
     Returns:
@@ -1108,7 +1110,7 @@ def reverse_swap_dims(self,
     resampled_image = resample_to_img(
             source_img=nib.load(normalized_pet_path),
             target_img=original_pet,
-            interpolation='linear', 
+            interpolation='linear',
             force_resample=True
         )
     nib.save(resampled_image, os.getcwd() +  "/normalised_pet_back_to_original.nii.gz")
@@ -1119,9 +1121,9 @@ def get_pet_dicom(self, pet_nii, ref_pet_dicom, modality_name):
     self.logger.info('Conversion of normalized PET nifti to DICOM')
     pet_data = pet_nii.get_fdata()
     # pet_data =  pet_data.T
-    pet_data = (pet_nii.get_fdata().T)[::-1,:, :] # maybe this not necessery 
+    pet_data = (pet_nii.get_fdata().T)[::-1,:, :] # maybe this not necessery
     ref_pet_dicom.sort(key=lambda dcm: int(dcm.InstanceNumber))
-    # write mine function for getting points 
+    # write mine function for getting points
     # points, voxel_dim, orientation, startpoint = create_dicom_coordinate_system(pet_nii)
 
     # x_dim, y_dim, z_dim = voxel_dim
@@ -1185,7 +1187,7 @@ def get_pet_dicom(self, pet_nii, ref_pet_dicom, modality_name):
         #InstanceCopyOrElseElement(0x0020_1041, 'DS'),
         # InstanceCopyElement(0x0020_1041, 'DS'),
         InstanceCopyElement(0x0020_1041, 'DS'),
-        
+
         # FunctionalElement(0x0020_1041, 'DS', add_slice_location),
 
 
@@ -1261,7 +1263,7 @@ def nifti_to_pet_dicom(self, pet_nifti, ref_dicom, modality_name):
 
     # Generate a new SeriesInstanceUID for the entire series. This is critical.
     new_series_uid = generate_uid()
-    
+
     # Get current date and time for series/acquisition metadata
     now = datetime.datetime.now()
     series_date = now.strftime('%Y%m%d')
@@ -1271,14 +1273,14 @@ def nifti_to_pet_dicom(self, pet_nifti, ref_dicom, modality_name):
     # DICOM stores pixel data as integers. NIfTI often uses floats.
     # We need to scale the float data to fit into a 16-bit unsigned integer range.
     # This involves finding the min/max of the data and calculating a Rescale Slope and Intercept.
-    
+
     # Set the target DICOM data type
     output_dtype = np.uint16
-    
+
     # Calculate scale factors. Add a small epsilon to avoid division by zero.
     min_val = np.min(nifti_data)
     max_val = np.max(nifti_data)
-    
+
     # RescaleSlope * raw_pixel_value + RescaleIntercept = real_world_value
     # We want to store uint16, so raw_pixel_value will be in [0, 65535]
     if max_val - min_val < 1e-6:
@@ -1319,7 +1321,7 @@ def nifti_to_pet_dicom(self, pet_nifti, ref_dicom, modality_name):
         ds.SOPInstanceUID = file_meta.MediaStorageSOPInstanceUID
         ds.SOPClassUID = pydicom.uid.PositronEmissionTomographyImageStorage
         ds.SeriesInstanceUID = new_series_uid
-        
+
         # Update date/time
         ds.InstanceCreationDate = series_date
         ds.InstanceCreationTime = series_time
@@ -1329,7 +1331,7 @@ def nifti_to_pet_dicom(self, pet_nifti, ref_dicom, modality_name):
         ds.AcquisitionTime = series_time
         ds.ContentDate = series_date
         ds.ContentTime = series_time
-        
+
         # Update series/instance numbers
         ds.InstanceNumber = str(i + 1)
         ds.SeriesNumber = ds_template.SeriesNumber if 'SeriesNumber' in ds_template else "99"
@@ -1337,16 +1339,16 @@ def nifti_to_pet_dicom(self, pet_nifti, ref_dicom, modality_name):
         # --- Part C: Set PET-Specific Tags and Geometry ---
         ds.Modality = "PT"
         ds.Rows, ds.Columns = nifti_data.shape[1], nifti_data.shape[2]
-        
+
         # Pixel Spacing and Slice Thickness from NIfTI header
         # Note: NIfTI pixdim order is (junk, x, y, z, ...). After transpose, our data is (z,y,x)
         pix_spacing_row = pet_nifti.header['pixdim'][2] # Corresponds to y-axis
         pix_spacing_col = pet_nifti.header['pixdim'][1] # Corresponds to x-axis
         slice_thickness = pet_nifti.header['pixdim'][3] # Corresponds to z-axis
-        
+
         ds.PixelSpacing = [str(pix_spacing_row), str(pix_spacing_col)]
         ds.SliceThickness = str(slice_thickness)
-        
+
         # Image Position and Orientation
         # This is the most complex part. We derive the ImagePositionPatient for the
         # current slice from the NIfTI affine matrix. The affine maps voxel coordinates
@@ -1357,7 +1359,7 @@ def nifti_to_pet_dicom(self, pet_nifti, ref_dicom, modality_name):
         position = nifti_affine @ [0, 0, i, 1]
 
         ds.ImagePositionPatient = [str(p) for p in position[:3]]
-        
+
         # The ImageOrientationPatient defines the direction of rows and columns.
         # It's derived from the first two columns of the affine's rotation matrix.
         row_cosine = nifti_affine[:3, 0] / np.linalg.norm(nifti_affine[:3, 0])
@@ -1372,7 +1374,7 @@ def nifti_to_pet_dicom(self, pet_nifti, ref_dicom, modality_name):
         ds.BitsAllocated = 16
         ds.BitsStored = 16
         ds.HighBit = 15
-        
+
         # Add the scaling tags we calculated earlier
         ds.RescaleIntercept = str(rescale_intercept)
         ds.RescaleSlope = str(rescale_slope)
@@ -1390,7 +1392,7 @@ def nifti_to_pet_dicom(self, pet_nifti, ref_dicom, modality_name):
         ds.PixelData = scaled_pixel_data[i].tobytes()
 
         # Update Series Description
-        ds.SeriesDescription = f"{modality_name}" 
+        ds.SeriesDescription = f"{modality_name}"
 
         datasets.append(ds)
     # self.logger.info(len(datasets))
@@ -1411,7 +1413,7 @@ def get_logo(institution: str):
     str
         The abbreviation for the logo corresponding to the institution.
     """
-    
+
     # Map of institutions to their logo abbreviations
     logo_map = {
         'Bispebjerg': 'BBH',
@@ -1425,8 +1427,8 @@ def get_logo(institution: str):
     for key, logo in logo_map.items():
         if key in institution:
             return logo
-  
-      
+
+
 def get_footnote(institution):
     """
     Retrieves the footnote text based on the institution name.
@@ -1441,7 +1443,7 @@ def get_footnote(institution):
     str
         The footnote text corresponding to the institution.
     """
-    
+
     # Map of institutions to their footnote text
     footnote_map ={
         'Bispebjerg': (r'Bispebjerg og Frederiksberg Hospital\\' +
@@ -1456,12 +1458,12 @@ def get_footnote(institution):
                      r'Rigshospitalet-Glostrup\\' +
                      r'Valdemar Hansens Vej 1-23\\ ' +
                      '2600 Glostrup')}
-    
+
     # Iterate through the map to find a match
     for key, footnote in footnote_map.items():
         if key in institution:
             return footnote
-    
+
 
 def get_name(patient_name):
     """
@@ -1477,7 +1479,7 @@ def get_name(patient_name):
     str
         Formatted name in the format "FirstName Surname".
     """
-    
+
     # Convert the patient name to a string and split it by '^'
     name_str = str(patient_name)
     name_parts = name_str.split('^')
@@ -1509,7 +1511,7 @@ def get_age(patient_age):
     int
         The patient's age as an integer.
     """
-    
+
     # Remove the last character (usually 'Y' for year) from the age string
     patient_age = patient_age[:-1]
 
@@ -1534,11 +1536,11 @@ def get_date(study_date):
     str
         The study date formatted as 'DD/MM/YYYY'.
     """
-    
+
     # Format the date string from 'YYYYMMDD' to 'DD/MM/YYYY'
     return f'{study_date[-2:]}/{study_date[4:6]}/{study_date[:4]}'
-    
-    
+
+
 def get_report_header(doc, institution):
     """
     Adds a header section to the LaTeX document, including a logo and institution information.
@@ -1550,11 +1552,11 @@ def get_report_header(doc, institution):
     institution : str
         The name of the institution to determine the logo and footnote.
     """
-    
+
     # Get the logo filename based on the institution
     logo_file = get_logo(institution)
     icon_path=f'{STATIC_FILES}/{logo_file}.png'
-    
+
     # Center the header content
     doc.append(Command('centering'))
     ##### TODO changed for test
@@ -1572,7 +1574,7 @@ def get_report_header(doc, institution):
     # doc.append(NoEscape(r'\newline'))
     ##### TODO changed for test
 
-    address = get_footnote(institution) 
+    address = get_footnote(institution)
 
     doc.append(NoEscape(r'\noindent'))
     # Minipage for the logo (left part)
@@ -1602,17 +1604,17 @@ def create_document(fname):
     Document
         The LaTeX document object with the specified options.
     """
-    
+
     # Define the page geometry options
     geometry_options = {'top': '0.5in',
                         'left': '0.45in',
                         'right': '0.45in',
                         'bottom': '0.8in'}
-    
+
     # Create a new LaTeX document with the specified geometry options
     doc = Document(os.path.join(os.getcwd(), fname),
                    geometry_options=geometry_options, lmodern=False, document_options='12pt')
-    
+
     # Add the graphicx package for handling images
     doc.packages.append(Package('graphicx'))
     doc.packages.append(Package('tabularx')) ### TODO new code
@@ -1707,13 +1709,13 @@ def contours_mask_slice(slice):
     array
         A binary image containing only the contour of the segmentation.
     '''
-    
+
     # Find contours in the binary image
     contours, _ = cv.findContours(slice.astype(np.uint8).copy(), cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
-        
+
     # Create an empty mask to draw contours
     mask = np.zeros((256, 256), dtype=np.uint8)
-        
+
     # Draw the contours onto the mask
     cv.drawContours(mask, contours, -1, 1, 4)
 
@@ -1723,7 +1725,7 @@ def contours_mask_slice(slice):
 
 # def get_overlaying_plots(axes, segmentations, image, min_value, max_value, c_map=_PETRainbowCMAP, c_map_contour='plasma_r'):
 def get_overlaying_plots(axes, segmentations, image, min_value, max_value, normalization, c_map=_PETRainbowCMAP, c_map_contour='plasma_r'):
-    
+
     '''
     Superimposes contour of segmentations on the current PET image slice.
     The contours are color-mapped dynamically according to the underlying PET image.
@@ -1752,13 +1754,13 @@ def get_overlaying_plots(axes, segmentations, image, min_value, max_value, norma
     --------
     None
     '''
-    
+
     # Extract the contours of the segmentations
     segmentations_cont = contours_mask_slice(segmentations)[FIRST_DIM_CROPPED, SECOND_DIM_CROPPED]
-       
+
     # Mask the PET image where segmentations are not present
     im_ma = np.ma.array(image, mask=np.logical_not(segmentations_cont))
-        
+
     # Display the PET image
     # kwargs = {'interpolation': 'none', 'vmin': min_value, 'vmax': max_value}
     # axes.imshow(np.rot90(image), cmap=c_map, **kwargs)
@@ -1768,11 +1770,11 @@ def get_overlaying_plots(axes, segmentations, image, min_value, max_value, norma
     else:
         kwargs = {'interpolation': 'none', 'vmin': min_value, 'vmax': max_value}
         axes.imshow(np.rot90(image), cmap=c_map, **kwargs)
-        
+
     # Overlay the masked segmentation contours with an 'autumn' colormap
     kwargs = {'interpolation': 'none', 'vmin': min_value, 'vmax': max_value}
     axes.imshow(np.rot90(im_ma), cmap=c_map_contour, **kwargs)
-    
+
 
 def get_image_sides(axes):
     '''
@@ -1791,14 +1793,14 @@ def get_image_sides(axes):
     axes.text(SECOND_DIM[1] * 0.05,
               SECOND_DIM[1] * 0.1,
               'R', color='#f9f9f9', fontsize=25)
-    
+
     # Add text annotation for the left side
     axes.text(SECOND_DIM[1] * 0.89,
               SECOND_DIM[1] * 0.1,
               'L', color='#f9f9f9', fontsize=25)
 
 
-def add_colormap_plot(doc, plt, vmin, vmax, step, add_max_tick=False, 
+def add_colormap_plot(doc, plt, vmin, vmax, step, add_max_tick=False,
                        subfig_width=NoEscape(r'0.9\linewidth'),
                        plot_width=NoEscape(r'0.3\textwidth')):
     """
@@ -1839,10 +1841,10 @@ def add_colormap_plot(doc, plt, vmin, vmax, step, add_max_tick=False,
     with doc.create(SubFigure(width=subfig_width,position='t')) as subplot2:
         # Center the plot within the subfigure
         doc.append(Command('centering'))
-        
+
         # Create a new matplotlib figure and axes
         fig, axes = plt.subplots(1, 1, figsize=(4, 1))
-        
+
         # Display the colormap as a gradient
         axes.imshow(
             np.rot90(np.outer(np.arange(vmin, vmax, 0.01), np.ones(5))),
@@ -1858,15 +1860,15 @@ def add_colormap_plot(doc, plt, vmin, vmax, step, add_max_tick=False,
             ticks = np.append(ticks, vmax)
 
         plt.xticks(np.round(ticks, 2))
-        
+
         # Customize tick label font size
         for label in axes.get_xticklabels():
             label.set_fontsize(13)
-        
+
         # Set the title of the colormap plot
         axes.title.set_text('Specific Binding Ratio')
         axes.get_yaxis().set_visible(False)
-        
+
         # Add the plot to the LaTeX document
         subplot2.add_plot(width=plot_width)
 
@@ -1895,7 +1897,7 @@ def get_slices(masks, indices, num_slices):
         mask = (masks == indices[0])
     elif len(indices) == 2:
         mask = (masks == indices[0]) | (masks == indices[1])
-        
+
     # Set the selected mask regions to 1
     masks[mask] = 1
 
@@ -1941,14 +1943,14 @@ def get_first_plots(doc, pet, mask, slices):
             fig, axes = plt.subplots(
                 1, 3, gridspec_kw={'wspace': 0, 'hspace': 0}, figsize=(15, 5)
             )
-            
+
             # Adjust subplot margins to remove unwanted spacing around the plots
             margins = {'left': 0, 'bottom': 0, 'right': 1, 'top': 1}
             fig.subplots_adjust(**margins)
 
              # The mask is the segmentation data which will be overlaid on the PET image
             segmentations = mask
-            
+
             # Loop over slices indices 3 to 5 to generate three plots (one for each slice)
             for i, k in enumerate(range(3, 6)):
                 axes[i].axis('off')
@@ -1957,13 +1959,13 @@ def get_first_plots(doc, pet, mask, slices):
 
                 # Generate the overlay plot of the PET image and the segmentation mask
                 get_overlaying_plots(axes[i], segmentations[:, :, ind], pet_crop, min_value, max_value, True)
-                # Adding letter to distinguish between directions 
+                # Adding letter to distinguish between directions
                 get_image_sides(axes[i])
 
             subplot1.add_plot()
 
         doc.append(NoEscape(r'\par \vfill'))
-        
+
         # Add a color map to the LaTeX document
         add_colormap_plot(doc, plt, vmin=0, vmax=max_value, step=1 if max_value < 5 else 2)
 
@@ -1993,7 +1995,7 @@ def plot_collapse_pet(img_pet, seg, axial_slices, normalization):
     """
     # Compute mean over the specified slices
     img_pet_collapse = (img_pet[: , :,axial_slices]).mean(axis=2)
-    
+
     # Find coordinates of relevant structures in the segmentation
     coords = np.argwhere((seg == 2 ) | (seg ==3))
 
@@ -2019,7 +2021,7 @@ def plot_collapse_pet(img_pet, seg, axial_slices, normalization):
     margins = {'left': 0, 'bottom': 0, 'right': 1, 'top': 1}
     fig.subplots_adjust(**margins)
 
-    # Showing of collapsed PET images 
+    # Showing of collapsed PET images
     axes.axis('off')
     axes.imshow(np.rot90(img_pet_collapse[xslices, yslices]), norm=normalization, aspect='equal', cmap=_PETRainbowCMAP)
     axes.text(2, 5, 'R', color='#f9f9f9', fontsize=45)
@@ -2061,7 +2063,7 @@ def add_average_plot(doc, norm_pet, mask, title, subfig_width, colormap_width, m
         doc.append(Command('centering'))
         doc.append(NoEscape(r'{\small\textbf{' + title + r'}}\\'))
         doc.append(NoEscape(r'\vspace{0.2cm}'))
-        
+
         # Generate the collapsed PET image plot
         plot_collapse_pet(
             norm_pet,
@@ -2069,24 +2071,24 @@ def add_average_plot(doc, norm_pet, mask, title, subfig_width, colormap_width, m
             slice(slices[6]-1, slices[0]+1),
             normalization
         )
-        
+
         subplot.add_plot(width=NoEscape(subfig_width))
 
         doc.append(NoEscape(r'\par \vfill'))
-        
+
         # Determine if a maximum tick should be added to the color map based on the plot title
         if title == 'Absolute scale':
             add_max_tick = True
         else:
             add_max_tick = False
-        
+
         # Add the color map to the LaTeX document
         add_colormap_plot(doc, plt, vmin=0, vmax=max_value, step=1, add_max_tick=add_max_tick, subfig_width=subfig_width, plot_width=colormap_width)
         doc.append(NoEscape(r'\newline'))
         doc.append(NoEscape(r' {\small Average intensity of top 6 axial slices. }  '))
         doc.append(NoEscape(r'\vspace{-0.2cm}'))
 
-        
+
 def plot_average(doc, pet, mask, slices):
     """
     Generates average plots for PET images in both relative and absolute scales.
@@ -2108,13 +2110,13 @@ def plot_average(doc, pet, mask, slices):
     """
 
     doc.append(NoEscape(r'\vspace{-0.2cm}'))
-    
+
     # Define the minimum value for normalization
     min_value = - 1
-    
+
     # Calculate the maximum value for the relative scale
     avgmax = 0.9 * np.max(pet[:, :, (slices[6]-1):(slices[0]+1)].mean(axis=2))
-    
+
     # Set a fixed maximum value for the absolute scale
     max_value_absolute = 4
 
@@ -2122,10 +2124,10 @@ def plot_average(doc, pet, mask, slices):
         doc.append(Command('centering'))
         subfig_width = r'8cm'
         colormap_width = r'5cm'
-        
+
         # Generate the relative scale plot and add it to the document
         add_average_plot(doc, pet, mask, 'Relative scale', subfig_width, colormap_width, min_value, max_value=avgmax, slices=slices)
-        
+
         # Generate the absolute scale plot and add it to the document
         add_average_plot(doc, pet, mask, 'Absolute scale', subfig_width, colormap_width, min_value, max_value=max_value_absolute, slices=slices)
 
@@ -2161,10 +2163,10 @@ def plot_nine_pet(doc, pet, mask, pet_desc, slices):
     # Create figure for PET plots
     with doc.create(Figure(position='h!')) as plot:
         doc.append(Command('centering'))
-        with doc.create(SubFigure(position='t', width=NoEscape(r'0.8\linewidth'))) as subplot1:  
+        with doc.create(SubFigure(position='t', width=NoEscape(r'0.8\linewidth'))) as subplot1:
             # Create a 3x3 grid for displaying PET images
             fig, axes = plt.subplots(3, 3, gridspec_kw={'wspace': 0, 'hspace': 0}, figsize=(15, 15))
-            
+
             # Adjust margins to minimize whitespace
             margins = {'left': 0, 'bottom': 0, 'right': 1, 'top': 1}
             fig.subplots_adjust(**margins)
@@ -2177,7 +2179,7 @@ def plot_nine_pet(doc, pet, mask, pet_desc, slices):
                 ind = slices[k]  # Select slice index
 
                 pet_crop = pet[FIRST_DIM_CROPPED, SECOND_DIM_CROPPED, ind]  # Crop the PET image
-                
+
                 # Plot PET image with segmentation overlay
                 get_overlaying_plots(axes[i, j], segmentations[:, :, ind], pet_crop, min_value, max_value, normalization=True)
                 get_image_sides(axes[i, j])  # Add R/L labels
@@ -2185,14 +2187,14 @@ def plot_nine_pet(doc, pet, mask, pet_desc, slices):
             subplot1.add_plot()  # Add plot to the LaTeX document
 
         doc.append(NoEscape(r'\par \vfill'))
-        
+
         # Add study description to the LaTeX document
         doc.append(NoEscape(r'{\scriptsize{' + pet_desc + r'}}\\'))
 
         # Add colormap to the LaTeX document
         add_colormap_plot(doc, plt, vmin=0, vmax=max_value, step=1 if max_value < 5 else 2)
 
-    
+
 def plot_ct(doc, anatomical, mask, anatomical_desc, slices, MR=False):
     """
     Plots a 3x3 grid of anatomical images with overlays of segmentations.
@@ -2221,14 +2223,14 @@ def plot_ct(doc, anatomical, mask, anatomical_desc, slices, MR=False):
 
 
     doc.append(NoEscape(r'\vspace*{-0.3cm}'))
-    
+
     # Create figure for anatomical plots
     with doc.create(Figure(position='h!')) as plot:
         doc.append(Command('centering'))
-        with doc.create(SubFigure(position='t', width=NoEscape(r'0.8\linewidth'))) as subplot1:  
+        with doc.create(SubFigure(position='t', width=NoEscape(r'0.8\linewidth'))) as subplot1:
             # Create a 3x3 grid for displaying anatomical images
             fig, axes = plt.subplots(3, 3, gridspec_kw={'wspace': 0, 'hspace': 0}, figsize=(15, 15))
-            
+
             # Adjust margins to minimize whitespace
             margins = {'left': 0, 'bottom': 0, 'right': 1, 'top': 1}
             fig.subplots_adjust(**margins)
@@ -2241,13 +2243,13 @@ def plot_ct(doc, anatomical, mask, anatomical_desc, slices, MR=False):
                 axes[i, j].axis('off')  # Turn off axis for each subplot
                 ind = slices[k]  # Select slice index
                 anatomical_crop = anatomical[FIRST_DIM_CROPPED, SECOND_DIM_CROPPED, ind]  # Crop the anatomical image
-                
+
                 # Plot anatomical image with segmentation overlay
                 get_overlaying_plots(axes[i, j], segmentations[:, :, ind], anatomical_crop, min_value, max_value, False, cmap, c_map_contour='autumn_r')
                 get_image_sides(axes[i, j])  # Add R/L labels
 
             subplot1.add_plot()  # Add plot to the LaTeX document
-    
+
     doc.append(NoEscape(r'\vspace{-0.7cm}'))
 
     # Add study description to the LaTeX document
@@ -2301,16 +2303,16 @@ def produce_row(patient_values, name, normal_stat_values, pt_age):
     # Iterate for both right and left hemispheres and create plots
     for name, hemisphere, quantity, lln, mu, sigma in [(name, "Right", right, lln_right, mu_right, sigma_right),
                                                        ("", "Left", left, lln_left, mu_left, sigma_left)]:
-        
+
         plot_path = normal_reference_SD_plot(mu, sigma, quantity, hemisphere)
-        
+
         if name == 'Posterior Putamen / Caudate Nucleus':
             name = 'Posterior\n Putamen/Caudatus'
         elif name == 'Putamen / Caudate Nucleus':
             name = 'Putamen/Caudatus'
         elif name == 'Caudate Nucleus':
             name == 'Caudatus'
-        
+
         yield [name, hemisphere, round(quantity, 2), round(lln, 2),
                MultiColumn(4, align="l", data=NoEscape(
                    r"\begin{minipage}{6cm}\includegraphics[width=9cm]{%s}\end{minipage}" % plot_path)), ""]
@@ -2379,24 +2381,24 @@ def first_values(doc, patient_values, normal_stat_values, pt_age, pet_desc, age_
     age_min = np.min(age_range)  # Minimum age in reference population
     age_max = np.max(age_range)  # Maximum age in reference population
     N = len(age_range)  # Number of subjects in the reference population
-    
+
     # Create the table in LaTeX document
     with doc.create(Tabular(NoEscape(r'p{4cm} c c c c c c c p{2.47cm}'))) as table:
 
         table.add_hline()
-        table.add_row(bold("Location"), bold("Hemisphere"), bold("SBR"), bold("LLN"), 
+        table.add_row(bold("Location"), bold("Hemisphere"), bold("SBR"), bold("LLN"),
                       MultiColumn(5, align="c", data=bold("Z-score")))
 
         # Add rows for different brain regions
         for row in produce_row(patient_values, "Putamen", normal_stat_values, pt_age):
             table.add_row(*list(row))
         for row in produce_row(patient_values, "Caudate Nucleus", normal_stat_values, pt_age):
-            table.add_row(*list(row))   
+            table.add_row(*list(row))
 
         table.add_hline()
 
         # Add asymmetry rows
-        table.add_row(bold("Location"), bold(" "), bold("Ratio"), bold(" "), 
+        table.add_row(bold("Location"), bold(" "), bold("Ratio"), bold(" "),
                       MultiColumn(5, align="c", data=bold("Z-score")))
         for row in produce_row(patient_values, "Putamen / Caudate Nucleus",normal_stat_values, pt_age):
             table.add_row(*list(row))
@@ -2417,8 +2419,8 @@ def first_values(doc, patient_values, normal_stat_values, pt_age, pet_desc, age_
 
 def second_values(doc,patient_values, normal_stat_values, pt_age):
     """
-    Creates and populates a table in a LaTeX document that presents patient SBR values, LLN, 
-    and Z-scores for different brain regions (Striatum, Posterior Putamen, etc.), 
+    Creates and populates a table in a LaTeX document that presents patient SBR values, LLN,
+    and Z-scores for different brain regions (Striatum, Posterior Putamen, etc.),
     as well as asymmetry calculations.
 
     Parameters:
@@ -2442,41 +2444,41 @@ def second_values(doc,patient_values, normal_stat_values, pt_age):
         table.add_hline()
         table.add_row(bold("Location"), bold("Hemisphere"), bold("SBR"), bold("LLN"),
                       MultiColumn(5, align="c", data=bold("Z-score")))
-        
+
         # Add rows for different brain regions
         for row in produce_row(patient_values, "Striatum", normal_stat_values, pt_age):
             table.add_row(*list(row))
         for row in produce_row(patient_values, "Posterior Putamen", normal_stat_values, pt_age):
-            table.add_row(*list(row))   
+            table.add_row(*list(row))
 
         table.add_hline()
-        # Add row with names of columns 
+        # Add row with names of columns
         table.add_row(bold("Location"), bold(" "), bold("Ratio"), bold(" "),
                       MultiColumn(5, align="c", data=bold("Z-score")))
-        
+
         # Add row with values for each column
         for row in produce_row(patient_values, "Posterior Putamen / Caudate Nucleus", normal_stat_values, pt_age):
             table.add_row(*list(row))
-        
+
         table.add_hline()
-        
-        # Add row with names of columns 
+
+        # Add row with names of columns
         table.add_row(
             bold("Location"), MultiColumn(3, align="c", data=bold("Hemisphere")),
             MultiColumn(5, align="c", data=bold("Z-score")))
-        
+
         # Add row with values for each column
         table.add_row(
             "", MultiColumn(3, align="c", data=bold("asymmetry")),
             MultiColumn(5, align="c", data=""))
-        
+
         # Populate rows for asymmetry calculations for different regions
-        for region in ["Caudate Nucleus", "Putamen", "Striatum", "Posterior Putamen", 
+        for region in ["Caudate Nucleus", "Putamen", "Striatum", "Posterior Putamen",
                        "Putamen / Caudate Nucleus", "Posterior Putamen / Caudate Nucleus"]:
             table.add_row(*list(produce_asymmetry_row(patient_values, region, normal_stat_values)))
-        
+
         table.add_hline()
-        
+
         doc.append(NoEscape(r"\begin{flushleft}  {\ \hspace*{0.3cm}\footnotesize \mbox{Hemisphere asymmetry $=$ (R$-$L)$/$(R$+$L).}}\end{flushleft}"))
 
 
@@ -2507,12 +2509,12 @@ def get_model(normal_values, name, hemisphere='both'):
 
     # Get SBR values for both hemispheres or one hemisphere
     if hemisphere == 'both':
-        sbr_right = normal_values[[name + ' right']].values 
-        sbr_left = normal_values[[name + ' left']].values 
+        sbr_right = normal_values[[name + ' right']].values
+        sbr_left = normal_values[[name + ' left']].values
         sbr_obs = (sbr_right + sbr_left)/2 # mean of two hemisphere
     else:
         sbr_obs = normal_values[[name + hemisphere]].values
-    
+
     # Extract age data
     age_obs = (normal_values[['age']].values).astype(int)
 
@@ -2547,7 +2549,7 @@ def plot_normal(normal_values, patient_values, pt_age, name, legend=False):
     """
     # Extract patient SBR values for right and left hemispheres
     right = patient_values[name + ' right']
-    left = patient_values[name + ' left'] 
+    left = patient_values[name + ' left']
 
     # Create a linear regression model for normal data
     model, age_obs, sbr_obs, sbr_fit = get_model(normal_values, name, hemisphere='both')
@@ -2557,7 +2559,7 @@ def plot_normal(normal_values, patient_values, pt_age, name, legend=False):
     min_age = np.min(combine_ages) - 1 # Set minimum age for plot range
     max_age = np.max(combine_ages) + 1  # Set maximum age for plot range
     age_plot = (np.linspace(min_age, max_age, (max_age-min_age)+1)).reshape(-1, 1)
-    
+
     # Predict SBR values for the age range using the model
     sbr_pred = model.predict(age_plot)
     # sbr_fit = model.predict(age_obs)
@@ -2580,14 +2582,14 @@ def plot_normal(normal_values, patient_values, pt_age, name, legend=False):
             Line2D([0], [0], marker='>', color='w', label='Right', markerfacecolor="#d9534f", markersize=15)
         ]
         axes.legend(handles=legend_elements, loc='upper right', bbox_to_anchor=(1, 1.2), framealpha=0.2)
-    
+
     # Plot the predicted SBR, normal patients SBR and reference intervals
     axes.plot(age_obs, sbr_obs, 's', color ='k', markerfacecolor="w", zorder=0)
     axes.plot(age_plot, sbr_pred, 'k-', alpha=0.5)
     axes.plot(age_plot, lower_predicted, 'k--', alpha=0.5)
     axes.plot(age_plot, upper_predicted, 'k--', alpha=0.5)
 
-    
+
     # Scatter the patient's right and left hemisphere SBR values
     axes.scatter(pt_age, left, marker="<", color="#d9534f", zorder=9)
     axes.scatter(pt_age, right, marker=">", color="#d9534f", zorder=10)
@@ -2600,19 +2602,19 @@ def plot_normal(normal_values, patient_values, pt_age, name, legend=False):
 
     # Display SD annotations
     label_intervals_mean = model.predict([[min_age]])
-    axes.annotate(r"$\textbf{-2SD}$", (min_age, (label_intervals_mean[0] - 2 * sigma) * 
+    axes.annotate(r"$\textbf{-2SD}$", (min_age, (label_intervals_mean[0] - 2 * sigma) *
                                        {"Putamen": 0.92,"Putamen / Caudate Nucleus": 1.01}[name]), size=13)
-    axes.annotate(r"$\textbf{+2SD}$", (min_age, (label_intervals_mean[0] + 2 * sigma) * 
+    axes.annotate(r"$\textbf{+2SD}$", (min_age, (label_intervals_mean[0] + 2 * sigma) *
                                        {"Putamen": 1.02, "Putamen / Caudate Nucleus": 1.01}[name]), size=13)
 
     # Hide unnecessary plot spines
     axes.spines['top'].set_visible(False)
     axes.spines['right'].set_visible(False)
-    
+
 
 def normal_reference_SD_plot(mu, sigma, sbr, measure_type):
     """
-    Produces normal reference intervals showing the distance to the mean 
+    Produces normal reference intervals showing the distance to the mean
     of a reference distribution for a normal population, e.g., mean ± 2*SD.
     Creates a plot highlighting the patient's SBR value against these intervals.
 
@@ -2635,7 +2637,7 @@ def normal_reference_SD_plot(mu, sigma, sbr, measure_type):
     interval_left = mu - 2 * sigma
     interval_right = mu + 2 * sigma
     extend_left = mu - 10 * sigma
-    
+
     # For asymmetry, extend to 10 SD above mean; otherwise, extend only to the right interval
     if measure_type == 'asymmetry':
         extend_right  = mu + 10 * sigma
@@ -2678,20 +2680,20 @@ def normal_reference_SD_plot(mu, sigma, sbr, measure_type):
     if sbr <= extend_left:
         position = extend_left-0.01*np.abs(extend_left)
     elif sbr >= extend_right:
-        position = extend_right+0.01*np.abs(extend_left)  
+        position = extend_right+0.01*np.abs(extend_left)
     else:
         position = sbr
 
-    # Define tick positions and labels, depending on whether the measure type is 'asymmetry'  
-    tick_positions = [position] + ([extend_left, extend_right, interval_left, interval_right] 
-                                   if measure_type == 'asymmetry' 
+    # Define tick positions and labels, depending on whether the measure type is 'asymmetry'
+    tick_positions = [position] + ([extend_left, extend_right, interval_left, interval_right]
+                                   if measure_type == 'asymmetry'
                                    else [extend_left, extend_right, interval_left])
-    
+
     tick_labels = ([r"\textbf{%s}" % round((sbr - mu) / sigma, 1)] +
-                   (["-10 SD (R$<$L)", "10 SD (L$<$R)", "-2 SD", "+2 SD"] 
-                    if measure_type == 'asymmetry' 
+                   (["-10 SD (R$<$L)", "10 SD (L$<$R)", "-2 SD", "+2 SD"]
+                    if measure_type == 'asymmetry'
                     else ["-10 SD", "+2 SD", "-2 SD"]))
-    
+
     # Set the x-ticks and labels for the plot
     plt.xticks(tick_positions, tick_labels)
     for label in axes.get_xticklabels():
@@ -2730,23 +2732,23 @@ def normal_reference_SD_plot(mu, sigma, sbr, measure_type):
 
 def plots_normal_values(doc, normal_values, patient_values, pt_age):
     """
-    Generates a LaTeX figure with two subplots comparing the patient's Striatal Binding Ratio (SBR) values 
+    Generates a LaTeX figure with two subplots comparing the patient's Striatal Binding Ratio (SBR) values
     to normal reference intervals for the Putamen region and the Putamen/Caudate Nucleus ratio.
 
-    This function creates visual plots and inserts them into the given LaTeX document (`doc`) using the `pylatex` library. 
+    This function creates visual plots and inserts them into the given LaTeX document (`doc`) using the `pylatex` library.
     It visually represents how the patient’s SBR values compare to reference values, highlighting deviations from the norm.
 
     Parameters:
     -----------
     doc : pylatex.Document
         The LaTeX document object to which the plots will be added.
-    
+
     normal_values : pandas.DataFrame
         DataFrame containing the normal reference intervals for SBR values, stratified by age and region.
-    
+
     patient_values : pandas.DataFrame
         DataFrame containing the patient’s specific SBR values for different regions of the brain.
-    
+
     pt_age : int
         The age of the patient, used to select the appropriate reference interval from `normal_values`.
 
@@ -2769,9 +2771,9 @@ def plots_normal_values(doc, normal_values, patient_values, pt_age):
     """
 
     subfig_width = r'8cm'
-    
+
     with doc.create(Figure(position='!htp')) as plot:
-        doc.append(Command('centering')) 
+        doc.append(Command('centering'))
 
         with doc.create(SubFigure(width=NoEscape(subfig_width))) as subplot1:
             doc.append(Command('centering'))
@@ -2782,7 +2784,7 @@ def plots_normal_values(doc, normal_values, patient_values, pt_age):
             subplot1.add_plot(width=subfig_width)
 
         doc.append(NoEscape(r'\hspace{0.7cm}'))
-        
+
         with doc.create(SubFigure(width=NoEscape(subfig_width))) as subplot2:
             doc.append(Command('centering'))
 
@@ -2800,7 +2802,7 @@ def get_age_from_dataset(ref_pet_dcm):
     return pt_age
 
 def get_age_from_birth_easy(patient_birth):
- 
+
     year_now = datetime.date.today().year
     year = int(patient_birth[:4])
     return year_now-year
@@ -2817,41 +2819,41 @@ def generate_report(self, ref_pet_dcm, anatomical_desc, normalised_pet, anatomic
     Generates a comprehensive clinical report for a PET/CT or PET/MR(DeepDixon protocol) scan using LaTeX-based PDF.
 
 
-    The report includes sections on dopamine transporter PET imaging, statistical analysis, and a detailed comparison 
+    The report includes sections on dopamine transporter PET imaging, statistical analysis, and a detailed comparison
     of the patient’s data with reference populations. It also plots the relevant PET and anatomical scan slices for visual inspection.
 
     Parameters:
     -----------
     ref_pet_dcm : pydicom.FileDataset
         Reference DICOM metadata for the PET scan, used to extract patient information and scan details.
-    
+
     anatomical_desc : str
         Description of the anatomical scan, typically indicating the anatomical region or scanning protocol.
-    
+
     normalised_pet : numpy.ndarray
         Normalized PET scan data array representing tracer uptake.
-    
+
     anatomical_path : str
         File path to the anatomical scan in NIfTI format (.nii), used to load and process anatomical image data.
-    
+
     prediction : numpy.ndarray
         Array representing the predicted regions of interest (ROI) from model-based analysis.
-    
+
     cerebellum : numpy.ndarray
         Array representing the cerebellum region for comparison with predicted regions.
-    
+
     patient_values : pandas.DataFrame
         DataFrame containing patient-specific clinical values and measurements.
-    
+
     MR : bool, optional (default=False)
-        Specifies whether the report should use MRI-based data for cerebrum analysis. 
+        Specifies whether the report should use MRI-based data for cerebrum analysis.
         If `True`, the report will label the section as "Synthetic CT Cerebrum"; otherwise, it will be "CT Cerebrum".
 
     Returns:
     --------
     str
         File path to the generated PDF report.
-    
+
     Notes:
     ------
     - The function processes and flips the input PET, prediction, cerebellum, and CT scan data to ensure correct orientation.
@@ -2866,12 +2868,12 @@ def generate_report(self, ref_pet_dcm, anatomical_desc, normalised_pet, anatomic
     """
     self.logger.info('Generating report')
     # Flip PET, prediction, and cerebellum arrays along the axis 0 (typically to adjust orientation)
-    pet_flipped = np.flip(normalised_pet, axis=0) 
+    pet_flipped = np.flip(normalised_pet, axis=0)
     pet_flipped = np.nan_to_num(pet_flipped)
     prediction_flipped = np.flip(prediction, axis=0)
     cerebellum_flipped= np.flip(cerebellum, axis=0)
     anatomical = nib.load(anatomical_path).get_fdata()
-    ct_flipped = np.flip(anatomical, axis=0) 
+    ct_flipped = np.flip(anatomical, axis=0)
     ct_flipped = np.nan_to_num(ct_flipped)
 
     # Create mask by summing flipped prediction and cerebellum arrays
@@ -2883,7 +2885,7 @@ def generate_report(self, ref_pet_dcm, anatomical_desc, normalised_pet, anatomic
         pet_desc = pet_desc.replace('_', r'\_')
     if '_' in anatomical_desc:
         anatomical_desc = anatomical_desc.replace('_', r'\_')
-    institution = ref_pet_dcm.InstitutionName 
+    institution = ref_pet_dcm.InstitutionName
     if institution == 'Nuklearmedicin':
         institution = 'Rigshospitalet'
     elif institution in ['OUH', 'Region Syd']:
@@ -2897,26 +2899,26 @@ def generate_report(self, ref_pet_dcm, anatomical_desc, normalised_pet, anatomic
         normal_stat_values = pd.read_csv(os.path.join(STATIC_FILES, 'stats_BBH_rig+aff.csv'), index_col=0)
         normal_values = normal_values[normal_values['institution'] == 'BBH']
     else:
-        normal_stat_values = pd.read_csv(os.path.join(STATIC_FILES, 'stats_RH_rig+aff.csv'), index_col=0)   
+        normal_stat_values = pd.read_csv(os.path.join(STATIC_FILES, 'stats_RH_rig+aff.csv'), index_col=0)
         normal_values = normal_values[normal_values['institution'] != 'BBH']
-    
+
     # Extract age range and patient age
     age_range = (normal_values[['age']].values).astype(int)
     pt_age = get_age_from_dataset(ref_pet_dcm)
-    
+
     # Generate slices from prediction and cerebellum data
     slices = get_slices(prediction_flipped, indices = [2,3], num_slices = 9)[2:8] + get_slices(cerebellum_flipped, indices = [CEREBELLUM_INDEX], num_slices = 4)[1:]
     slices.sort(reverse=True)
-    
+
     # Define the path for output LaTeX document
     header_doc = os.getcwd() + '/doc'
     doc = create_document(header_doc)
-    doc.preamble.append(Command('usepackage', 'xcolor')) 
+    doc.preamble.append(Command('usepackage', 'xcolor'))
     # Define the custom color
-    doc.append(NoEscape(r'\definecolor{babyblue}{RGB}{183, 227, 249}')) 
-    
+    doc.append(NoEscape(r'\definecolor{babyblue}{RGB}{183, 227, 249}'))
+
     # Add report header with institution name
-    get_report_header(doc, institution) 
+    get_report_header(doc, institution)
     # Add a small, clean vertical space to separate the header from the blue box below.
     doc.append(NoEscape(r'\vspace{4pt}'))
     doc.append(NoEscape(r'\vspace{-1.2cm}'))
@@ -2926,7 +2928,7 @@ def generate_report(self, ref_pet_dcm, anatomical_desc, normalised_pet, anatomic
     with doc.create(Section(NoEscape(r'\begin{flushleft}{Dopamine transporter (DAT) {[\textsuperscript{18}F]}FE-PE2I PET scanning}\end{flushleft}'), numbering=False)):
         # Adjust the vertical space
         doc.append(NoEscape(r'\vspace{-0.5cm}'))
-        
+
         # Add the flushleft report number with custom blue color
         doc.append(NoEscape(r"\begin{flushleft}  {{Report v. 2.0 (10.2024)}}\end{flushleft}\end{minipage}}"))
         doc.append(NoEscape(r'\newline'))
@@ -2936,23 +2938,23 @@ def generate_report(self, ref_pet_dcm, anatomical_desc, normalised_pet, anatomic
         doc.append(NoEscape(r'\newline'))
         # Add patient information table
         get_patient_table(doc, ref_pet_dcm, pt_age)
-        
+
         # Generate and add plots for PET scan data
         get_first_plots(doc, pet_flipped, mask, slices)
-        
+
         # Add values from first set of analyses
         first_values(doc, patient_values, normal_stat_values, pt_age, pet_desc, age_range)
 
     # Add new page and report header
     doc.append(NoEscape(r'\newpage'))
-    get_report_header(doc, institution)  
+    get_report_header(doc, institution)
     doc.append(NoEscape(r'\vspace{5cm}'))
     # Add second page with set of values
     second_values(doc, patient_values, normal_stat_values, pt_age)
 
     # Add new page and report header
     doc.append(NoEscape(r'\newpage'))
-    get_report_header(doc, institution)    
+    get_report_header(doc, institution)
     doc.append(NoEscape(r'\vspace{-0.5cm}'))
 
     # Create section for average basal ganglia SBR
@@ -2965,11 +2967,11 @@ def generate_report(self, ref_pet_dcm, anatomical_desc, normalised_pet, anatomic
     with doc.create(Section('Subject relative to mean of reference population', numbering=False)):
         doc.append(NoEscape(r'\vspace{-0.2cm}'))
         plots_normal_values(doc, normal_values, patient_values, pt_age)
-    
+
     # Add new page and report header
     doc.append(NoEscape(r'\newpage'))
     get_report_header(doc, institution)
-    
+
     # Create section for PET scanning
     with doc.create(Section(NoEscape(r'{[\textsuperscript{18}F]}FE-PE2I PET scanning'), numbering=False)):
         doc.append(NoEscape(r'\vspace{-0.2cm}'))
@@ -2979,13 +2981,13 @@ def generate_report(self, ref_pet_dcm, anatomical_desc, normalised_pet, anatomic
     doc.append(NoEscape(r'\newpage'))
     get_report_header(doc, institution)
 
-    # Choose section name based on input anatomical modality 
+    # Choose section name based on input anatomical modality
     if MR:
         page_title ='Synthetic CT Cerebrum'
-        
+
     else:
         page_title = 'CT Cerebrum'
-        
+
     # Create section for CT Cerebrum
     with doc.create(Section(page_title, numbering=False)):
         doc.append(NoEscape(r'\vspace{-0.2cm}'))
@@ -3003,14 +3005,14 @@ def generate_report(self, ref_pet_dcm, anatomical_desc, normalised_pet, anatomic
     return str(header_doc)+'.pdf'
 
 
-def normalize(logger,brain_path, pet_path): 
+def normalize(logger,brain_path, pet_path):
     """
-    Normalizes the PET and anatomical brain images. 
+    Normalizes the PET and anatomical brain images.
     PET is normalized by subtracting the mean value within a mask, and anatomical is thresholded and normalized.
-   
+
     Function that normalizes pet with mean value from (mask) NORMALIZATION MASK - which is a big region surrounding and containing putamens and caudate nucleui
     it also normalizes anatomical by taking mean value form thresholded anatomical between 30-50 HU
-    
+
     Parameters:
     -----------
     brain_path : str
@@ -3019,12 +3021,12 @@ def normalize(logger,brain_path, pet_path):
         File path to the PET NIfTI image.
     logger : Logger object
         Logger for logging the process information.
-        
+
     Returns:
     --------
     np.array
         Array containing the normalized PET and anatomical data.
-    
+
     Raises:
     -------
     FileNotFoundError
@@ -3038,7 +3040,7 @@ def normalize(logger,brain_path, pet_path):
     if not Path(pet_path).is_file():
         logger.error(f"PET file not found: {pet_path}")
         raise FileNotFoundError(f"PET file not found: {pet_path}")
-    
+
     # Load anatomical and PET images
     brain = nib.load(brain_path).get_fdata()
     pet = nib.load(pet_path).get_fdata()
@@ -3063,9 +3065,9 @@ def reg_aladin(ref_file, flo_file, aff_file, rig_only_flag=False, aff_direct_fla
     """
     Perform symmetric global registration using the Block Matching algorithm.
 
-    This function aligns a floating/source image ('flo_file') to a reference/target image ('ref_file') 
-    by applying a Block Matching algorithm. The result is an affine transformation matrix ('aff_file') 
-    that describes the alignment between the two images, and the transformed floating image is saved as 
+    This function aligns a floating/source image ('flo_file') to a reference/target image ('ref_file')
+    by applying a Block Matching algorithm. The result is an affine transformation matrix ('aff_file')
+    that describes the alignment between the two images, and the transformed floating image is saved as
     a new file ('res_file').
 
     Parameters:
@@ -3083,14 +3085,14 @@ def reg_aladin(ref_file, flo_file, aff_file, rig_only_flag=False, aff_direct_fla
         The output file where the affine transformed floating image will be saved.
 
     verbosity : {'file', 'file_split', 'file_stdout', 'file_stderr', 'stream', 'allatonce', 'none'}, optional
-        The level of verbosity for logging output during the registration process. If set to 'none', no 
+        The level of verbosity for logging output during the registration process. If set to 'none', no
         logging output will be shown.
 
     Returns:
     --------
     runtime object
-        A runtime object representing the execution of the registration process. This object allows access 
-        to detailed logs and error messages. For example, if verbosity is set to 'file_stdout', you can access 
+        A runtime object representing the execution of the registration process. This object allows access
+        to detailed logs and error messages. For example, if verbosity is set to 'file_stdout', you can access
         the standard output of the process with 'result.runtime.stdout'.
     """
 
@@ -3116,8 +3118,8 @@ def reg_resample(ref_file, flo_file, trans_file, out_file, interpol='NN',
     """
     Resample a NIfTI file to a reference template using a given transformation matrix.
 
-    This function performs image resampling of the floating/source image ('flo_file') to match the reference/target image 
-    ('ref_file'), applying the transformation matrix ('trans_file') for the resampling. The output image is saved to 
+    This function performs image resampling of the floating/source image ('flo_file') to match the reference/target image
+    ('ref_file'), applying the transformation matrix ('trans_file') for the resampling. The output image is saved to
     the specified output file ('out_file').
 
     Parameters:
@@ -3150,8 +3152,8 @@ def reg_resample(ref_file, flo_file, trans_file, out_file, interpol='NN',
     Returns:
     --------
     runtime object
-        A runtime object representing the execution of the resampling process. This object allows access to 
-        detailed logs and error messages. For example, if verbosity is set to 'file_stdout', you can access 
+        A runtime object representing the execution of the resampling process. This object allows access to
+        detailed logs and error messages. For example, if verbosity is set to 'file_stdout', you can access
         the standard output of the process with 'result.runtime.stdout'.
     """
 
@@ -3195,7 +3197,7 @@ def load_model(logger, model_file):
     Raises:
     -------
     ValueError
-        If there is an issue with loading the model related to the 'InstanceNormalization' layer and the 
+        If there is an issue with loading the model related to the 'InstanceNormalization' layer and the
         'keras-contrib' package is not installed, a ValueError will be raised indicating the missing dependency.
     """
     logger.info('Loading pre-trained model')
@@ -3209,7 +3211,7 @@ def load_model(logger, model_file):
         'tversky_loss': tversky_loss,
         'generalized_dice_loss': generalized_dice_loss,
         'weighted_dice_coefficient': weighted_dice_coefficient,
-        'weighted_dice_coefficient_loss': weighted_dice_coefficient_loss, 
+        'weighted_dice_coefficient_loss': weighted_dice_coefficient_loss,
         'get_label_dice_coefficient_function': get_label_dice_coefficient_function
     }
 
@@ -3235,46 +3237,46 @@ def patch_wise_prediction(model, data):
     """
     Perform patch-wise prediction of caudate nuclei and putamen using a U-Net model.
 
-    This function divides the input 3D data into smaller patches, runs the prediction on each patch 
+    This function divides the input 3D data into smaller patches, runs the prediction on each patch
     using the provided U-Net model, and then reconstructs the predicted values back into the full image.
 
     Parameters:
     -----------
     model : keras.Model
-        The U-Net model used for prediction. The model should be capable of processing 3D patches 
+        The U-Net model used for prediction. The model should be capable of processing 3D patches
         and outputting predicted values for the caudate nuclei and putamen.
-    
+
     data : np.ndarray
-        A 3D numpy array containing the PET and anatomical data. The data should be in a format that 
+        A 3D numpy array containing the PET and anatomical data. The data should be in a format that
         can be divided into smaller patches for processing by the model.
 
     Returns:
     --------
     np.ndarray
-        A 3D numpy array containing the prediction for the caudate nuclei and putamen, 
+        A 3D numpy array containing the prediction for the caudate nuclei and putamen,
         reconstructed from the individual patches predicted by the model.
     """
     # Get the shape of the input patches, based on the model's input shape (e.g., 80x48x48)
     patch_shape = np.asarray([int(dim) for dim in model.input.shape[-3:]])  # Model input shape, e.g., (80, 48, 48)
-    
+
     # List to store predictions for each patch
     predictions = list()
-    
+
     # Get the indices for the patches to be extracted from the 3D data
     indices = compute_patch_indices()
-    
+
     # Loop through each patch index to process and predict patch-wise
     for i in range(len(indices)):
         # Extract the patch from the 3D data using the specified patch shape and index
         patch = get_patch_from_3d_data(data, patch_shape=patch_shape, patch_index=indices[i])[np.newaxis]
-        
+
         # Predict the patch using the model. This returns the predicted values for this patch.
         prediction = model.predict(patch, verbose=0)
-        
+
         # Append each predicted patch result to the predictions list
         for predicted_patch in prediction:
             predictions.append(predicted_patch)
-        
+
         # Calculate the output shape based on the model's output and the input data shape
         output_shape = [int(model.output.shape[1])] + list(data.shape[-3:])
 
@@ -3304,8 +3306,8 @@ def get_patch_from_3d_data(data, patch_shape, patch_index):
     np.ndarray
         A numpy array containing the extracted patch of anatomical and PET data with the specified shape.
     """
-    return data[..., 
-                patch_index[0]: patch_index[0] + patch_shape[0], 
+    return data[...,
+                patch_index[0]: patch_index[0] + patch_shape[0],
                 patch_index[1]: patch_index[1] + patch_shape[1],
                 patch_index[2]: patch_index[2] + patch_shape[2]]
 
@@ -3325,7 +3327,7 @@ def reconstruct_from_patches(patches, patch_indices, data_shape):
         A list of tuples specifying the corner indices for each patch in the original data.
 
     data_shape : tuple
-        A tuple specifying the shape of the original data from which the patches were extracted 
+        A tuple specifying the shape of the original data from which the patches were extracted
         (e.g., (depth, height, width)).
 
     Returns:
@@ -3333,24 +3335,24 @@ def reconstruct_from_patches(patches, patch_indices, data_shape):
     np.ndarray
         A numpy array reconstructed from the input patches, matching the specified original data shape.
     """
-    
+
     data =np.zeros(data_shape)
     count = np.zeros(data_shape, dtype=int)
 
     for patch, index in zip(patches, patch_indices):
         patch_index = np.zeros(data_shape, dtype=bool)
         patch_data = np.zeros(data_shape)
-        
+
         # Set the appropriate part of the patch_index and patch_data
         patch_index[..., index[0]:index[0] + patch.shape[-3],
                     index[1]:index[1] + patch.shape[-2],
                     index[2]:index[2] + patch.shape[-1]] = True
         patch_data[patch_index] = patch.flatten()
-        
+
         # Update data and count arrays
         data += patch_data
         count[patch_index] += 1
-    
+
     epsilon = 1e-10
     result = np.where(count == 0, 0, data / np.maximum(count, epsilon))
     return result
@@ -3380,7 +3382,7 @@ def prediction_to_image(prediction, threshold=0.5, labels=None):
     np.ndarray
         A numpy array representing the labeled image, where each pixel/voxel is assigned to a class based on the threshold.
     """
-    
+
     if prediction.shape[1] == 1:  # Check if the prediction is for binary classification (single channel)
         data = prediction[0, 0]  # Extract the binary prediction array from the first batch
         label_map_data = np.zeros(prediction[0, 0].shape, np.int8)  # Initialize an empty array for labeled data
@@ -3406,18 +3408,18 @@ def filter_largest_clusters(mask, target_label=2.0, num_clusters=2):
     """
     Filters and retains the largest connected clusters in a given mask for a specified label.
 
-    This function identifies connected components in a binary mask derived from the input `mask` 
-    and retains only the largest connected clusters corresponding to a specified label. 
+    This function identifies connected components in a binary mask derived from the input `mask`
+    and retains only the largest connected clusters corresponding to a specified label.
     It returns a mask containing these largest clusters while preserving the original label value.
 
     Parameters:
     -----------
     mask : ndarray
         Input 2D or 3D array representing the labeled mask. Elements with `target_label` will be processed.
-    
+
     target_label : float, optional (default=2.0)
         The label value to filter within the mask. Only regions with this label will be processed.
-    
+
     num_clusters : int, optional (default=2)
         The number of largest clusters to retain. If the number of clusters found is less than or equal to this value,
         all clusters are retained.
@@ -3441,13 +3443,13 @@ def filter_largest_clusters(mask, target_label=2.0, num_clusters=2):
     """
     # Step 1: Isolate the region with the target label
     binary_mask = (mask == target_label).astype(float)
-    
+
     # Step 2: Label connected components
     labeled_array, num_features = scipy.ndimage.label(binary_mask)
-    
+
     # Step 3: Count sizes of each component
     sizes = np.bincount(labeled_array.ravel().astype(int))[1:]  # Exclude background count at index 0
-    
+
     if len(sizes) > num_clusters:
         # Step 4: Find the indices of the largest clusters
         largest_cluster_indices = np.argsort(sizes)[-num_clusters:] + 1  # +1 because labels start at 1
@@ -3457,7 +3459,7 @@ def filter_largest_clusters(mask, target_label=2.0, num_clusters=2):
     else:
         # If there are fewer clusters than required, keep them all with the original label
         largest_clusters_mask = (labeled_array > 0).astype(float) * target_label
-    
+
     return largest_clusters_mask
 
 
@@ -3465,7 +3467,7 @@ def compute_patch_indices():
     """
     Compute the corner indices for extracting patches from 3D data.
 
-    This function generates a set of indices representing the starting coordinates of patches 
+    This function generates a set of indices representing the starting coordinates of patches
     to be extracted from the data. These indices correspond to the top-left-front corner of each patch.
 
     Parameters:
@@ -3475,7 +3477,7 @@ def compute_patch_indices():
     Returns:
     --------
     np.ndarray
-        A numpy array where each row contains the (x, y, z) coordinates of a patch's corner. 
+        A numpy array where each row contains the (x, y, z) coordinates of a patch's corner.
         The output has the format:
         array([[ 80,  94, 101],
                [ 80,  94, 112],
@@ -3486,7 +3488,7 @@ def compute_patch_indices():
                [ 94, 114, 101],
                [ 94, 114, 112]])
     """
-    
+
     # Define the starting coordinates for the grid
     start = np.array([80, 94, 101])
 
@@ -3496,8 +3498,8 @@ def compute_patch_indices():
     # Define the step size for the grid along each dimension
     step = np.array([14, 20, 11])
 
-    # Generate a 3D grid using np.mgrid 
-    return np.asarray(np.mgrid[start[0]:stop[0]:step[0], 
+    # Generate a 3D grid using np.mgrid
+    return np.asarray(np.mgrid[start[0]:stop[0]:step[0],
                                start[1]:stop[1]:step[1],
                                start[2]:stop[2]:step[2]].reshape(3, -1).T, dtype=np.int16)
 
@@ -3533,7 +3535,7 @@ def get_prediction_labels(prediction, threshold=0.5, labels=None):
         with values representing the assigned class or custom label.
     """
     # Number of samples in the prediction array
-    n_samples = prediction.shape[0] 
+    n_samples = prediction.shape[0]
 
     # Initialize an empty list to store labeled arrays
     label_arrays = []
@@ -3542,17 +3544,17 @@ def get_prediction_labels(prediction, threshold=0.5, labels=None):
     for sample_number in range(n_samples):
         # Assign labels based on the highest prediction score for each spatial location
         label_data = np.argmax(prediction[sample_number], axis=0) + 1
-        
+
         # Apply the threshold
         label_data[np.max(prediction[sample_number], axis=0) < threshold] = 0
-        
+
         # If a list of labels is provided, map class indices to actual labels
         if labels:
             # Iterate over unique non-zero values in label_data
-            for value in np.unique(label_data)[1:]: 
+            for value in np.unique(label_data)[1:]:
                 # Replace the class index (value) with the corresponding label
                 label_data[label_data == value] = labels[value - 1]
-                
+
         # Append the labeled array for this sample to the output list
         label_arrays.append(label_data.astype(np.uint8))
 
@@ -3599,7 +3601,7 @@ def dice_coefficient(y_true, y_pred, smooth=1.):
     # Flatten the tensors to compute the overlap
     y_true_f = tf.keras.backend.flatten(y_true)
     y_pred_f = tf.keras.backend.flatten(y_pred)
-    
+
     # Calculate the intersection between the ground truth and predictions
     intersection = tf.keras.backend.sum(y_true_f * y_pred_f)
 
@@ -3615,7 +3617,7 @@ def tversky_loss(y_true, y_pred):
     -----------
     y_true : tf.Tensor
         Ground truth tensor (binary mask), where 1 represents the presence of the object of interest.
-    
+
     y_pred : tf.Tensor
         Predicted tensor (probability map), with values ranging from 0 to 1 representing the model's confidence.
 
@@ -3630,7 +3632,7 @@ def tversky_loss(y_true, y_pred):
 
     # Create tensor of ones with the same shape as y_true for calculating complement
     ones = tf.keras.backend.ones(tf.keras.backend.shape(y_true))
-    
+
     p0 = y_pred       # Probability that voxels are of the predicted class
     p1 = ones - y_pred  # Probability that voxels are not of the predicted class
     g0 = y_true       # Ground truth
@@ -3639,7 +3641,7 @@ def tversky_loss(y_true, y_pred):
     # Compute the numerator and denominator for the Tversky index
     numerator = tf.keras.backend.sum(p0 * g0, (0, 1, 2, 3))
     denominator = numerator + alpha * tf.keras.backend.sum(p0 * g1, (0, 1, 2, 3)) + beta * tf.keras.backend.sum(p1 * g0, (0, 1, 2, 3))
-    
+
     # Tversky loss (1 - Tversky index)
     T = tf.keras.backend.sum(numerator / denominator)
 
@@ -3657,7 +3659,7 @@ def tversky_coef(y_true, y_pred):
     -----------
     y_true : tf.Tensor
         Ground truth tensor (binary mask), where 1 represents the presence of the object of interest.
-    
+
     y_pred : tf.Tensor
         Predicted tensor (probability map), with values ranging from 0 to 1 representing the model's confidence.
 
@@ -3671,7 +3673,7 @@ def tversky_coef(y_true, y_pred):
 
 def generalized_dice_loss(y_true, y_pred):
     """
-    Compute the generalized Dice loss, which accounts for class imbalance by weighting 
+    Compute the generalized Dice loss, which accounts for class imbalance by weighting
     each label's contribution inversely proportional to its volume.
 
     Parameters:
@@ -3691,12 +3693,12 @@ def generalized_dice_loss(y_true, y_pred):
     """
     Ncl = y_pred.shape[-1] # Number of classes
     w = np.zeros((Ncl,))  # Initialize an array to store the weight for each class
-    
+
     # Loop through each class to calculate the weight based on the number of true positives for each class
     for l in range(0, Ncl):
         # Sum the number of true positives for class `l` in y_true
         w[l] = np.sum(np.asarray(y_true[:, :, :, :, l] == 1, np.int8))
-        
+
     # Prevent division by zero by adding a small constant (0.00001) and taking the inverse of the class volumes (squared)
     w = 1 / (w**2 + 0.00001)
 
@@ -3719,21 +3721,21 @@ def generalized_dice_loss(y_true, y_pred):
 
 def weighted_dice_coefficient(y_true, y_pred, axis=(-3, -2, -1), smooth=1e-5):
     """
-    Compute the weighted Dice coefficient for evaluating the similarity 
+    Compute the weighted Dice coefficient for evaluating the similarity
     between the ground truth and predicted masks, with the option for a smoothing constant.
 
     Parameters:
     -----------
     y_true : tf.Tensor
-        Ground truth tensor, typically with shape (batch_size, height, width, depth, n_classes) 
+        Ground truth tensor, typically with shape (batch_size, height, width, depth, n_classes)
         or similar for multi-class segmentation.
 
     y_pred : tf.Tensor
-        Predicted tensor with the same shape as 'y_true', typically containing probability values 
+        Predicted tensor with the same shape as 'y_true', typically containing probability values
         for each class at each voxel location.
 
     axis : tuple of int, optional
-        Axes along which to compute the Dice coefficient. Defaults to (-3, -2, -1) assuming 'channels first' 
+        Axes along which to compute the Dice coefficient. Defaults to (-3, -2, -1) assuming 'channels first'
         data format. Modify for specific dimensionality of the data.
 
     smooth : float, optional
@@ -3742,17 +3744,17 @@ def weighted_dice_coefficient(y_true, y_pred, axis=(-3, -2, -1), smooth=1e-5):
     Returns:
     --------
     tf.Tensor
-        A scalar tensor representing the weighted Dice coefficient. Higher values indicate better 
+        A scalar tensor representing the weighted Dice coefficient. Higher values indicate better
         similarity between the predicted and true masks.
     """
     intersection = tf.keras.backend.sum(y_true * y_pred, axis=axis) + smooth / 2
-    
+
     # Compute the sum of y_true and y_pred, and add smooth
     summation = tf.keras.backend.sum(y_true, axis=axis) + tf.keras.backend.sum(y_pred, axis=axis) + smooth
-    
+
     # Compute the Dice coefficient
     dice = 2. * intersection / summation
-    
+
     # Compute the mean Dice coefficient
     return tf.keras.backend.mean(dice)
 
@@ -3769,7 +3771,7 @@ def get_label_dice_coefficient_function(label_index):
     Returns:
     --------
     function
-        A function that computes the Dice coefficient for the specified label when passed 
+        A function that computes the Dice coefficient for the specified label when passed
         the ground truth and predicted tensors.
     """
     f = partial(label_wise_dice_coefficient, label_index=label_index)
@@ -3785,11 +3787,11 @@ def label_wise_dice_coefficient(y_true, y_pred, label_index):
     Parameters:
     -----------
     y_true : tf.Tensor
-        Ground truth tensor with shape (batch_size, n_classes, ...). Each slice along 
+        Ground truth tensor with shape (batch_size, n_classes, ...). Each slice along
         the second axis represents a separate class.
 
     y_pred : tf.Tensor
-        Predicted tensor with the same shape as 'y_true', containing predicted 
+        Predicted tensor with the same shape as 'y_true', containing predicted
         probabilities for each class.
 
     label_index : int
@@ -3806,21 +3808,21 @@ def label_wise_dice_coefficient(y_true, y_pred, label_index):
 def weighted_dice_coefficient_loss(y_true, y_pred):
     """
     Compute the weighted Dice coefficient loss for imbalanced segmentation tasks.
-    
+
     Parameters:
     -----------
     y_true : tf.Tensor
-        Ground truth tensor, typically a binary or multi-class mask with shape 
+        Ground truth tensor, typically a binary or multi-class mask with shape
         (batch_size, height, width, depth, n_classes).
 
     y_pred : tf.Tensor
-        Predicted tensor with the same shape as 'y_true', containing the predicted 
+        Predicted tensor with the same shape as 'y_true', containing the predicted
         probabilities or logits for each class.
 
     Returns:
     --------
     tf.Tensor
-        A scalar tensor representing the negative weighted Dice coefficient, 
+        A scalar tensor representing the negative weighted Dice coefficient,
         which is minimized during training.
     """
     return -weighted_dice_coefficient(y_true, y_pred)
