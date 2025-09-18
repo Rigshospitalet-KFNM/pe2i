@@ -39,10 +39,6 @@ import pydicom
 from pydicom import Dataset
 from pydicom.uid import PositronEmissionTomographyImageStorage, generate_uid
 from pydicom.dataset import Dataset, FileMetaDataset
-from dicomnode.dicom.series import DicomSeries
-from dicomnode.lib.io import load_dicoms, save_dicom
-from dicomnode.math import transpose_nifti_coords
-from dicomnode.dicom import create_dicom_coordinate_system
 from dicomnode.dicom.dicom_factory import DicomFactory, CopyOrElseElement,\
     Blueprint, InstanceCopyElement, StaticElement, CopyElement, FunctionalElement,\
     InstanceEnvironment, SeriesElement
