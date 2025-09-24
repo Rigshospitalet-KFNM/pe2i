@@ -77,7 +77,7 @@ class Environment:
   @property
   def LOG_PATH(self):
     """Path to the log file"""
-    return self.LOG_PATH
+    return self._log_path
 
   @property
   def STORAGE_PATH(self):
