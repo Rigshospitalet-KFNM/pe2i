@@ -45,7 +45,7 @@ OUTPUT_PATH = env.OUTPUT_PATH
 factory  = DicomFactory()
 error_blueprint = ERROR_BLUEPRINT
 
-PET_ARCHIVE = Address('10.49.144.6', 104, 'GOYA') # These should be  in .env
+PET_ARCHIVE = Address('172.16.82.177', 11112, 'GAUSS') # These should be  in .env
 
 DICOM_ROUTER = Address('10.143.10.61', 104, 'VIPDICOM')
 
@@ -102,7 +102,7 @@ class MyPETInput(AbstractInput):
     image_grinder = NiftiGrinder()
 
     # Required DICOM tags and their expected values
-    required_values: Dict[int, Any] = {
+    required_values = {
         0x00080016 : PositronEmissionTomographyImageStorage,
         0x00080060 : "PT"  # DICOM Modality Tag
     }
@@ -128,7 +128,7 @@ class MyMRInput(AbstractInput):
     image_grinder = ManyGrinder(NiftiGrinder(), IdentityGrinder())
 
     # Required DICOM tags and their expected values
-    required_values: Dict[int, Any] = {
+    required_values = {
         0x00080016 : MRImageStorage,
         0x00080060 : "MR"  # DICOM Modality Tag
     }
