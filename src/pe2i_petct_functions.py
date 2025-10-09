@@ -24,6 +24,8 @@ import keras_contrib
 import dotenv # type: ignore
 dotenv.load_dotenv()
 
+import shutil
+
 from pe2i_environment import environment as env
 # tf.config.list_physical_devices('GPU')
 # tf.config.list_physical_devices('CPU')
@@ -2996,7 +2998,10 @@ def generate_report(self, ref_pet_dcm, anatomical_desc, normalised_pet, anatomic
 
     # Generate LaTeX document and PDF
     doc.generate_tex()
-    doc.generate_pdf(header_doc)
+    try:
+        doc.generate_pdf(header_doc)
+    except Exception:
+        shutil.copy(header_doc + ".tex", "/tmp/doc.tex")
 
     return str(header_doc)+'.pdf'
 
