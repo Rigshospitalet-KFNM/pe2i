@@ -297,7 +297,7 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
         # Encode the report as a PDF
         try:
           encoded_report = self.dicom_factory.encode_pdf(report, [ref_pet_dicom], blueprint)
-        except subprocess.SubprocessError as E:
+        except Exception as E:
           tex_file_path = env.OUTPUT_PATH / str(ref_pet_dicom.PatientID) / "doc.tex"
 
           if tex_file_path.exists():
