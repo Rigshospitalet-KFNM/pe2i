@@ -13,6 +13,7 @@ import nibabel as nib
 from pathlib import Path
 from typing import Dict, Any
 import shutil
+import subprocess
 import dotenv
 dotenv.load_dotenv()
 from datetime import datetime
@@ -294,7 +295,19 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
         )
 
         # Encode the report as a PDF
-        encoded_report = self.dicom_factory.encode_pdf(report, [ref_pet_dicom], blueprint)
+        try:
+          encoded_report = self.dicom_factory.encode_pdf(report, [ref_pet_dicom], blueprint)
+        except subprocess.SubprocessError as E:
+          tex_file_path = env.OUTPUT_PATH / str(ref_pet_dicom.PatientID) / "doc.tex"
+
+          if tex_file_path.exists():
+            shutil.copy(tex_file_path,"/tmp")
+            self.logger.info(f"{tex_file_path} copied to tmp")
+          else:
+            self.logger.info(f"{tex_file_path} doesn't exists!")
+
+          raise E
+
 
         # Ensure that all encoded report instances have matching series time
         if encoded_report[0].SeriesTime != encoded_report[1].SeriesTime:
