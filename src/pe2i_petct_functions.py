@@ -936,7 +936,7 @@ def run_prediction(logger, model_file, labels, input_data, threshold=0.5):
         # Log the exception and re-raise it
         raise RuntimeError(f"Failed to run prediction: {e}")
 
-
+# TODO remove this
 def reg_transform(input_affine_file, inverse_affine_file, logger, verbosity='none'):
     """
     Inverts an affine transformation matrix using Nipype RegTransform.
@@ -990,7 +990,7 @@ def reg_transform(input_affine_file, inverse_affine_file, logger, verbosity='non
         logger.error(f"Exception during Nipype RegTransform for '{input_affine_file}': {e}")
         raise
 
-
+# TODO remove this
 def reverse_pet_resampling(self,
                                pet_normalized_data,
                                pet_resampled_path, 
@@ -1083,7 +1083,7 @@ def reverse_pet_resampling(self,
     self.logger.info(f"Successfully reversed PET resampling. Output: '{final_reversed_pet_path}'")
     return final_reversed_pet_path
 
-
+# TODO remove this
 def reverse_swap_dims(self,
                         normalized_pet_path,
                         original_pet):
@@ -1225,7 +1225,7 @@ def get_pet_dicom(self, pet_nii, ref_pet_dicom, modality_name):
         # transposed_data, PET_BLUEPRINT, ref_pet_dicom
     )
 
-
+# TODO delete this function
 def nifti_to_pet_dicom(self, pet_nifti, ref_dicom, modality_name):
     """
     Converts a NIfTI image to a DICOM PET series using a reference DICOM series as a template.

@@ -58,6 +58,7 @@ class MyCTInput(AbstractInput):
     """
 
     enforce_single_series = True
+    enforce_single_study_date = True
 
     def validate(self) -> bool:
         maxInstanceNumber = -1
@@ -85,6 +86,7 @@ class MyPETInput(AbstractInput):
     """
 
     enforce_single_series = True
+    enforce_single_study_date = True
 
     def validate(self) -> bool:
         maxInstanceNumber = -1
@@ -111,6 +113,7 @@ class MyMRInput(AbstractInput):
     """
 
     enforce_single_series = True
+    enforce_single_study_date = True
 
     def validate(self) -> bool:
         maxInstanceNumber = -1
@@ -224,7 +227,7 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
         # Skull stripping on CT data
         anatomical_bet_path = node_functions.run_skullstripping(self, anatomical_swap_path)
 
-        # Resampling PET, CT, and skull-stripped CT images to the same resolution
+        # Resampling PET, CT, and skull-stripped CT images to the same resolution TODO remove last two arguments
         pet_resampled_path, anatomical_resampled_path, anatomical_bet_resampled_path, trans_pet, trans_anatomical = node_functions.resampling(
             self, pet_swap_path, anatomical_swap_path, anatomical_bet_path
         )

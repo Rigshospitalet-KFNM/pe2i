@@ -1,0 +1,1499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module pe2i_petct_functions</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title">pe2i_petct_functions</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:/home/zuza/pe2i/src/pe2i_petct_functions.py">/home/zuza/pe2i/src/pe2i_petct_functions.py</a></td></tr></table>
+    <p></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="matplotlib.colors.html">matplotlib.colors</a><br>
+<a href="cv2.html">cv2</a><br>
+<a href="dotenv.html">dotenv</a><br>
+<a href="keras._tf_keras.keras.html">keras._tf_keras.keras</a><br>
+</td><td class="multicolumn"><a href="keras_contrib.html">keras_contrib</a><br>
+<a href="matplotlib.html">matplotlib</a><br>
+<a href="nibabel.html">nibabel</a><br>
+<a href="numpy.html">numpy</a><br>
+</td><td class="multicolumn"><a href="os.html">os</a><br>
+<a href="pandas.html">pandas</a><br>
+<a href="matplotlib.pyplot.html">matplotlib.pyplot</a><br>
+<a href="scipy.html">scipy</a><br>
+</td><td class="multicolumn"><a href="tensorflow.html">tensorflow</a><br>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="matplotlib.colors.html#Normalize">matplotlib.colors.Normalize</a>(<a href="builtins.html#object">builtins.object</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="pe2i_petct_functions.html#MidPointNorm">MidPointNorm</a>
+</dt></dl>
+</dd>
+<dt class="heading-text"><a href="pylatex.base_classes.containers.html#Environment">pylatex.base_classes.containers.Environment</a>(<a href="pylatex.base_classes.containers.html#Container">pylatex.base_classes.containers.Container</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="pe2i_petct_functions.html#ColorBox">ColorBox</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ColorBox">class <strong>ColorBox</strong></a>(<a href="pylatex.base_classes.containers.html#Environment">pylatex.base_classes.containers.Environment</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ColorBox">ColorBox</a>(color)<br>
+&nbsp;<br>
+Create&nbsp;a&nbsp;colored&nbsp;box&nbsp;environment&nbsp;in&nbsp;LaTeX&nbsp;using&nbsp;the&nbsp;\colorbox&nbsp;command.<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+color&nbsp;(str):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;name&nbsp;of&nbsp;the&nbsp;color&nbsp;to&nbsp;be&nbsp;used&nbsp;for&nbsp;the&nbsp;box.<br>
+&nbsp;<br>
+Attributes:<br>
+-----------<br>
+color&nbsp;(str):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;name&nbsp;of&nbsp;the&nbsp;color&nbsp;to&nbsp;be&nbsp;used&nbsp;for&nbsp;the&nbsp;box.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="pe2i_petct_functions.html#ColorBox">ColorBox</a></dd>
+<dd><a href="pylatex.base_classes.containers.html#Environment">pylatex.base_classes.containers.Environment</a></dd>
+<dd><a href="pylatex.base_classes.containers.html#Container">pylatex.base_classes.containers.Container</a></dd>
+<dd><a href="pylatex.base_classes.latex_object.html#LatexObject">pylatex.base_classes.latex_object.LatexObject</a></dd>
+<dd><a href="collections.html#UserList">collections.UserList</a></dd>
+<dd><a href="collections.abc.html#MutableSequence">collections.abc.MutableSequence</a></dd>
+<dd><a href="collections.abc.html#Sequence">collections.abc.Sequence</a></dd>
+<dd><a href="collections.abc.html#Reversible">collections.abc.Reversible</a></dd>
+<dd><a href="collections.abc.html#Collection">collections.abc.Collection</a></dd>
+<dd><a href="collections.abc.html#Sized">collections.abc.Sized</a></dd>
+<dd><a href="collections.abc.html#Iterable">collections.abc.Iterable</a></dd>
+<dd><a href="collections.abc.html#Container">collections.abc.Container</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="ColorBox-__init__"><strong>__init__</strong></a>(self, color)</dt><dd><span class="code">Args<br>
+----<br>
+options:&nbsp;str&nbsp;or&nbsp;list&nbsp;or&nbsp;&nbsp;`~.Options`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Options&nbsp;to&nbsp;be&nbsp;added&nbsp;to&nbsp;the&nbsp;``\begin``&nbsp;command<br>
+&nbsp;<br>
+arguments:&nbsp;str&nbsp;or&nbsp;list&nbsp;or&nbsp;`~.Arguments`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Arguments&nbsp;to&nbsp;be&nbsp;added&nbsp;to&nbsp;the&nbsp;``\begin``&nbsp;command<br>
+&nbsp;<br>
+start_arguments:&nbsp;str&nbsp;or&nbsp;list&nbsp;or&nbsp;`~.Arguments`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Arguments&nbsp;to&nbsp;be&nbsp;added&nbsp;before&nbsp;the&nbsp;options</span></dd></dl>
+
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
+
+<dl><dt><strong>packages</strong> = OrderedSet()</dl>
+
+<hr>
+Methods inherited from <a href="pylatex.base_classes.containers.html#Environment">pylatex.base_classes.containers.Environment</a>:<br>
+<dl><dt><a name="ColorBox-dumps"><strong>dumps</strong></a>(self)</dt><dd><span class="code">Represent&nbsp;the&nbsp;environment&nbsp;as&nbsp;a&nbsp;string&nbsp;in&nbsp;LaTeX&nbsp;syntax.<br>
+&nbsp;<br>
+Returns<br>
+-------<br>
+str<br>
+&nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;LaTeX&nbsp;string&nbsp;representing&nbsp;the&nbsp;environment.</span></dd></dl>
+
+<hr>
+Data and other attributes inherited from <a href="pylatex.base_classes.containers.html#Environment">pylatex.base_classes.containers.Environment</a>:<br>
+<dl><dt><strong>omit_if_empty</strong> = False</dl>
+
+<hr>
+Methods inherited from <a href="pylatex.base_classes.containers.html#Container">pylatex.base_classes.containers.Container</a>:<br>
+<dl><dt><a name="ColorBox-create"><strong>create</strong></a>(self, child)</dt><dd><span class="code">Add&nbsp;a&nbsp;LaTeX&nbsp;object&nbsp;to&nbsp;current&nbsp;container,&nbsp;context-manager&nbsp;style.<br>
+&nbsp;<br>
+Args<br>
+----<br>
+child:&nbsp;`~.Container`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;An&nbsp;object&nbsp;to&nbsp;be&nbsp;added&nbsp;to&nbsp;the&nbsp;current&nbsp;container</span></dd></dl>
+
+<dl><dt><a name="ColorBox-dumps_content"><strong>dumps_content</strong></a>(self, **kwargs)</dt><dd><span class="code">Represent&nbsp;the&nbsp;container&nbsp;as&nbsp;a&nbsp;string&nbsp;in&nbsp;LaTeX&nbsp;syntax.<br>
+&nbsp;<br>
+Args<br>
+----<br>
+\*\*kwargs:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Arguments&nbsp;that&nbsp;can&nbsp;be&nbsp;passed&nbsp;to&nbsp;`~.dumps_list`<br>
+&nbsp;<br>
+&nbsp;<br>
+Returns<br>
+-------<br>
+string:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;LaTeX&nbsp;string&nbsp;representing&nbsp;the&nbsp;container</span></dd></dl>
+
+<dl><dt><a name="ColorBox-dumps_packages"><strong>dumps_packages</strong></a>(self)</dt><dd><span class="code">Represent&nbsp;the&nbsp;packages&nbsp;needed&nbsp;as&nbsp;a&nbsp;string&nbsp;in&nbsp;LaTeX&nbsp;syntax.<br>
+&nbsp;<br>
+Returns<br>
+-------<br>
+string:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;LaTeX&nbsp;string&nbsp;representing&nbsp;the&nbsp;packages&nbsp;of&nbsp;the&nbsp;container</span></dd></dl>
+
+<hr>
+Data and other attributes inherited from <a href="pylatex.base_classes.containers.html#Container">pylatex.base_classes.containers.Container</a>:<br>
+<dl><dt><strong>content_separator</strong> = '%<span class="repr">\n</span>'</dl>
+
+<hr>
+Methods inherited from <a href="pylatex.base_classes.latex_object.html#LatexObject">pylatex.base_classes.latex_object.LatexObject</a>:<br>
+<dl><dt><a name="ColorBox-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Create&nbsp;a&nbsp;printable&nbsp;representation&nbsp;of&nbsp;the&nbsp;object.</span></dd></dl>
+
+<dl><dt><a name="ColorBox-dump"><strong>dump</strong></a>(self, file_w)</dt><dd><span class="code">Write&nbsp;the&nbsp;LaTeX&nbsp;representation&nbsp;of&nbsp;the&nbsp;class&nbsp;to&nbsp;a&nbsp;file.<br>
+&nbsp;<br>
+Args<br>
+----<br>
+file_w:&nbsp;io.TextIOBase<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;file&nbsp;object&nbsp;in&nbsp;which&nbsp;to&nbsp;save&nbsp;the&nbsp;data</span></dd></dl>
+
+<dl><dt><a name="ColorBox-dump_packages"><strong>dump_packages</strong></a>(self, file_w)</dt><dd><span class="code">Write&nbsp;the&nbsp;LaTeX&nbsp;representation&nbsp;of&nbsp;the&nbsp;packages&nbsp;to&nbsp;a&nbsp;file.<br>
+&nbsp;<br>
+Args<br>
+----<br>
+file_w:&nbsp;io.TextIOBase<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;file&nbsp;object&nbsp;in&nbsp;which&nbsp;to&nbsp;save&nbsp;the&nbsp;data</span></dd></dl>
+
+<dl><dt><a name="ColorBox-dumps_as_content"><strong>dumps_as_content</strong></a>(self)</dt><dd><span class="code">Create&nbsp;a&nbsp;string&nbsp;representation&nbsp;of&nbsp;the&nbsp;object&nbsp;as&nbsp;content.<br>
+&nbsp;<br>
+This&nbsp;is&nbsp;currently&nbsp;only&nbsp;used&nbsp;to&nbsp;add&nbsp;new&nbsp;lines&nbsp;before&nbsp;and&nbsp;after&nbsp;the<br>
+output&nbsp;of&nbsp;the&nbsp;dumps&nbsp;function.&nbsp;These&nbsp;can&nbsp;be&nbsp;added&nbsp;or&nbsp;removed&nbsp;by&nbsp;changing<br>
+the&nbsp;`begin_paragraph`,&nbsp;`end_paragraph`&nbsp;and&nbsp;`separate_paragraph`<br>
+attributes&nbsp;of&nbsp;the&nbsp;class.</span></dd></dl>
+
+<dl><dt><a name="ColorBox-generate_tex"><strong>generate_tex</strong></a>(self, filepath)</dt><dd><span class="code">Generate&nbsp;a&nbsp;.tex&nbsp;file.<br>
+&nbsp;<br>
+Args<br>
+----<br>
+filepath:&nbsp;str<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;name&nbsp;of&nbsp;the&nbsp;file&nbsp;(without&nbsp;.tex)</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="pylatex.base_classes.latex_object.html#LatexObject">pylatex.base_classes.latex_object.LatexObject</a>:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<dl><dt><strong>escape</strong></dt>
+<dd><span class="code">Determine&nbsp;whether&nbsp;or&nbsp;not&nbsp;to&nbsp;escape&nbsp;content&nbsp;of&nbsp;this&nbsp;class.<br>
+&nbsp;<br>
+This&nbsp;defaults&nbsp;to&nbsp;`True`&nbsp;for&nbsp;most&nbsp;classes.</span></dd>
+</dl>
+<dl><dt><strong>latex_name</strong></dt>
+<dd><span class="code">Return&nbsp;the&nbsp;name&nbsp;of&nbsp;the&nbsp;class&nbsp;used&nbsp;in&nbsp;LaTeX.<br>
+&nbsp;<br>
+It&nbsp;can&nbsp;be&nbsp;`None`&nbsp;when&nbsp;the&nbsp;class&nbsp;doesn't&nbsp;have&nbsp;a&nbsp;name.</span></dd>
+</dl>
+<hr>
+Data and other attributes inherited from <a href="pylatex.base_classes.latex_object.html#LatexObject">pylatex.base_classes.latex_object.LatexObject</a>:<br>
+<dl><dt><strong>begin_paragraph</strong> = False</dl>
+
+<dl><dt><strong>end_paragraph</strong> = False</dl>
+
+<dl><dt><strong>separate_paragraph</strong> = False</dl>
+
+<hr>
+Methods inherited from <a href="collections.html#UserList">collections.UserList</a>:<br>
+<dl><dt><a name="ColorBox-__add__"><strong>__add__</strong></a>(self, other)</dt></dl>
+
+<dl><dt><a name="ColorBox-__contains__"><strong>__contains__</strong></a>(self, item)</dt></dl>
+
+<dl><dt><a name="ColorBox-__copy__"><strong>__copy__</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="ColorBox-__delitem__"><strong>__delitem__</strong></a>(self, i)</dt></dl>
+
+<dl><dt><a name="ColorBox-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="ColorBox-__ge__"><strong>__ge__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self&gt;=value.</span></dd></dl>
+
+<dl><dt><a name="ColorBox-__getitem__"><strong>__getitem__</strong></a>(self, i)</dt></dl>
+
+<dl><dt><a name="ColorBox-__gt__"><strong>__gt__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self&gt;value.</span></dd></dl>
+
+<dl><dt><a name="ColorBox-__iadd__"><strong>__iadd__</strong></a>(self, other)</dt></dl>
+
+<dl><dt><a name="ColorBox-__imul__"><strong>__imul__</strong></a>(self, n)</dt></dl>
+
+<dl><dt><a name="ColorBox-__le__"><strong>__le__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self&lt;=value.</span></dd></dl>
+
+<dl><dt><a name="ColorBox-__len__"><strong>__len__</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="ColorBox-__lt__"><strong>__lt__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self&lt;value.</span></dd></dl>
+
+<dl><dt><a name="ColorBox-__mul__"><strong>__mul__</strong></a>(self, n)</dt></dl>
+
+<dl><dt><a name="ColorBox-__radd__"><strong>__radd__</strong></a>(self, other)</dt></dl>
+
+<dl><dt><a name="ColorBox-__rmul__"><strong>__rmul__</strong></a> = <a href="#ColorBox-__mul__">__mul__</a>(self, n)</dt></dl>
+
+<dl><dt><a name="ColorBox-__setitem__"><strong>__setitem__</strong></a>(self, i, item)</dt></dl>
+
+<dl><dt><a name="ColorBox-append"><strong>append</strong></a>(self, item)</dt><dd><span class="code">S.<a href="#ColorBox-append">append</a>(value)&nbsp;--&nbsp;append&nbsp;value&nbsp;to&nbsp;the&nbsp;end&nbsp;of&nbsp;the&nbsp;sequence</span></dd></dl>
+
+<dl><dt><a name="ColorBox-clear"><strong>clear</strong></a>(self)</dt><dd><span class="code">S.<a href="#ColorBox-clear">clear</a>()&nbsp;-&gt;&nbsp;None&nbsp;--&nbsp;remove&nbsp;all&nbsp;items&nbsp;from&nbsp;S</span></dd></dl>
+
+<dl><dt><a name="ColorBox-copy"><strong>copy</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="ColorBox-count"><strong>count</strong></a>(self, item)</dt><dd><span class="code">S.<a href="#ColorBox-count">count</a>(value)&nbsp;-&gt;&nbsp;integer&nbsp;--&nbsp;return&nbsp;number&nbsp;of&nbsp;occurrences&nbsp;of&nbsp;value</span></dd></dl>
+
+<dl><dt><a name="ColorBox-extend"><strong>extend</strong></a>(self, other)</dt><dd><span class="code">S.<a href="#ColorBox-extend">extend</a>(iterable)&nbsp;--&nbsp;extend&nbsp;sequence&nbsp;by&nbsp;appending&nbsp;elements&nbsp;from&nbsp;the&nbsp;iterable</span></dd></dl>
+
+<dl><dt><a name="ColorBox-index"><strong>index</strong></a>(self, item, *args)</dt><dd><span class="code">S.<a href="#ColorBox-index">index</a>(value,&nbsp;[start,&nbsp;[stop]])&nbsp;-&gt;&nbsp;integer&nbsp;--&nbsp;return&nbsp;first&nbsp;index&nbsp;of&nbsp;value.<br>
+Raises&nbsp;ValueError&nbsp;if&nbsp;the&nbsp;value&nbsp;is&nbsp;not&nbsp;present.<br>
+&nbsp;<br>
+Supporting&nbsp;start&nbsp;and&nbsp;stop&nbsp;arguments&nbsp;is&nbsp;optional,&nbsp;but<br>
+recommended.</span></dd></dl>
+
+<dl><dt><a name="ColorBox-insert"><strong>insert</strong></a>(self, i, item)</dt><dd><span class="code">S.<a href="#ColorBox-insert">insert</a>(index,&nbsp;value)&nbsp;--&nbsp;insert&nbsp;value&nbsp;before&nbsp;index</span></dd></dl>
+
+<dl><dt><a name="ColorBox-pop"><strong>pop</strong></a>(self, i=-1)</dt><dd><span class="code">S.<a href="#ColorBox-pop">pop</a>([index])&nbsp;-&gt;&nbsp;item&nbsp;--&nbsp;remove&nbsp;and&nbsp;return&nbsp;item&nbsp;at&nbsp;index&nbsp;(default&nbsp;last).<br>
+Raise&nbsp;IndexError&nbsp;if&nbsp;list&nbsp;is&nbsp;empty&nbsp;or&nbsp;index&nbsp;is&nbsp;out&nbsp;of&nbsp;range.</span></dd></dl>
+
+<dl><dt><a name="ColorBox-remove"><strong>remove</strong></a>(self, item)</dt><dd><span class="code">S.<a href="#ColorBox-remove">remove</a>(value)&nbsp;--&nbsp;remove&nbsp;first&nbsp;occurrence&nbsp;of&nbsp;value.<br>
+Raise&nbsp;ValueError&nbsp;if&nbsp;the&nbsp;value&nbsp;is&nbsp;not&nbsp;present.</span></dd></dl>
+
+<dl><dt><a name="ColorBox-reverse"><strong>reverse</strong></a>(self)</dt><dd><span class="code">S.<a href="#ColorBox-reverse">reverse</a>()&nbsp;--&nbsp;reverse&nbsp;*IN&nbsp;PLACE*</span></dd></dl>
+
+<dl><dt><a name="ColorBox-sort"><strong>sort</strong></a>(self, /, *args, **kwds)</dt></dl>
+
+<hr>
+Data and other attributes inherited from <a href="collections.html#UserList">collections.UserList</a>:<br>
+<dl><dt><strong>__hash__</strong> = None</dl>
+
+<hr>
+Methods inherited from <a href="collections.abc.html#Sequence">collections.abc.Sequence</a>:<br>
+<dl><dt><a name="ColorBox-__iter__"><strong>__iter__</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="ColorBox-__reversed__"><strong>__reversed__</strong></a>(self)</dt></dl>
+
+<hr>
+Class methods inherited from <a href="collections.abc.html#Reversible">collections.abc.Reversible</a>:<br>
+<dl><dt><a name="ColorBox-__subclasshook__"><strong>__subclasshook__</strong></a>(C)</dt><dd><span class="code">Abstract&nbsp;classes&nbsp;can&nbsp;override&nbsp;this&nbsp;to&nbsp;customize&nbsp;issubclass().<br>
+&nbsp;<br>
+This&nbsp;is&nbsp;invoked&nbsp;early&nbsp;on&nbsp;by&nbsp;abc.ABCMeta.__subclasscheck__().<br>
+It&nbsp;should&nbsp;return&nbsp;True,&nbsp;False&nbsp;or&nbsp;NotImplemented.&nbsp;&nbsp;If&nbsp;it&nbsp;returns<br>
+NotImplemented,&nbsp;the&nbsp;normal&nbsp;algorithm&nbsp;is&nbsp;used.&nbsp;&nbsp;Otherwise,&nbsp;it<br>
+overrides&nbsp;the&nbsp;normal&nbsp;algorithm&nbsp;(and&nbsp;the&nbsp;outcome&nbsp;is&nbsp;cached).</span></dd></dl>
+
+<hr>
+Class methods inherited from <a href="collections.abc.html#Iterable">collections.abc.Iterable</a>:<br>
+<dl><dt><a name="ColorBox-__class_getitem__"><strong>__class_getitem__</strong></a> = GenericAlias(...)</dt><dd><span class="code">Represent&nbsp;a&nbsp;<a href="https://peps.python.org/pep-0585/">PEP&nbsp;585</a>&nbsp;generic&nbsp;type<br>
+&nbsp;<br>
+E.g.&nbsp;for&nbsp;t&nbsp;=&nbsp;list[int],&nbsp;t.__origin__&nbsp;is&nbsp;list&nbsp;and&nbsp;t.__args__&nbsp;is&nbsp;(int,).</span></dd></dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="MidPointNorm">class <strong>MidPointNorm</strong></a>(<a href="matplotlib.colors.html#Normalize">matplotlib.colors.Normalize</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#MidPointNorm">MidPointNorm</a>(vmin=None,&nbsp;vmax=None,&nbsp;midpoints=None,&nbsp;clip=False,&nbsp;defmids=[0.5])<br>
+&nbsp;<br>
+Class&nbsp;defining&nbsp;normalization&nbsp;of&nbsp;colors&nbsp;to&nbsp;be&nbsp;used&nbsp;when&nbsp;plotting&nbsp;using&nbsp;matplotlib.&nbsp;<br>
+The&nbsp;class&nbsp;allows&nbsp;one&nbsp;to&nbsp;define&nbsp;the&nbsp;minimum&nbsp;and&nbsp;maximum&nbsp;used&nbsp;in&nbsp;normalization,&nbsp;as&nbsp;usual,&nbsp;<br>
+while&nbsp;it&nbsp;also&nbsp;allows&nbsp;one&nbsp;to&nbsp;define&nbsp;a&nbsp;"mid-point"&nbsp;--&nbsp;this&nbsp;allows&nbsp;one&nbsp;to&nbsp;have&nbsp;values<br>
+between&nbsp;the&nbsp;provided&nbsp;minimum&nbsp;and&nbsp;maximum&nbsp;mapped&nbsp;to&nbsp;something&nbsp;other&nbsp;than&nbsp;0.5&nbsp;in&nbsp;the&nbsp;colormap.<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+vmin&nbsp;(numeric):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Minimum&nbsp;used&nbsp;in&nbsp;the&nbsp;normalization.<br>
+&nbsp;<br>
+vmax&nbsp;(numeric):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Maximum&nbsp;used&nbsp;in&nbsp;the&nbsp;normalization.<br>
+&nbsp;<br>
+midpoints&nbsp;(numeric):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Midpoints&nbsp;used&nbsp;in&nbsp;the&nbsp;normalization.<br>
+&nbsp;<br>
+clip&nbsp;(bool):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Whether&nbsp;to&nbsp;allow&nbsp;clipping&nbsp;in&nbsp;normalization&nbsp;(standard&nbsp;matplotlib&nbsp;argument).<br>
+&nbsp;<br>
+defmids&nbsp;(list):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;What&nbsp;point&nbsp;in&nbsp;the&nbsp;colorscale&nbsp;the&nbsp;provided&nbsp;midpoints&nbsp;should&nbsp;be&nbsp;mapped&nbsp;to&nbsp;(normally,&nbsp;this&nbsp;would&nbsp;be&nbsp;0.5,&nbsp;but&nbsp;one&nbsp;may&nbsp;"stretch"&nbsp;the&nbsp;colormap&nbsp;using&nbsp;this).<br>
+&nbsp;<br>
+Attributes:<br>
+-----------<br>
+vmin&nbsp;(numeric):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Minimum&nbsp;used&nbsp;in&nbsp;the&nbsp;normalization.<br>
+&nbsp;<br>
+vmax&nbsp;(numeric):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Maximum&nbsp;used&nbsp;in&nbsp;the&nbsp;normalization.<br>
+&nbsp;<br>
+midpoints&nbsp;(numeric):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Midpoints&nbsp;used&nbsp;in&nbsp;the&nbsp;normalization.<br>
+&nbsp;<br>
+defmids&nbsp;(list):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;What&nbsp;point&nbsp;in&nbsp;the&nbsp;colorscale&nbsp;the&nbsp;provided&nbsp;midpoints&nbsp;should&nbsp;be&nbsp;mapped&nbsp;to&nbsp;(normally,&nbsp;this&nbsp;would&nbsp;be&nbsp;0.5,&nbsp;but&nbsp;one&nbsp;may&nbsp;"stretch"&nbsp;the&nbsp;colormap&nbsp;using&nbsp;this).<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="pe2i_petct_functions.html#MidPointNorm">MidPointNorm</a></dd>
+<dd><a href="matplotlib.colors.html#Normalize">matplotlib.colors.Normalize</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="MidPointNorm-__call__"><strong>__call__</strong></a>(self, value, clip=None)</dt><dd><span class="code"><a href="matplotlib.colors.html#Normalize">Normalize</a>&nbsp;the&nbsp;data&nbsp;and&nbsp;return&nbsp;the&nbsp;normalized&nbsp;data.<br>
+&nbsp;<br>
+Parameters<br>
+----------<br>
+value<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Data&nbsp;to&nbsp;normalize.<br>
+clip&nbsp;:&nbsp;bool,&nbsp;optional<br>
+&nbsp;&nbsp;&nbsp;&nbsp;See&nbsp;the&nbsp;description&nbsp;of&nbsp;the&nbsp;parameter&nbsp;*clip*&nbsp;in&nbsp;`.<a href="matplotlib.colors.html#Normalize">Normalize</a>`.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;``None``,&nbsp;defaults&nbsp;to&nbsp;``self.<strong>clip</strong>``&nbsp;(which&nbsp;defaults&nbsp;to<br>
+&nbsp;&nbsp;&nbsp;&nbsp;``False``).<br>
+&nbsp;<br>
+Notes<br>
+-----<br>
+If&nbsp;not&nbsp;already&nbsp;initialized,&nbsp;``self.<strong>vmin</strong>``&nbsp;and&nbsp;``self.<strong>vmax</strong>``&nbsp;are<br>
+initialized&nbsp;using&nbsp;``self.<a href="#MidPointNorm-autoscale_None">autoscale_None</a>(value)``.</span></dd></dl>
+
+<dl><dt><a name="MidPointNorm-__init__"><strong>__init__</strong></a>(self, vmin=None, vmax=None, midpoints=None, clip=False, defmids=[0.5])</dt><dd><span class="code">Parameters<br>
+----------<br>
+vmin,&nbsp;vmax&nbsp;:&nbsp;float&nbsp;or&nbsp;None<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Values&nbsp;within&nbsp;the&nbsp;range&nbsp;``[vmin,&nbsp;vmax]``&nbsp;from&nbsp;the&nbsp;input&nbsp;data&nbsp;will&nbsp;be<br>
+&nbsp;&nbsp;&nbsp;&nbsp;linearly&nbsp;mapped&nbsp;to&nbsp;``[0,&nbsp;1]``.&nbsp;If&nbsp;either&nbsp;*vmin*&nbsp;or&nbsp;*vmax*&nbsp;is&nbsp;not<br>
+&nbsp;&nbsp;&nbsp;&nbsp;provided,&nbsp;they&nbsp;default&nbsp;to&nbsp;the&nbsp;minimum&nbsp;and&nbsp;maximum&nbsp;values&nbsp;of&nbsp;the&nbsp;input,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;respectively.<br>
+&nbsp;<br>
+clip&nbsp;:&nbsp;bool,&nbsp;default:&nbsp;False<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Determines&nbsp;the&nbsp;behavior&nbsp;for&nbsp;mapping&nbsp;values&nbsp;outside&nbsp;the&nbsp;range<br>
+&nbsp;&nbsp;&nbsp;&nbsp;``[vmin,&nbsp;vmax]``.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;clipping&nbsp;is&nbsp;off,&nbsp;values&nbsp;outside&nbsp;the&nbsp;range&nbsp;``[vmin,&nbsp;vmax]``&nbsp;are<br>
+&nbsp;&nbsp;&nbsp;&nbsp;also&nbsp;transformed,&nbsp;resulting&nbsp;in&nbsp;values&nbsp;outside&nbsp;``[0,&nbsp;1]``.&nbsp;&nbsp;This<br>
+&nbsp;&nbsp;&nbsp;&nbsp;behavior&nbsp;is&nbsp;usually&nbsp;desirable,&nbsp;as&nbsp;colormaps&nbsp;can&nbsp;mark&nbsp;these&nbsp;*under*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;and&nbsp;*over*&nbsp;values&nbsp;with&nbsp;specific&nbsp;colors.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;clipping&nbsp;is&nbsp;on,&nbsp;values&nbsp;below&nbsp;*vmin*&nbsp;are&nbsp;mapped&nbsp;to&nbsp;0&nbsp;and&nbsp;values<br>
+&nbsp;&nbsp;&nbsp;&nbsp;above&nbsp;*vmax*&nbsp;are&nbsp;mapped&nbsp;to&nbsp;1.&nbsp;Such&nbsp;values&nbsp;become&nbsp;indistinguishable<br>
+&nbsp;&nbsp;&nbsp;&nbsp;from&nbsp;regular&nbsp;boundary&nbsp;values,&nbsp;which&nbsp;may&nbsp;cause&nbsp;misinterpretation&nbsp;of<br>
+&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;data.<br>
+&nbsp;<br>
+Notes<br>
+-----<br>
+If&nbsp;``vmin&nbsp;==&nbsp;vmax``,&nbsp;input&nbsp;data&nbsp;will&nbsp;be&nbsp;mapped&nbsp;to&nbsp;0.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="matplotlib.colors.html#Normalize">matplotlib.colors.Normalize</a>:<br>
+<dl><dt><a name="MidPointNorm-autoscale"><strong>autoscale</strong></a>(self, A)</dt><dd><span class="code">Set&nbsp;*vmin*,&nbsp;*vmax*&nbsp;to&nbsp;min,&nbsp;max&nbsp;of&nbsp;*A*.</span></dd></dl>
+
+<dl><dt><a name="MidPointNorm-autoscale_None"><strong>autoscale_None</strong></a>(self, A)</dt><dd><span class="code">If&nbsp;*vmin*&nbsp;or&nbsp;*vmax*&nbsp;are&nbsp;not&nbsp;set,&nbsp;use&nbsp;the&nbsp;min/max&nbsp;of&nbsp;*A*&nbsp;to&nbsp;set&nbsp;them.</span></dd></dl>
+
+<dl><dt><a name="MidPointNorm-inverse"><strong>inverse</strong></a>(self, value)</dt><dd><span class="code">Maps&nbsp;the&nbsp;normalized&nbsp;value&nbsp;(i.e.,&nbsp;index&nbsp;in&nbsp;the&nbsp;colormap)&nbsp;back&nbsp;to&nbsp;image<br>
+data&nbsp;value.<br>
+&nbsp;<br>
+Parameters<br>
+----------<br>
+value<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Normalized&nbsp;value.</span></dd></dl>
+
+<dl><dt><a name="MidPointNorm-scaled"><strong>scaled</strong></a>(self)</dt><dd><span class="code">Return&nbsp;whether&nbsp;*vmin*&nbsp;and&nbsp;*vmax*&nbsp;are&nbsp;both&nbsp;set.</span></dd></dl>
+
+<hr>
+Static methods inherited from <a href="matplotlib.colors.html#Normalize">matplotlib.colors.Normalize</a>:<br>
+<dl><dt><a name="MidPointNorm-process_value"><strong>process_value</strong></a>(value)</dt><dd><span class="code">Homogenize&nbsp;the&nbsp;input&nbsp;*value*&nbsp;for&nbsp;easy&nbsp;and&nbsp;efficient&nbsp;normalization.<br>
+&nbsp;<br>
+*value*&nbsp;can&nbsp;be&nbsp;a&nbsp;scalar&nbsp;or&nbsp;sequence.<br>
+&nbsp;<br>
+Parameters<br>
+----------<br>
+value<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Data&nbsp;to&nbsp;normalize.<br>
+&nbsp;<br>
+Returns<br>
+-------<br>
+result&nbsp;:&nbsp;masked&nbsp;array<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Masked&nbsp;array&nbsp;with&nbsp;the&nbsp;same&nbsp;shape&nbsp;as&nbsp;*value*.<br>
+is_scalar&nbsp;:&nbsp;bool<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Whether&nbsp;*value*&nbsp;is&nbsp;a&nbsp;scalar.<br>
+&nbsp;<br>
+Notes<br>
+-----<br>
+Float&nbsp;dtypes&nbsp;are&nbsp;preserved;&nbsp;integer&nbsp;types&nbsp;with&nbsp;two&nbsp;bytes&nbsp;or&nbsp;smaller&nbsp;are<br>
+converted&nbsp;to&nbsp;np.float32,&nbsp;and&nbsp;larger&nbsp;types&nbsp;are&nbsp;converted&nbsp;to&nbsp;np.float64.<br>
+Preserving&nbsp;float32&nbsp;when&nbsp;possible,&nbsp;and&nbsp;using&nbsp;in-place&nbsp;operations,<br>
+greatly&nbsp;improves&nbsp;speed&nbsp;for&nbsp;large&nbsp;arrays.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="matplotlib.colors.html#Normalize">matplotlib.colors.Normalize</a>:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<dl><dt><strong>clip</strong></dt>
+</dl>
+<dl><dt><strong>vmax</strong></dt>
+</dl>
+<dl><dt><strong>vmin</strong></dt>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-add_average_plot"><strong>add_average_plot</strong></a>(doc, norm_pet, mask, title, subfig_width, colormap_width, min_value, max_value, slices)</dt><dd><span class="code">Adds&nbsp;an&nbsp;average&nbsp;plot&nbsp;to&nbsp;the&nbsp;document,&nbsp;showing&nbsp;a&nbsp;collapsed&nbsp;PET&nbsp;image&nbsp;over&nbsp;specified&nbsp;slices.<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+doc&nbsp;:&nbsp;Document<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;LaTeX&nbsp;document&nbsp;object&nbsp;to&nbsp;which&nbsp;the&nbsp;plot&nbsp;will&nbsp;be&nbsp;added.<br>
+norm_pet&nbsp;:&nbsp;array<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Normalized&nbsp;PET&nbsp;image&nbsp;data.<br>
+mask&nbsp;:&nbsp;array<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Numpy&nbsp;array&nbsp;with&nbsp;segmentation&nbsp;mask&nbsp;data.<br>
+title&nbsp;:&nbsp;str<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Title&nbsp;for&nbsp;the&nbsp;plot.<br>
+subfig_width&nbsp;:&nbsp;str<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Width&nbsp;of&nbsp;the&nbsp;subfigure&nbsp;in&nbsp;LaTeX.<br>
+colormap_width&nbsp;:&nbsp;str<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Width&nbsp;of&nbsp;the&nbsp;colormap&nbsp;plot&nbsp;in&nbsp;LaTeX.<br>
+min_value&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Minimum&nbsp;value&nbsp;for&nbsp;normalization&nbsp;when&nbsp;plotting.<br>
+max_value&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Maximum&nbsp;value&nbsp;for&nbsp;normalization&nbsp;when&nbsp;plotting.<br>
+slices&nbsp;:&nbsp;list<br>
+&nbsp;&nbsp;&nbsp;&nbsp;List&nbsp;of&nbsp;slice&nbsp;indices&nbsp;to&nbsp;be&nbsp;used&nbsp;for&nbsp;plotting.<br>
+&nbsp;<br>
+Returns:<br>
+--------<br>
+None</span></dd></dl>
+ <dl><dt><a name="-add_colormap_plot"><strong>add_colormap_plot</strong></a>(doc, plt, vmin, vmax, step, add_max_tick=False, subfig_width=NoEscape(0.9\linewidth), plot_width=NoEscape(0.3\textwidth))</dt><dd><span class="code">Adds&nbsp;a&nbsp;plot&nbsp;showing&nbsp;a&nbsp;colormap&nbsp;to&nbsp;the&nbsp;provided&nbsp;LaTeX&nbsp;document.<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+doc&nbsp;:&nbsp;Document<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;LaTeX&nbsp;Document&nbsp;object&nbsp;to&nbsp;which&nbsp;the&nbsp;plot&nbsp;will&nbsp;be&nbsp;added.<br>
+&nbsp;<br>
+plt&nbsp;:&nbsp;matplotlib.pyplot<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Active&nbsp;matplotlib&nbsp;plot&nbsp;object&nbsp;used&nbsp;for&nbsp;generating&nbsp;the&nbsp;colormap&nbsp;plot.<br>
+&nbsp;<br>
+vmin&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Minimum&nbsp;value&nbsp;for&nbsp;the&nbsp;colormap&nbsp;range.<br>
+&nbsp;<br>
+vmax&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Maximum&nbsp;value&nbsp;for&nbsp;the&nbsp;colormap&nbsp;range.<br>
+&nbsp;<br>
+step&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Step&nbsp;size&nbsp;for&nbsp;tick&nbsp;marks&nbsp;on&nbsp;the&nbsp;colormap&nbsp;plot.<br>
+&nbsp;<br>
+add_max_tick&nbsp;:&nbsp;bool,&nbsp;optional<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Whether&nbsp;to&nbsp;add&nbsp;the&nbsp;maximum&nbsp;tick&nbsp;value&nbsp;on&nbsp;the&nbsp;colormap&nbsp;plot.&nbsp;Default&nbsp;is&nbsp;False.<br>
+&nbsp;<br>
+subfig_width&nbsp;:&nbsp;NoEscape<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Width&nbsp;of&nbsp;the&nbsp;subfigure&nbsp;in&nbsp;LaTeX&nbsp;units.&nbsp;Default&nbsp;is&nbsp;'0.9\linewidth'.<br>
+&nbsp;<br>
+plot_width&nbsp;:&nbsp;NoEscape<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Width&nbsp;of&nbsp;the&nbsp;plot&nbsp;in&nbsp;LaTeX&nbsp;units.&nbsp;Default&nbsp;is&nbsp;'0.3&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;extwidth'.<br>
+&nbsp;<br>
+&nbsp;<br>
+Returns:<br>
+--------<br>
+None</span></dd></dl>
+ <dl><dt><a name="-cerebellum_mask"><strong>cerebellum_mask</strong></a>(self, input_file)</dt><dd><span class="code">Generate&nbsp;a&nbsp;cerebellum&nbsp;mask&nbsp;using&nbsp;the&nbsp;LabelFusion&nbsp;tool&nbsp;with&nbsp;the&nbsp;STEPS&nbsp;algorithm.<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+input_file&nbsp;:&nbsp;str<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;file&nbsp;path&nbsp;to&nbsp;the&nbsp;input&nbsp;NIfTI&nbsp;image&nbsp;that&nbsp;needs&nbsp;segmentation.<br>
+&nbsp;<br>
+Returns:<br>
+--------<br>
+str<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;file&nbsp;path&nbsp;to&nbsp;the&nbsp;generated&nbsp;cerebellum&nbsp;mask&nbsp;NIfTI&nbsp;image.<br>
+&nbsp;<br>
+Exceptions:<br>
+-----------<br>
+Raises&nbsp;an&nbsp;exception&nbsp;if&nbsp;the&nbsp;LabelFusion&nbsp;process&nbsp;fails.</span></dd></dl>
+ <dl><dt><a name="-compute_patch_indices"><strong>compute_patch_indices</strong></a>()</dt><dd><span class="code">Compute&nbsp;the&nbsp;corner&nbsp;indices&nbsp;for&nbsp;extracting&nbsp;patches&nbsp;from&nbsp;3D&nbsp;data.<br>
+&nbsp;<br>
+This&nbsp;function&nbsp;generates&nbsp;a&nbsp;set&nbsp;of&nbsp;indices&nbsp;representing&nbsp;the&nbsp;starting&nbsp;coordinates&nbsp;of&nbsp;patches&nbsp;<br>
+to&nbsp;be&nbsp;extracted&nbsp;from&nbsp;the&nbsp;data.&nbsp;These&nbsp;indices&nbsp;correspond&nbsp;to&nbsp;the&nbsp;top-left-front&nbsp;corner&nbsp;of&nbsp;each&nbsp;patch.<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+None<br>
+&nbsp;<br>
+Returns:<br>
+--------<br>
+np.ndarray<br>
+&nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;numpy&nbsp;array&nbsp;where&nbsp;each&nbsp;row&nbsp;contains&nbsp;the&nbsp;(x,&nbsp;y,&nbsp;z)&nbsp;coordinates&nbsp;of&nbsp;a&nbsp;patch's&nbsp;corner.&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;output&nbsp;has&nbsp;the&nbsp;format:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;array([[&nbsp;80,&nbsp;&nbsp;94,&nbsp;101],<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[&nbsp;80,&nbsp;&nbsp;94,&nbsp;112],<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[&nbsp;80,&nbsp;114,&nbsp;101],<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[&nbsp;80,&nbsp;114,&nbsp;112],<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[&nbsp;94,&nbsp;&nbsp;94,&nbsp;101],<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[&nbsp;94,&nbsp;&nbsp;94,&nbsp;112],<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[&nbsp;94,&nbsp;114,&nbsp;101],<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[&nbsp;94,&nbsp;114,&nbsp;112]])</span></dd></dl>
+ <dl><dt><a name="-contours_mask_slice"><strong>contours_mask_slice</strong></a>(slice)</dt><dd><span class="code">Computes&nbsp;the&nbsp;contour&nbsp;of&nbsp;a&nbsp;2D&nbsp;binary&nbsp;image.<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+slice&nbsp;:&nbsp;array<br>
+&nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;2D&nbsp;numpy&nbsp;array&nbsp;representing&nbsp;the&nbsp;binary&nbsp;image.<br>
+&nbsp;<br>
+Returns:<br>
+--------<br>
+array<br>
+&nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;binary&nbsp;image&nbsp;containing&nbsp;only&nbsp;the&nbsp;contour&nbsp;of&nbsp;the&nbsp;segmentation.</span></dd></dl>
+ <dl><dt><a name="-convert_LAC_to_HU"><strong>convert_LAC_to_HU</strong></a>(self, dd_nii)</dt></dl>
+ <dl><dt><a name="-create_document"><strong>create_document</strong></a>(fname)</dt><dd><span class="code">Creates&nbsp;a&nbsp;LaTeX&nbsp;document&nbsp;with&nbsp;specified&nbsp;formatting&nbsp;and&nbsp;options.<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+fname&nbsp;:&nbsp;str<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;filename&nbsp;for&nbsp;the&nbsp;LaTeX&nbsp;document.<br>
+&nbsp;<br>
+Returns:<br>
+--------<br>
+Document<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;LaTeX&nbsp;document&nbsp;object&nbsp;with&nbsp;the&nbsp;specified&nbsp;options.</span></dd></dl>
+ <dl><dt><a name="-dice_coefficient"><strong>dice_coefficient</strong></a>(y_true, y_pred, smooth=1.0)</dt><dd><span class="code">Compute&nbsp;the&nbsp;Dice&nbsp;similarity&nbsp;coefficient.<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+y_true&nbsp;:&nbsp;tf.Tensor<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Ground&nbsp;truth&nbsp;binary&nbsp;tensor&nbsp;representing&nbsp;the&nbsp;target&nbsp;mask.<br>
+y_pred&nbsp;:&nbsp;tf.Tensor<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Predicted&nbsp;binary&nbsp;tensor&nbsp;from&nbsp;the&nbsp;model.<br>
+smooth&nbsp;:&nbsp;float,&nbsp;optional<br>
+&nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;small&nbsp;constant&nbsp;added&nbsp;to&nbsp;the&nbsp;numerator&nbsp;and&nbsp;denominator&nbsp;to&nbsp;prevent&nbsp;division&nbsp;by&nbsp;zero.&nbsp;Default&nbsp;is&nbsp;1.0.<br>
+&nbsp;<br>
+Returns:<br>
+--------<br>
+tf.Tensor<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;Dice&nbsp;coefficient,&nbsp;a&nbsp;scalar&nbsp;value&nbsp;between&nbsp;0&nbsp;and&nbsp;1,&nbsp;indicating&nbsp;the&nbsp;similarity&nbsp;between&nbsp;'y_true'&nbsp;and&nbsp;'y_pred'.</span></dd></dl>
+ <dl><dt><a name="-dice_coefficient_loss"><strong>dice_coefficient_loss</strong></a>(y_true, y_pred)</dt><dd><span class="code">Calculate&nbsp;the&nbsp;Dice&nbsp;coefficient&nbsp;loss.<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+y_true&nbsp;:&nbsp;tf.Tensor<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Ground&nbsp;truth&nbsp;binary&nbsp;tensor&nbsp;representing&nbsp;the&nbsp;target&nbsp;mask.<br>
+y_pred&nbsp;:&nbsp;tf.Tensor<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Predicted&nbsp;binary&nbsp;tensor&nbsp;from&nbsp;the&nbsp;model.<br>
+&nbsp;<br>
+Returns:<br>
+--------<br>
+tf.Tensor<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;negative&nbsp;Dice&nbsp;coefficient&nbsp;value&nbsp;to&nbsp;be&nbsp;minimized&nbsp;during&nbsp;training.</span></dd></dl>
+ <dl><dt><a name="-filter_largest_clusters"><strong>filter_largest_clusters</strong></a>(mask, target_label=2.0, num_clusters=2)</dt></dl>
+ <dl><dt><a name="-first_values"><strong>first_values</strong></a>(doc, patient_values, normal_stat_values, pt_age, pet_desc, age_range)</dt><dd><span class="code">Generates&nbsp;the&nbsp;first&nbsp;table&nbsp;of&nbsp;values&nbsp;including&nbsp;brain&nbsp;region&nbsp;SBR&nbsp;values,&nbsp;asymmetry,&nbsp;etc.<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+doc&nbsp;:&nbsp;Document<br>
+&nbsp;&nbsp;&nbsp;&nbsp;LaTeX&nbsp;document&nbsp;to&nbsp;append&nbsp;the&nbsp;table.<br>
+patient_values&nbsp;:&nbsp;DataFrame<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Dataframe&nbsp;of&nbsp;patient&nbsp;values.<br>
+normal_stat_values&nbsp;:&nbsp;array<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Statistical&nbsp;values&nbsp;for&nbsp;normal&nbsp;references.<br>
+pt_age&nbsp;:&nbsp;int<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Age&nbsp;of&nbsp;the&nbsp;patient.<br>
+pet_desc&nbsp;:&nbsp;str<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Description&nbsp;of&nbsp;the&nbsp;PET&nbsp;study.<br>
+age_range&nbsp;:&nbsp;tuple<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Age&nbsp;range&nbsp;for&nbsp;normal&nbsp;references.<br>
+&nbsp;<br>
+Returns:<br>
+--------<br>
+None</span></dd></dl>
+ <dl><dt><a name="-generalized_dice_loss"><strong>generalized_dice_loss</strong></a>(y_true, y_pred)</dt><dd><span class="code">Compute&nbsp;the&nbsp;generalized&nbsp;Dice&nbsp;loss,&nbsp;which&nbsp;accounts&nbsp;for&nbsp;class&nbsp;imbalance&nbsp;by&nbsp;weighting&nbsp;<br>
+each&nbsp;label's&nbsp;contribution&nbsp;inversely&nbsp;proportional&nbsp;to&nbsp;its&nbsp;volume.<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+y_true&nbsp;:&nbsp;tf.Tensor<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Ground&nbsp;truth&nbsp;tensor&nbsp;with&nbsp;shape&nbsp;(batch_size,&nbsp;height,&nbsp;width,&nbsp;depth,&nbsp;n_classes).<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;tensor&nbsp;contains&nbsp;the&nbsp;true&nbsp;labels&nbsp;for&nbsp;each&nbsp;class&nbsp;in&nbsp;the&nbsp;segmentation&nbsp;task.<br>
+&nbsp;<br>
+y_pred&nbsp;:&nbsp;tf.Tensor<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Predicted&nbsp;tensor&nbsp;with&nbsp;shape&nbsp;(batch_size,&nbsp;height,&nbsp;width,&nbsp;depth,&nbsp;n_classes).<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;tensor&nbsp;contains&nbsp;the&nbsp;predicted&nbsp;probabilities&nbsp;or&nbsp;logits&nbsp;for&nbsp;each&nbsp;class.<br>
+&nbsp;<br>
+Returns:<br>
+--------<br>
+tf.Tensor<br>
+&nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;scalar&nbsp;tensor&nbsp;representing&nbsp;the&nbsp;generalized&nbsp;Dice&nbsp;loss.&nbsp;Lower&nbsp;values&nbsp;indicate&nbsp;better&nbsp;performance.</span></dd></dl>
+ <dl><dt><a name="-generate_report"><strong>generate_report</strong></a>(self, ref_pet_dcm, ct_desc, normalised_pet, ct_nii, prediction, cerebellum, patient_values, MR=False)</dt><dd><span class="code">Generates&nbsp;a&nbsp;comprehensive&nbsp;report&nbsp;including&nbsp;PET&nbsp;and&nbsp;CT&nbsp;scan&nbsp;analysis,&nbsp;patient&nbsp;data,&nbsp;and&nbsp;reference&nbsp;comparisons.<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+ref_pet_dcm&nbsp;:&nbsp;DICOM<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Reference&nbsp;DICOM&nbsp;metadata&nbsp;for&nbsp;PET&nbsp;scan.<br>
+ct_desc&nbsp;:&nbsp;str<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Description&nbsp;of&nbsp;the&nbsp;CT&nbsp;scan.<br>
+normalised_pet&nbsp;:&nbsp;array<br>
+&nbsp;&nbsp;&nbsp;&nbsp;normalised&nbsp;PET&nbsp;scan&nbsp;data&nbsp;array.<br>
+ct_nii&nbsp;:&nbsp;str<br>
+&nbsp;&nbsp;&nbsp;&nbsp;CT&nbsp;scan&nbsp;path.<br>
+prediction&nbsp;:&nbsp;array<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Predicted&nbsp;scan&nbsp;data&nbsp;array.<br>
+cerebellum&nbsp;:&nbsp;array<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Cerebellum&nbsp;scan&nbsp;data&nbsp;array.<br>
+patient_values&nbsp;:&nbsp;DataFrame<br>
+&nbsp;&nbsp;&nbsp;&nbsp;DataFrame&nbsp;containing&nbsp;patient-specific&nbsp;values.<br>
+&nbsp;<br>
+Returns:<br>
+--------<br>
+path</span></dd></dl>
+ <dl><dt><a name="-get_age"><strong>get_age</strong></a>(patient_age)</dt><dd><span class="code">Converts&nbsp;the&nbsp;patient's&nbsp;age&nbsp;from&nbsp;a&nbsp;string&nbsp;in&nbsp;format&nbsp;'YXX'&nbsp;to&nbsp;an&nbsp;integer.<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+patient_age&nbsp;:&nbsp;str<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Patient's&nbsp;age&nbsp;in&nbsp;format&nbsp;'YXX'&nbsp;where&nbsp;'Y'&nbsp;is&nbsp;a&nbsp;single&nbsp;digit&nbsp;year&nbsp;and&nbsp;'XX'&nbsp;is&nbsp;the&nbsp;age.<br>
+&nbsp;<br>
+Returns:<br>
+--------<br>
+int<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;patient's&nbsp;age&nbsp;as&nbsp;an&nbsp;integer.</span></dd></dl>
+ <dl><dt><a name="-get_asymmetry"><strong>get_asymmetry</strong></a>(right, left)</dt><dd><span class="code">Calculates&nbsp;the&nbsp;asymmetry&nbsp;between&nbsp;the&nbsp;right&nbsp;and&nbsp;left&nbsp;hemisphere&nbsp;regions.<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+right&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Value&nbsp;representing&nbsp;the&nbsp;measurement&nbsp;from&nbsp;the&nbsp;right&nbsp;hemisphere.<br>
+left&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Value&nbsp;representing&nbsp;the&nbsp;measurement&nbsp;from&nbsp;the&nbsp;left&nbsp;hemisphere.<br>
+&nbsp;<br>
+Returns:<br>
+--------<br>
+float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;asymmetry&nbsp;value.</span></dd></dl>
+ <dl><dt><a name="-get_date"><strong>get_date</strong></a>(study_date)</dt><dd><span class="code">Formats&nbsp;the&nbsp;study&nbsp;date&nbsp;from&nbsp;'YYYYMMDD'&nbsp;to&nbsp;'DD/MM/YYYY'.<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+study_date&nbsp;:&nbsp;str<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;study&nbsp;date&nbsp;in&nbsp;'YYYYMMDD'&nbsp;format.<br>
+&nbsp;<br>
+Returns:<br>
+--------<br>
+str<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;study&nbsp;date&nbsp;formatted&nbsp;as&nbsp;'DD/MM/YYYY'.</span></dd></dl>
+ <dl><dt><a name="-get_first_plots"><strong>get_first_plots</strong></a>(doc, pet, mask, slices)</dt><dd><span class="code">Generates&nbsp;and&nbsp;adds&nbsp;the&nbsp;first&nbsp;set&nbsp;of&nbsp;plots&nbsp;to&nbsp;the&nbsp;document,&nbsp;including&nbsp;PET&nbsp;images&nbsp;with&nbsp;overlaid&nbsp;segmentation&nbsp;contours.<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+doc&nbsp;:&nbsp;Document<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;LaTeX&nbsp;document&nbsp;object&nbsp;to&nbsp;which&nbsp;plots&nbsp;will&nbsp;be&nbsp;added.<br>
+pet&nbsp;:&nbsp;array<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Numpy&nbsp;array&nbsp;containing&nbsp;the&nbsp;PET&nbsp;image&nbsp;data.<br>
+mask&nbsp;:&nbsp;array<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Numpy&nbsp;array&nbsp;containing&nbsp;the&nbsp;segmentation&nbsp;mask&nbsp;data.<br>
+slices&nbsp;:&nbsp;list<br>
+&nbsp;&nbsp;&nbsp;&nbsp;List&nbsp;of&nbsp;slice&nbsp;indices&nbsp;to&nbsp;be&nbsp;used&nbsp;for&nbsp;plotting.<br>
+&nbsp;<br>
+Returns:<br>
+--------<br>
+None</span></dd></dl>
+ <dl><dt><a name="-get_footnote"><strong>get_footnote</strong></a>(institution)</dt><dd><span class="code">Retrieves&nbsp;the&nbsp;footnote&nbsp;text&nbsp;based&nbsp;on&nbsp;the&nbsp;institution&nbsp;name.<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+institution&nbsp;:&nbsp;str<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;name&nbsp;of&nbsp;the&nbsp;institution.<br>
+&nbsp;<br>
+Returns:<br>
+--------<br>
+str<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;footnote&nbsp;text&nbsp;corresponding&nbsp;to&nbsp;the&nbsp;institution.</span></dd></dl>
+ <dl><dt><a name="-get_image_sides"><strong>get_image_sides</strong></a>(axes)</dt><dd><span class="code">Annotates&nbsp;the&nbsp;left&nbsp;and&nbsp;right&nbsp;sides&nbsp;of&nbsp;an&nbsp;image&nbsp;slice&nbsp;with&nbsp;'L'&nbsp;and&nbsp;'R'.<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+axes&nbsp;:&nbsp;matplotlib.axes.Axes<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Matplotlib&nbsp;axes&nbsp;object&nbsp;to&nbsp;which&nbsp;the&nbsp;text&nbsp;will&nbsp;be&nbsp;added.<br>
+&nbsp;<br>
+Returns:<br>
+--------<br>
+None</span></dd></dl>
+ <dl><dt><a name="-get_label_dice_coefficient_function"><strong>get_label_dice_coefficient_function</strong></a>(label_index)</dt><dd><span class="code">Create&nbsp;a&nbsp;function&nbsp;to&nbsp;compute&nbsp;the&nbsp;Dice&nbsp;coefficient&nbsp;for&nbsp;a&nbsp;specific&nbsp;label.<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+label_index&nbsp;:&nbsp;int<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;index&nbsp;of&nbsp;the&nbsp;label&nbsp;(class)&nbsp;for&nbsp;which&nbsp;the&nbsp;Dice&nbsp;coefficient&nbsp;function&nbsp;is&nbsp;generated.<br>
+&nbsp;<br>
+Returns:<br>
+--------<br>
+function<br>
+&nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;function&nbsp;that&nbsp;computes&nbsp;the&nbsp;Dice&nbsp;coefficient&nbsp;for&nbsp;the&nbsp;specified&nbsp;label&nbsp;when&nbsp;passed&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;ground&nbsp;truth&nbsp;and&nbsp;predicted&nbsp;tensors.</span></dd></dl>
+ <dl><dt><a name="-get_logo"><strong>get_logo</strong></a>(institution)</dt><dd><span class="code">Retrieves&nbsp;the&nbsp;logo&nbsp;abbreviation&nbsp;based&nbsp;on&nbsp;the&nbsp;institution&nbsp;name.<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+institution&nbsp;:&nbsp;str<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;name&nbsp;of&nbsp;the&nbsp;institution.<br>
+&nbsp;<br>
+Returns:<br>
+--------<br>
+str<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;abbreviation&nbsp;for&nbsp;the&nbsp;logo&nbsp;corresponding&nbsp;to&nbsp;the&nbsp;institution.</span></dd></dl>
+ <dl><dt><a name="-get_model"><strong>get_model</strong></a>(normal_values, name, hemisphere='both')</dt><dd><span class="code">Creates&nbsp;a&nbsp;linear&nbsp;regression&nbsp;model&nbsp;to&nbsp;fit&nbsp;SBR&nbsp;values&nbsp;against&nbsp;age&nbsp;for&nbsp;normal&nbsp;reference&nbsp;values.<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+normal_values&nbsp;:&nbsp;DataFrame<br>
+&nbsp;&nbsp;&nbsp;&nbsp;DataFrame&nbsp;of&nbsp;normal&nbsp;values.<br>
+name&nbsp;:&nbsp;str<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Name&nbsp;of&nbsp;the&nbsp;brain&nbsp;region&nbsp;(e.g.,&nbsp;Putamen,&nbsp;Caudate&nbsp;Nucleus).<br>
+hemisphere&nbsp;:&nbsp;str<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Specify&nbsp;'both'&nbsp;for&nbsp;average&nbsp;of&nbsp;right&nbsp;and&nbsp;left&nbsp;hemispheres,&nbsp;or&nbsp;'right'/'left'&nbsp;for&nbsp;a&nbsp;specific&nbsp;hemisphere.<br>
+&nbsp;<br>
+Returns:<br>
+--------<br>
+model&nbsp;:&nbsp;LinearRegression<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;linear&nbsp;regression&nbsp;model&nbsp;fitted&nbsp;to&nbsp;the&nbsp;data.<br>
+age_obs&nbsp;:&nbsp;array<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;observed&nbsp;ages&nbsp;in&nbsp;the&nbsp;data.<br>
+sbr_obs&nbsp;:&nbsp;array<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;observed&nbsp;SBR&nbsp;values&nbsp;in&nbsp;the&nbsp;data.<br>
+sbr_fit&nbsp;:&nbsp;array<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;SBR&nbsp;values&nbsp;predicted&nbsp;by&nbsp;the&nbsp;model&nbsp;for&nbsp;the&nbsp;observed&nbsp;ages.</span></dd></dl>
+ <dl><dt><a name="-get_name"><strong>get_name</strong></a>(patient_name)</dt><dd><span class="code">Formats&nbsp;the&nbsp;patient's&nbsp;name&nbsp;by&nbsp;reordering&nbsp;the&nbsp;surname&nbsp;and&nbsp;first&nbsp;name.<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+patient_name&nbsp;:&nbsp;str<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Patient's&nbsp;name&nbsp;in&nbsp;the&nbsp;format&nbsp;"Surname^FirstName".<br>
+&nbsp;<br>
+Returns:<br>
+--------<br>
+str<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Formatted&nbsp;name&nbsp;in&nbsp;the&nbsp;format&nbsp;"FirstName&nbsp;Surname".</span></dd></dl>
+ <dl><dt><a name="-get_overlaying_plots"><strong>get_overlaying_plots</strong></a>(axes, segmentations, image, min_value, max_value, normalization, c_map=&lt;matplotlib.colors.LinearSegmentedColormap object at 0x7f6ccd5420f0&gt;, c_map_contour='plasma_r')</dt><dd><span class="code">Superimposes&nbsp;contour&nbsp;of&nbsp;segmentations&nbsp;on&nbsp;the&nbsp;current&nbsp;PET&nbsp;image&nbsp;slice.<br>
+The&nbsp;contours&nbsp;are&nbsp;color-mapped&nbsp;dynamically&nbsp;according&nbsp;to&nbsp;the&nbsp;underlying&nbsp;PET&nbsp;image.<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+axes&nbsp;:&nbsp;matplotlib.axes.Axes<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Matplotlib&nbsp;axes&nbsp;object&nbsp;where&nbsp;the&nbsp;contours&nbsp;and&nbsp;image&nbsp;will&nbsp;be&nbsp;plotted.<br>
+&nbsp;<br>
+segmentations&nbsp;:&nbsp;numpy.ndarray<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Binary&nbsp;or&nbsp;labeled&nbsp;segmentation&nbsp;mask&nbsp;whose&nbsp;contours&nbsp;will&nbsp;be&nbsp;overlaid&nbsp;on&nbsp;the&nbsp;image.<br>
+&nbsp;<br>
+image&nbsp;:&nbsp;numpy.ndarray<br>
+&nbsp;&nbsp;&nbsp;&nbsp;PET&nbsp;image&nbsp;data&nbsp;to&nbsp;which&nbsp;the&nbsp;segmentations&nbsp;will&nbsp;be&nbsp;overlaid.<br>
+&nbsp;<br>
+min_value&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Minimum&nbsp;value&nbsp;for&nbsp;the&nbsp;color&nbsp;scaling&nbsp;of&nbsp;the&nbsp;PET&nbsp;image.<br>
+&nbsp;<br>
+max_value&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Maximum&nbsp;value&nbsp;for&nbsp;the&nbsp;color&nbsp;scaling&nbsp;of&nbsp;the&nbsp;PET&nbsp;image.<br>
+&nbsp;<br>
+c_map&nbsp;:&nbsp;matplotlib.colors.Colormap,&nbsp;optional<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Colormap&nbsp;to&nbsp;use&nbsp;for&nbsp;the&nbsp;PET&nbsp;image.&nbsp;Default&nbsp;is&nbsp;'_PETRainbowCMAP'.<br>
+&nbsp;<br>
+Returns:<br>
+--------<br>
+None</span></dd></dl>
+ <dl><dt><a name="-get_patch_from_3d_data"><strong>get_patch_from_3d_data</strong></a>(data, patch_shape, patch_index)</dt><dd><span class="code">Extract&nbsp;a&nbsp;patch&nbsp;from&nbsp;a&nbsp;3D&nbsp;numpy&nbsp;array&nbsp;containing&nbsp;CT&nbsp;and&nbsp;PET&nbsp;data.<br>
+&nbsp;<br>
+This&nbsp;function&nbsp;crops&nbsp;a&nbsp;subregion&nbsp;(patch)&nbsp;from&nbsp;the&nbsp;input&nbsp;3D&nbsp;array&nbsp;based&nbsp;on&nbsp;the&nbsp;provided&nbsp;shape&nbsp;and&nbsp;corner&nbsp;index.<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+data&nbsp;:&nbsp;np.ndarray<br>
+&nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;3D&nbsp;numpy&nbsp;array&nbsp;containing&nbsp;CT&nbsp;and&nbsp;PET&nbsp;data&nbsp;from&nbsp;which&nbsp;the&nbsp;patch&nbsp;will&nbsp;be&nbsp;extracted.<br>
+&nbsp;<br>
+patch_shape&nbsp;:&nbsp;tuple<br>
+&nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;tuple&nbsp;specifying&nbsp;the&nbsp;dimensions&nbsp;(depth,&nbsp;height,&nbsp;width)&nbsp;of&nbsp;the&nbsp;patch&nbsp;to&nbsp;be&nbsp;extracted.<br>
+&nbsp;<br>
+patch_index&nbsp;:&nbsp;tuple<br>
+&nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;tuple&nbsp;specifying&nbsp;the&nbsp;starting&nbsp;corner&nbsp;index&nbsp;(z,&nbsp;y,&nbsp;x)&nbsp;of&nbsp;the&nbsp;patch&nbsp;in&nbsp;the&nbsp;input&nbsp;data.<br>
+&nbsp;<br>
+Returns:<br>
+--------<br>
+np.ndarray<br>
+&nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;numpy&nbsp;array&nbsp;containing&nbsp;the&nbsp;extracted&nbsp;patch&nbsp;of&nbsp;CT&nbsp;and&nbsp;PET&nbsp;data&nbsp;with&nbsp;the&nbsp;specified&nbsp;shape.</span></dd></dl>
+ <dl><dt><a name="-get_patient_table"><strong>get_patient_table</strong></a>(doc, ref)</dt><dd><span class="code">Adds&nbsp;a&nbsp;table&nbsp;with&nbsp;patient&nbsp;information&nbsp;to&nbsp;the&nbsp;LaTeX&nbsp;document.<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+doc&nbsp;:&nbsp;Document<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;LaTeX&nbsp;document&nbsp;object&nbsp;to&nbsp;which&nbsp;the&nbsp;table&nbsp;will&nbsp;be&nbsp;added.<br>
+ref&nbsp;:&nbsp;Dataset<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;DICOM&nbsp;dataset&nbsp;from&nbsp;which&nbsp;patient&nbsp;information&nbsp;will&nbsp;be&nbsp;extracted.</span></dd></dl>
+ <dl><dt><a name="-get_posterior_putamen"><strong>get_posterior_putamen</strong></a>(prediction_data, direction)</dt><dd><span class="code">Identifies&nbsp;the&nbsp;posterior&nbsp;putamen&nbsp;region&nbsp;from&nbsp;prediction&nbsp;data&nbsp;for&nbsp;a&nbsp;specified&nbsp;hemisphere.<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+prediction_data&nbsp;:&nbsp;numpy&nbsp;array<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;data&nbsp;containing&nbsp;predicted&nbsp;regions&nbsp;(e.g.,&nbsp;segmentation&nbsp;results).<br>
+direction&nbsp;:&nbsp;str<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;hemisphere&nbsp;to&nbsp;process&nbsp;('left'&nbsp;or&nbsp;'right').<br>
+&nbsp;<br>
+Returns:<br>
+--------<br>
+numpy&nbsp;array<br>
+&nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;binary&nbsp;mask&nbsp;indicating&nbsp;the&nbsp;posterior&nbsp;putamen&nbsp;region.</span></dd></dl>
+ <dl><dt><a name="-get_prediction_labels"><strong>get_prediction_labels</strong></a>(prediction, threshold=0.5, labels=None)</dt><dd><span class="code">Convert&nbsp;prediction&nbsp;scores&nbsp;into&nbsp;labeled&nbsp;arrays&nbsp;based&nbsp;on&nbsp;the&nbsp;provided&nbsp;threshold.<br>
+&nbsp;<br>
+This&nbsp;function&nbsp;assigns&nbsp;labels&nbsp;to&nbsp;each&nbsp;spatial&nbsp;location&nbsp;based&nbsp;on&nbsp;the&nbsp;predicted&nbsp;class&nbsp;with&nbsp;the&nbsp;highest&nbsp;score.<br>
+Locations&nbsp;where&nbsp;the&nbsp;maximum&nbsp;score&nbsp;is&nbsp;below&nbsp;the&nbsp;threshold&nbsp;are&nbsp;labeled&nbsp;as&nbsp;background&nbsp;(0).<br>
+Optionally,&nbsp;custom&nbsp;labels&nbsp;can&nbsp;be&nbsp;assigned&nbsp;to&nbsp;the&nbsp;classes.<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+prediction&nbsp;:&nbsp;np.ndarray<br>
+&nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;numpy&nbsp;array&nbsp;of&nbsp;shape&nbsp;(n_samples,&nbsp;n_classes,&nbsp;...)&nbsp;containing&nbsp;prediction&nbsp;scores.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;-&nbsp;'n_samples'&nbsp;is&nbsp;the&nbsp;number&nbsp;of&nbsp;samples.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;-&nbsp;'n_classes'&nbsp;is&nbsp;the&nbsp;number&nbsp;of&nbsp;predicted&nbsp;classes.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;-&nbsp;The&nbsp;remaining&nbsp;dimensions&nbsp;correspond&nbsp;to&nbsp;the&nbsp;spatial&nbsp;dimensions&nbsp;of&nbsp;the&nbsp;predictions.<br>
+&nbsp;<br>
+threshold&nbsp;:&nbsp;float,&nbsp;optional<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Minimum&nbsp;prediction&nbsp;score&nbsp;required&nbsp;to&nbsp;assign&nbsp;a&nbsp;label.&nbsp;Predictions&nbsp;below&nbsp;this&nbsp;value&nbsp;are&nbsp;set&nbsp;to&nbsp;0&nbsp;(background).<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Default&nbsp;is&nbsp;0.5.<br>
+&nbsp;<br>
+labels&nbsp;:&nbsp;list,&nbsp;optional<br>
+&nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;list&nbsp;of&nbsp;custom&nbsp;labels&nbsp;corresponding&nbsp;to&nbsp;class&nbsp;indices.&nbsp;If&nbsp;provided,&nbsp;these&nbsp;labels&nbsp;will&nbsp;replace&nbsp;class&nbsp;indices<br>
+&nbsp;&nbsp;&nbsp;&nbsp;in&nbsp;the&nbsp;output.&nbsp;Default&nbsp;is&nbsp;None,&nbsp;which&nbsp;keeps&nbsp;the&nbsp;class&nbsp;indices&nbsp;as&nbsp;labels.<br>
+&nbsp;<br>
+Returns:<br>
+--------<br>
+list<br>
+&nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;list&nbsp;of&nbsp;labeled&nbsp;arrays,&nbsp;one&nbsp;for&nbsp;each&nbsp;sample.&nbsp;Each&nbsp;array&nbsp;has&nbsp;the&nbsp;same&nbsp;spatial&nbsp;dimensions&nbsp;as&nbsp;the&nbsp;input&nbsp;data,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;with&nbsp;values&nbsp;representing&nbsp;the&nbsp;assigned&nbsp;class&nbsp;or&nbsp;custom&nbsp;label.</span></dd></dl>
+ <dl><dt><a name="-get_predition"><strong>get_predition</strong></a>(logger, ct_brain_nii, pet_nii)</dt><dd><span class="code">Obtains&nbsp;the&nbsp;prediction&nbsp;for&nbsp;brain&nbsp;segmentation&nbsp;using&nbsp;a&nbsp;trained&nbsp;model.<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+logger&nbsp;:&nbsp;Logger&nbsp;object<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Logger&nbsp;for&nbsp;logging&nbsp;the&nbsp;process&nbsp;information.<br>
+ct_brain_nii&nbsp;:&nbsp;str<br>
+&nbsp;&nbsp;&nbsp;&nbsp;File&nbsp;path&nbsp;to&nbsp;the&nbsp;CT&nbsp;brain&nbsp;NIfTI&nbsp;image.<br>
+pet_nii&nbsp;:&nbsp;str<br>
+&nbsp;&nbsp;&nbsp;&nbsp;File&nbsp;path&nbsp;to&nbsp;the&nbsp;PET&nbsp;NIfTI&nbsp;image.<br>
+&nbsp;<br>
+Returns:<br>
+--------<br>
+prediction_image&nbsp;:&nbsp;numpy&nbsp;array<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;segmentation&nbsp;prediction&nbsp;image&nbsp;of&nbsp;basal&nbsp;ganglia.&nbsp;#&nbsp;TODO&nbsp;CHANGE&nbsp;THIS?</span></dd></dl>
+ <dl><dt><a name="-get_report_header"><strong>get_report_header</strong></a>(doc, institution)</dt><dd><span class="code">Adds&nbsp;a&nbsp;header&nbsp;section&nbsp;to&nbsp;the&nbsp;LaTeX&nbsp;document,&nbsp;including&nbsp;a&nbsp;logo&nbsp;and&nbsp;institution&nbsp;information.<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+doc&nbsp;:&nbsp;Document<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;LaTeX&nbsp;document&nbsp;object&nbsp;to&nbsp;which&nbsp;the&nbsp;header&nbsp;will&nbsp;be&nbsp;added.<br>
+institution&nbsp;:&nbsp;str<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;name&nbsp;of&nbsp;the&nbsp;institution&nbsp;to&nbsp;determine&nbsp;the&nbsp;logo&nbsp;and&nbsp;footnote.</span></dd></dl>
+ <dl><dt><a name="-get_sbr"><strong>get_sbr</strong></a>(region_data, cerebellum_median)</dt><dd><span class="code">Calculates&nbsp;the&nbsp;Specific&nbsp;Binding&nbsp;Ratio&nbsp;(SBR)&nbsp;by&nbsp;normalizing&nbsp;region&nbsp;data&nbsp;against&nbsp;the&nbsp;cerebellum&nbsp;gray&nbsp;matter&nbsp;median.<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+region_data&nbsp;:&nbsp;numpy&nbsp;array<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Data&nbsp;of&nbsp;the&nbsp;brain&nbsp;region&nbsp;of&nbsp;interest.<br>
+cerebellum_median&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Median&nbsp;value&nbsp;of&nbsp;the&nbsp;cerebellum&nbsp;gray&nbsp;matter&nbsp;used&nbsp;for&nbsp;normalization.<br>
+&nbsp;<br>
+Returns:<br>
+--------<br>
+float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;SBR&nbsp;value&nbsp;for&nbsp;the&nbsp;region.</span></dd></dl>
+ <dl><dt><a name="-get_slices"><strong>get_slices</strong></a>(masks, indices, num_slices)</dt><dd><span class="code">Extracts&nbsp;a&nbsp;subset&nbsp;of&nbsp;slices&nbsp;from&nbsp;a&nbsp;3D&nbsp;mask&nbsp;array&nbsp;based&nbsp;on&nbsp;specified&nbsp;indices.<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+masks&nbsp;:&nbsp;np.ndarray<br>
+&nbsp;&nbsp;&nbsp;&nbsp;3D&nbsp;array&nbsp;representing&nbsp;the&nbsp;mask.<br>
+indices&nbsp;:&nbsp;list&nbsp;of&nbsp;int<br>
+&nbsp;&nbsp;&nbsp;&nbsp;List&nbsp;of&nbsp;indices&nbsp;to&nbsp;include&nbsp;in&nbsp;the&nbsp;mask.<br>
+num_slices&nbsp;:&nbsp;int<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Number&nbsp;of&nbsp;slices&nbsp;to&nbsp;return.<br>
+&nbsp;<br>
+Returns:<br>
+--------<br>
+list&nbsp;of&nbsp;int<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Selected&nbsp;slice&nbsp;numbers.</span></dd></dl>
+ <dl><dt><a name="-get_split"><strong>get_split</strong></a>(data, direction)</dt><dd><span class="code">Splits&nbsp;image&nbsp;data&nbsp;into&nbsp;left&nbsp;or&nbsp;right&nbsp;hemispheres&nbsp;based&nbsp;on&nbsp;the&nbsp;direction.<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+data&nbsp;:&nbsp;numpy&nbsp;array<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Image&nbsp;data&nbsp;to&nbsp;be&nbsp;split.<br>
+direction&nbsp;:&nbsp;str<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Direction&nbsp;of&nbsp;split&nbsp;('left'&nbsp;or&nbsp;'right').<br>
+&nbsp;<br>
+Returns:<br>
+--------<br>
+numpy&nbsp;array<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;split&nbsp;data&nbsp;for&nbsp;the&nbsp;specified&nbsp;hemisphere.</span></dd></dl>
+ <dl><dt><a name="-get_statistics"><strong>get_statistics</strong></a>(logger, pet_nii, cerebellum_nii, prediction)</dt><dd><span class="code">Calculates&nbsp;various&nbsp;statistics&nbsp;on&nbsp;PET&nbsp;and&nbsp;prediction&nbsp;data,&nbsp;including&nbsp;median&nbsp;normalization,&nbsp;SBR,&nbsp;<br>
+asymmetry&nbsp;calculations,&nbsp;and&nbsp;putamen/caudate&nbsp;ratios.<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+logger&nbsp;:&nbsp;Logger&nbsp;object<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;logger&nbsp;used&nbsp;for&nbsp;logging&nbsp;information.<br>
+pet_nii&nbsp;:&nbsp;str<br>
+&nbsp;&nbsp;&nbsp;&nbsp;File&nbsp;path&nbsp;to&nbsp;the&nbsp;PET&nbsp;NIfTI&nbsp;image.<br>
+cerebellum_nii&nbsp;:&nbsp;str<br>
+&nbsp;&nbsp;&nbsp;&nbsp;File&nbsp;path&nbsp;to&nbsp;the&nbsp;cerebellum&nbsp;mask&nbsp;NIfTI&nbsp;image.<br>
+prediction&nbsp;:&nbsp;np.array<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Prediction&nbsp;mask&nbsp;(segmentation)&nbsp;containing&nbsp;regions&nbsp;of&nbsp;interest.<br>
+&nbsp;<br>
+Returns:<br>
+--------<br>
+pet_normalized&nbsp;:&nbsp;np.array<br>
+&nbsp;&nbsp;&nbsp;&nbsp;PET&nbsp;data&nbsp;normalized&nbsp;by&nbsp;the&nbsp;cerebellum&nbsp;cortex&nbsp;median.<br>
+cerebellum_mask&nbsp;:&nbsp;np.array<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;mask&nbsp;of&nbsp;the&nbsp;cerebellum.<br>
+data&nbsp;:&nbsp;dict<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;containing&nbsp;various&nbsp;statistics&nbsp;such&nbsp;as&nbsp;SBR,&nbsp;asymmetries,&nbsp;and&nbsp;ratios.</span></dd></dl>
+ <dl><dt><a name="-label_wise_dice_coefficient"><strong>label_wise_dice_coefficient</strong></a>(y_true, y_pred, label_index)</dt><dd><span class="code">Compute&nbsp;the&nbsp;Dice&nbsp;coefficient&nbsp;for&nbsp;a&nbsp;specific&nbsp;label.<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+y_true&nbsp;:&nbsp;tf.Tensor<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Ground&nbsp;truth&nbsp;tensor&nbsp;with&nbsp;shape&nbsp;(batch_size,&nbsp;n_classes,&nbsp;...).&nbsp;Each&nbsp;slice&nbsp;along&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;second&nbsp;axis&nbsp;represents&nbsp;a&nbsp;separate&nbsp;class.<br>
+&nbsp;<br>
+y_pred&nbsp;:&nbsp;tf.Tensor<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Predicted&nbsp;tensor&nbsp;with&nbsp;the&nbsp;same&nbsp;shape&nbsp;as&nbsp;'y_true',&nbsp;containing&nbsp;predicted&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;probabilities&nbsp;for&nbsp;each&nbsp;class.<br>
+&nbsp;<br>
+label_index&nbsp;:&nbsp;int<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;index&nbsp;of&nbsp;the&nbsp;class&nbsp;(label)&nbsp;for&nbsp;which&nbsp;the&nbsp;Dice&nbsp;coefficient&nbsp;will&nbsp;be&nbsp;computed.<br>
+&nbsp;<br>
+Returns:<br>
+--------<br>
+tf.Tensor<br>
+&nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;scalar&nbsp;tensor&nbsp;representing&nbsp;the&nbsp;Dice&nbsp;coefficient&nbsp;for&nbsp;the&nbsp;specified&nbsp;label&nbsp;(class).</span></dd></dl>
+ <dl><dt><a name="-load_model"><strong>load_model</strong></a>(logger, model_file)</dt><dd><span class="code">Load&nbsp;a&nbsp;pre-trained&nbsp;Keras&nbsp;model&nbsp;with&nbsp;custom&nbsp;objects,&nbsp;including&nbsp;any&nbsp;custom&nbsp;layers&nbsp;or&nbsp;functions.<br>
+&nbsp;<br>
+This&nbsp;function&nbsp;loads&nbsp;a&nbsp;Keras&nbsp;model&nbsp;from&nbsp;a&nbsp;file,&nbsp;while&nbsp;ensuring&nbsp;that&nbsp;any&nbsp;custom&nbsp;layers&nbsp;(like&nbsp;'InstanceNormalization')<br>
+or&nbsp;other&nbsp;custom&nbsp;objects&nbsp;are&nbsp;correctly&nbsp;loaded&nbsp;into&nbsp;the&nbsp;Keras&nbsp;model.<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+model_file&nbsp;:&nbsp;str<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Path&nbsp;to&nbsp;the&nbsp;pre-trained&nbsp;model&nbsp;file&nbsp;(.h5&nbsp;format)&nbsp;that&nbsp;contains&nbsp;the&nbsp;Keras&nbsp;model.&nbsp;The&nbsp;model&nbsp;file&nbsp;should&nbsp;include<br>
+&nbsp;&nbsp;&nbsp;&nbsp;all&nbsp;necessary&nbsp;custom&nbsp;layers&nbsp;or&nbsp;objects&nbsp;that&nbsp;are&nbsp;part&nbsp;of&nbsp;the&nbsp;model&nbsp;architecture.<br>
+&nbsp;<br>
+Returns:<br>
+--------<br>
+keras.Model<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;loaded&nbsp;Keras&nbsp;model&nbsp;with&nbsp;custom&nbsp;objects.&nbsp;This&nbsp;model&nbsp;can&nbsp;then&nbsp;be&nbsp;used&nbsp;for&nbsp;inference&nbsp;or&nbsp;further&nbsp;training.<br>
+&nbsp;<br>
+Raises:<br>
+-------<br>
+ValueError<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;there&nbsp;is&nbsp;an&nbsp;issue&nbsp;with&nbsp;loading&nbsp;the&nbsp;model&nbsp;related&nbsp;to&nbsp;the&nbsp;'InstanceNormalization'&nbsp;layer&nbsp;and&nbsp;the&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;'keras-contrib'&nbsp;package&nbsp;is&nbsp;not&nbsp;installed,&nbsp;a&nbsp;ValueError&nbsp;will&nbsp;be&nbsp;raised&nbsp;indicating&nbsp;the&nbsp;missing&nbsp;dependency.</span></dd></dl>
+ <dl><dt><a name="-normal_reference_SD_plot"><strong>normal_reference_SD_plot</strong></a>(mu, sigma, sbr, measure_type)</dt><dd><span class="code">Produces&nbsp;normal&nbsp;reference&nbsp;intervals&nbsp;showing&nbsp;the&nbsp;distance&nbsp;to&nbsp;the&nbsp;mean&nbsp;<br>
+of&nbsp;a&nbsp;reference&nbsp;distribution&nbsp;for&nbsp;a&nbsp;normal&nbsp;population,&nbsp;e.g.,&nbsp;mean&nbsp;±&nbsp;2*SD.<br>
+Creates&nbsp;a&nbsp;plot&nbsp;highlighting&nbsp;the&nbsp;patient's&nbsp;SBR&nbsp;value&nbsp;against&nbsp;these&nbsp;intervals.<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+mu&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;mean&nbsp;value&nbsp;for&nbsp;the&nbsp;reference&nbsp;distribution.<br>
+sigma&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Standard&nbsp;deviation&nbsp;of&nbsp;the&nbsp;reference&nbsp;distribution.<br>
+sbr&nbsp;:&nbsp;float<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;patient's&nbsp;specific&nbsp;SBR&nbsp;value&nbsp;to&nbsp;be&nbsp;plotted.<br>
+measure_type&nbsp;:&nbsp;str<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Type&nbsp;of&nbsp;measure,&nbsp;such&nbsp;as&nbsp;'asymmetry',&nbsp;to&nbsp;decide&nbsp;the&nbsp;plot&nbsp;style.<br>
+&nbsp;<br>
+Returns:<br>
+--------<br>
+None</span></dd></dl>
+ <dl><dt><a name="-normalize"><strong>normalize</strong></a>(logger, ct_brain_nii, pet_nii)</dt><dd><span class="code">Normalizes&nbsp;the&nbsp;PET&nbsp;and&nbsp;CT&nbsp;brain&nbsp;images.&nbsp;<br>
+PET&nbsp;is&nbsp;normalized&nbsp;by&nbsp;subtracting&nbsp;the&nbsp;mean&nbsp;value&nbsp;within&nbsp;a&nbsp;mask,&nbsp;and&nbsp;CT&nbsp;is&nbsp;thresholded&nbsp;and&nbsp;normalized.<br>
+&nbsp;<br>
+Function&nbsp;that&nbsp;normalizes&nbsp;pet&nbsp;with&nbsp;mean&nbsp;value&nbsp;from&nbsp;(mask)&nbsp;NORMALIZATION&nbsp;MASK&nbsp;-&nbsp;which&nbsp;is&nbsp;a&nbsp;big&nbsp;region&nbsp;surrounding&nbsp;and&nbsp;containing&nbsp;putamens&nbsp;and&nbsp;caudate&nbsp;nucleui<br>
+it&nbsp;also&nbsp;normalizes&nbsp;ct&nbsp;by&nbsp;taking&nbsp;mean&nbsp;value&nbsp;form&nbsp;thresholded&nbsp;ct&nbsp;between&nbsp;30-50&nbsp;HU<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+ct_brain_nii&nbsp;:&nbsp;str<br>
+&nbsp;&nbsp;&nbsp;&nbsp;File&nbsp;path&nbsp;to&nbsp;the&nbsp;CT&nbsp;brain&nbsp;NIfTI&nbsp;image.<br>
+pet_nii&nbsp;:&nbsp;str<br>
+&nbsp;&nbsp;&nbsp;&nbsp;File&nbsp;path&nbsp;to&nbsp;the&nbsp;PET&nbsp;NIfTI&nbsp;image.<br>
+logger&nbsp;:&nbsp;Logger&nbsp;object<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Logger&nbsp;for&nbsp;logging&nbsp;the&nbsp;process&nbsp;information.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<br>
+Returns:<br>
+--------<br>
+normalized_data&nbsp;:&nbsp;np.array<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Array&nbsp;containing&nbsp;the&nbsp;normalized&nbsp;PET&nbsp;and&nbsp;CT&nbsp;data.<br>
+&nbsp;<br>
+Raises:<br>
+-------<br>
+FileNotFoundError<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;any&nbsp;of&nbsp;the&nbsp;input&nbsp;files&nbsp;do&nbsp;not&nbsp;exist.</span></dd></dl>
+ <dl><dt><a name="-patch_wise_prediction"><strong>patch_wise_prediction</strong></a>(model, data)</dt><dd><span class="code">Perform&nbsp;patch-wise&nbsp;prediction&nbsp;of&nbsp;caudate&nbsp;nuclei&nbsp;and&nbsp;putamen&nbsp;using&nbsp;a&nbsp;U-Net&nbsp;model.<br>
+&nbsp;<br>
+This&nbsp;function&nbsp;divides&nbsp;the&nbsp;input&nbsp;3D&nbsp;data&nbsp;into&nbsp;smaller&nbsp;patches,&nbsp;runs&nbsp;the&nbsp;prediction&nbsp;on&nbsp;each&nbsp;patch&nbsp;<br>
+using&nbsp;the&nbsp;provided&nbsp;U-Net&nbsp;model,&nbsp;and&nbsp;then&nbsp;reconstructs&nbsp;the&nbsp;predicted&nbsp;values&nbsp;back&nbsp;into&nbsp;the&nbsp;full&nbsp;image.<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+model&nbsp;:&nbsp;keras.Model<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;U-Net&nbsp;model&nbsp;used&nbsp;for&nbsp;prediction.&nbsp;The&nbsp;model&nbsp;should&nbsp;be&nbsp;capable&nbsp;of&nbsp;processing&nbsp;3D&nbsp;patches&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;and&nbsp;outputting&nbsp;predicted&nbsp;values&nbsp;for&nbsp;the&nbsp;caudate&nbsp;nuclei&nbsp;and&nbsp;putamen.<br>
+&nbsp;<br>
+data&nbsp;:&nbsp;np.ndarray<br>
+&nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;3D&nbsp;numpy&nbsp;array&nbsp;containing&nbsp;the&nbsp;PET&nbsp;and&nbsp;CT&nbsp;data.&nbsp;The&nbsp;data&nbsp;should&nbsp;be&nbsp;in&nbsp;a&nbsp;format&nbsp;that&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;can&nbsp;be&nbsp;divided&nbsp;into&nbsp;smaller&nbsp;patches&nbsp;for&nbsp;processing&nbsp;by&nbsp;the&nbsp;model.<br>
+&nbsp;<br>
+Returns:<br>
+--------<br>
+np.ndarray<br>
+&nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;3D&nbsp;numpy&nbsp;array&nbsp;containing&nbsp;the&nbsp;prediction&nbsp;for&nbsp;the&nbsp;caudate&nbsp;nuclei&nbsp;and&nbsp;putamen,&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;reconstructed&nbsp;from&nbsp;the&nbsp;individual&nbsp;patches&nbsp;predicted&nbsp;by&nbsp;the&nbsp;model.</span></dd></dl>
+ <dl><dt><a name="-plot_average"><strong>plot_average</strong></a>(doc, pet, mask, slices)</dt><dd><span class="code">Generates&nbsp;average&nbsp;plots&nbsp;for&nbsp;PET&nbsp;images&nbsp;in&nbsp;both&nbsp;relative&nbsp;and&nbsp;absolute&nbsp;scales.<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+doc&nbsp;:&nbsp;Document<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;LaTeX&nbsp;document&nbsp;object&nbsp;to&nbsp;which&nbsp;plots&nbsp;will&nbsp;be&nbsp;added.<br>
+pet&nbsp;:&nbsp;array<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Numpy&nbsp;array&nbsp;containing&nbsp;the&nbsp;PET&nbsp;image&nbsp;data.<br>
+mask&nbsp;:&nbsp;array<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Numpy&nbsp;array&nbsp;containing&nbsp;the&nbsp;segmentation&nbsp;mask&nbsp;data.<br>
+slices&nbsp;:&nbsp;list<br>
+&nbsp;&nbsp;&nbsp;&nbsp;List&nbsp;of&nbsp;slice&nbsp;indices&nbsp;to&nbsp;be&nbsp;used&nbsp;for&nbsp;plotting.<br>
+&nbsp;<br>
+Returns:<br>
+--------<br>
+None</span></dd></dl>
+ <dl><dt><a name="-plot_collapse_pet"><strong>plot_collapse_pet</strong></a>(img_pet, seg, axial_slices, normalization)</dt><dd><span class="code">Creates&nbsp;a&nbsp;plot&nbsp;of&nbsp;an&nbsp;axially&nbsp;collapsed&nbsp;PET&nbsp;image&nbsp;by&nbsp;averaging&nbsp;over&nbsp;specified&nbsp;slices.<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+img_pet&nbsp;:&nbsp;array<br>
+&nbsp;&nbsp;&nbsp;&nbsp;PET&nbsp;image&nbsp;given&nbsp;as&nbsp;a&nbsp;numpy&nbsp;array.<br>
+seg&nbsp;:&nbsp;array<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Numpy&nbsp;array&nbsp;with&nbsp;relevant&nbsp;segmentations&nbsp;used&nbsp;for&nbsp;cropping.<br>
+axial_slices&nbsp;:&nbsp;slice<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Slices&nbsp;over&nbsp;which&nbsp;the&nbsp;PET&nbsp;image&nbsp;should&nbsp;be&nbsp;collapsed.<br>
+vmin&nbsp;:&nbsp;int<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Minimum&nbsp;value&nbsp;used&nbsp;for&nbsp;normalization&nbsp;when&nbsp;plotting.<br>
+vmax&nbsp;:&nbsp;int<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Maximum&nbsp;value&nbsp;used&nbsp;for&nbsp;normalization&nbsp;when&nbsp;plotting.<br>
+&nbsp;<br>
+Returns:<br>
+--------<br>
+None</span></dd></dl>
+ <dl><dt><a name="-plot_ct"><strong>plot_ct</strong></a>(doc, ct, mask, ct_desc, slices, MR=False)</dt><dd><span class="code">Plots&nbsp;a&nbsp;3x3&nbsp;grid&nbsp;of&nbsp;CT&nbsp;images&nbsp;with&nbsp;overlays&nbsp;of&nbsp;segmentations.<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+doc&nbsp;:&nbsp;Document<br>
+&nbsp;&nbsp;&nbsp;&nbsp;LaTeX&nbsp;document&nbsp;to&nbsp;append&nbsp;the&nbsp;plot.<br>
+ct&nbsp;:&nbsp;array<br>
+&nbsp;&nbsp;&nbsp;&nbsp;CT&nbsp;image&nbsp;as&nbsp;a&nbsp;numpy&nbsp;array.<br>
+mask&nbsp;:&nbsp;array<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Segmentation&nbsp;mask&nbsp;for&nbsp;the&nbsp;CT&nbsp;image.<br>
+ct_desc&nbsp;:&nbsp;str<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Description&nbsp;of&nbsp;the&nbsp;CT&nbsp;study.<br>
+slices&nbsp;:&nbsp;list<br>
+&nbsp;&nbsp;&nbsp;&nbsp;List&nbsp;of&nbsp;slice&nbsp;indices&nbsp;to&nbsp;use&nbsp;for&nbsp;plotting.<br>
+&nbsp;<br>
+Returns:<br>
+--------<br>
+None</span></dd></dl>
+ <dl><dt><a name="-plot_nine_pet"><strong>plot_nine_pet</strong></a>(doc, pet, mask, pet_desc, slices)</dt><dd><span class="code">Plots&nbsp;a&nbsp;3x3&nbsp;grid&nbsp;of&nbsp;PET&nbsp;images&nbsp;with&nbsp;overlays&nbsp;of&nbsp;segmentations.<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+doc&nbsp;:&nbsp;Document<br>
+&nbsp;&nbsp;&nbsp;&nbsp;LaTeX&nbsp;document&nbsp;to&nbsp;append&nbsp;the&nbsp;plot.<br>
+pet&nbsp;:&nbsp;array<br>
+&nbsp;&nbsp;&nbsp;&nbsp;PET&nbsp;image&nbsp;as&nbsp;a&nbsp;numpy&nbsp;array.<br>
+mask&nbsp;:&nbsp;array<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Segmentation&nbsp;mask&nbsp;for&nbsp;the&nbsp;PET&nbsp;image.<br>
+pet_desc&nbsp;:&nbsp;str<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Description&nbsp;of&nbsp;the&nbsp;PET&nbsp;study.<br>
+slices&nbsp;:&nbsp;list<br>
+&nbsp;&nbsp;&nbsp;&nbsp;List&nbsp;of&nbsp;slice&nbsp;indices&nbsp;to&nbsp;use&nbsp;for&nbsp;plotting.<br>
+&nbsp;<br>
+Returns:<br>
+--------<br>
+None</span></dd></dl>
+ <dl><dt><a name="-plot_normal"><strong>plot_normal</strong></a>(normal_values, patient_values, pt_age, name, legend=False)</dt><dd><span class="code">Generates&nbsp;a&nbsp;plot&nbsp;comparing&nbsp;patient&nbsp;SBR&nbsp;values&nbsp;with&nbsp;normal&nbsp;reference&nbsp;intervals&nbsp;(mean&nbsp;±&nbsp;2&nbsp;SD).<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+normal_values&nbsp;:&nbsp;DataFrame<br>
+&nbsp;&nbsp;&nbsp;&nbsp;DataFrame&nbsp;of&nbsp;normal&nbsp;values&nbsp;for&nbsp;the&nbsp;reference&nbsp;population.<br>
+patient_values&nbsp;:&nbsp;DataFrame<br>
+&nbsp;&nbsp;&nbsp;&nbsp;DataFrame&nbsp;of&nbsp;patient-specific&nbsp;SBR&nbsp;values.<br>
+pt_age&nbsp;:&nbsp;int<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Age&nbsp;of&nbsp;the&nbsp;patient.<br>
+name&nbsp;:&nbsp;str<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Name&nbsp;of&nbsp;the&nbsp;brain&nbsp;region&nbsp;(e.g.,&nbsp;Putamen,&nbsp;Caudate&nbsp;Nucleus).<br>
+legend&nbsp;:&nbsp;bool<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Boolean&nbsp;flag&nbsp;to&nbsp;display&nbsp;the&nbsp;legend&nbsp;or&nbsp;not.<br>
+&nbsp;<br>
+Returns:<br>
+--------<br>
+None</span></dd></dl>
+ <dl><dt><a name="-plots_normal_values"><strong>plots_normal_values</strong></a>(doc, normal_values, patient_values, pt_age)</dt><dd><span class="code">Generates&nbsp;a&nbsp;LaTeX&nbsp;figure&nbsp;containing&nbsp;two&nbsp;subplots&nbsp;that&nbsp;compare&nbsp;the&nbsp;patient's&nbsp;SBR&nbsp;values&nbsp;<br>
+against&nbsp;the&nbsp;normal&nbsp;reference&nbsp;intervals&nbsp;for&nbsp;the&nbsp;Putamen&nbsp;and&nbsp;the&nbsp;Putamen/Caudate&nbsp;Nucleus&nbsp;ratio.<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+doc&nbsp;:&nbsp;Document<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;LaTeX&nbsp;document&nbsp;object.<br>
+normal_values&nbsp;:&nbsp;DataFrame<br>
+&nbsp;&nbsp;&nbsp;&nbsp;DataFrame&nbsp;containing&nbsp;normal&nbsp;reference&nbsp;values&nbsp;for&nbsp;comparison.<br>
+patient_values&nbsp;:&nbsp;DataFrame<br>
+&nbsp;&nbsp;&nbsp;&nbsp;DataFrame&nbsp;containing&nbsp;the&nbsp;patient's&nbsp;SBR&nbsp;values.<br>
+pt_age&nbsp;:&nbsp;int<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;age&nbsp;of&nbsp;the&nbsp;patient.<br>
+&nbsp;<br>
+Returns:<br>
+--------<br>
+None</span></dd></dl>
+ <dl><dt><a name="-prediction_to_image"><strong>prediction_to_image</strong></a>(prediction, threshold=0.5, labels=None)</dt><dd><span class="code">Convert&nbsp;model&nbsp;prediction&nbsp;to&nbsp;a&nbsp;labeled&nbsp;image&nbsp;based&nbsp;on&nbsp;a&nbsp;specified&nbsp;threshold.<br>
+&nbsp;<br>
+This&nbsp;function&nbsp;assigns&nbsp;labels&nbsp;to&nbsp;the&nbsp;prediction&nbsp;array&nbsp;based&nbsp;on&nbsp;a&nbsp;threshold&nbsp;value,&nbsp;optionally&nbsp;using&nbsp;a&nbsp;provided&nbsp;list&nbsp;of&nbsp;labels.<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+prediction&nbsp;:&nbsp;np.ndarray<br>
+&nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;numpy&nbsp;array&nbsp;containing&nbsp;the&nbsp;model's&nbsp;prediction&nbsp;values.<br>
+&nbsp;<br>
+threshold&nbsp;:&nbsp;float,&nbsp;optional<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;threshold&nbsp;value&nbsp;for&nbsp;binarizing&nbsp;the&nbsp;prediction.&nbsp;Predictions&nbsp;greater&nbsp;than&nbsp;or&nbsp;equal&nbsp;to&nbsp;this&nbsp;value&nbsp;are&nbsp;labeled.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Defaults&nbsp;to&nbsp;0.5.<br>
+&nbsp;<br>
+labels&nbsp;:&nbsp;list,&nbsp;optional<br>
+&nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;list&nbsp;of&nbsp;labels&nbsp;corresponding&nbsp;to&nbsp;each&nbsp;class&nbsp;in&nbsp;the&nbsp;prediction.&nbsp;If&nbsp;not&nbsp;provided,&nbsp;default&nbsp;labels&nbsp;will&nbsp;be&nbsp;used.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Defaults&nbsp;to&nbsp;None.<br>
+&nbsp;<br>
+Returns:<br>
+--------<br>
+np.ndarray<br>
+&nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;numpy&nbsp;array&nbsp;representing&nbsp;the&nbsp;labeled&nbsp;image,&nbsp;where&nbsp;each&nbsp;pixel/voxel&nbsp;is&nbsp;assigned&nbsp;to&nbsp;a&nbsp;class&nbsp;based&nbsp;on&nbsp;the&nbsp;threshold.</span></dd></dl>
+ <dl><dt><a name="-process_anatomical"><strong>process_anatomical</strong></a>(self, brain_nii)</dt><dd><span class="code">Preprocess&nbsp;a&nbsp;CT&nbsp;scan&nbsp;by&nbsp;applying&nbsp;thresholding&nbsp;and&nbsp;smoothing&nbsp;operations&nbsp;before&nbsp;segmentation.<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+brain_nii&nbsp;:&nbsp;str<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;file&nbsp;path&nbsp;to&nbsp;the&nbsp;NIfTI&nbsp;image&nbsp;of&nbsp;the&nbsp;brain&nbsp;CT&nbsp;scan.<br>
+&nbsp;<br>
+Returns:<br>
+--------<br>
+brain_sm_th_nii&nbsp;:&nbsp;str<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;file&nbsp;path&nbsp;to&nbsp;the&nbsp;preprocessed&nbsp;and&nbsp;saved&nbsp;NIfTI&nbsp;image.</span></dd></dl>
+ <dl><dt><a name="-produce_asymmetry_row"><strong>produce_asymmetry_row</strong></a>(patient_values, name, normal_stat_values)</dt><dd><span class="code">Generates&nbsp;table&nbsp;rows&nbsp;for&nbsp;asymmetry&nbsp;values.<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+patient_values&nbsp;:&nbsp;DataFrame<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Dataframe&nbsp;of&nbsp;patient&nbsp;values.<br>
+name&nbsp;:&nbsp;str<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Name&nbsp;of&nbsp;the&nbsp;brain&nbsp;region.<br>
+normal_stat_values&nbsp;:&nbsp;array<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Statistical&nbsp;values&nbsp;for&nbsp;normal&nbsp;references.<br>
+&nbsp;<br>
+Yields:<br>
+-------<br>
+Asymmetry&nbsp;table&nbsp;row.</span></dd></dl>
+ <dl><dt><a name="-produce_row"><strong>produce_row</strong></a>(patient_values, name, normal_stat_values, pt_age)</dt><dd><span class="code">Generates&nbsp;table&nbsp;rows&nbsp;for&nbsp;specific&nbsp;brain&nbsp;regions&nbsp;(Putamen,&nbsp;Caudate&nbsp;Nucleus)&nbsp;and&nbsp;hemispheres.<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+patient_values&nbsp;:&nbsp;DataFrame<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Dataframe&nbsp;of&nbsp;patient&nbsp;values.<br>
+name&nbsp;:&nbsp;str<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Name&nbsp;of&nbsp;the&nbsp;brain&nbsp;region.<br>
+normal_stat_values&nbsp;:&nbsp;array<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Statistical&nbsp;values&nbsp;for&nbsp;normal&nbsp;references.<br>
+pt_age&nbsp;:&nbsp;int<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Age&nbsp;of&nbsp;the&nbsp;patient.<br>
+&nbsp;<br>
+Yields:<br>
+-------<br>
+Table&nbsp;rows&nbsp;for&nbsp;each&nbsp;region&nbsp;and&nbsp;hemisphere.</span></dd></dl>
+ <dl><dt><a name="-reconstruct_from_patches"><strong>reconstruct_from_patches</strong></a>(patches, patch_indices, data_shape)</dt><dd><span class="code">Reconstruct&nbsp;an&nbsp;array&nbsp;of&nbsp;the&nbsp;original&nbsp;shape&nbsp;from&nbsp;a&nbsp;list&nbsp;of&nbsp;patches&nbsp;and&nbsp;their&nbsp;corresponding&nbsp;indices.<br>
+&nbsp;<br>
+Overlapping&nbsp;regions&nbsp;in&nbsp;the&nbsp;patches&nbsp;are&nbsp;averaged&nbsp;to&nbsp;produce&nbsp;the&nbsp;reconstructed&nbsp;data.<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+patches&nbsp;:&nbsp;list<br>
+&nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;list&nbsp;of&nbsp;numpy&nbsp;arrays&nbsp;representing&nbsp;the&nbsp;prediction&nbsp;patches.<br>
+&nbsp;<br>
+patch_indices&nbsp;:&nbsp;list<br>
+&nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;list&nbsp;of&nbsp;tuples&nbsp;specifying&nbsp;the&nbsp;corner&nbsp;indices&nbsp;for&nbsp;each&nbsp;patch&nbsp;in&nbsp;the&nbsp;original&nbsp;data.<br>
+&nbsp;<br>
+data_shape&nbsp;:&nbsp;tuple<br>
+&nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;tuple&nbsp;specifying&nbsp;the&nbsp;shape&nbsp;of&nbsp;the&nbsp;original&nbsp;data&nbsp;from&nbsp;which&nbsp;the&nbsp;patches&nbsp;were&nbsp;extracted&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(e.g.,&nbsp;(depth,&nbsp;height,&nbsp;width)).<br>
+&nbsp;<br>
+Returns:<br>
+--------<br>
+np.ndarray<br>
+&nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;numpy&nbsp;array&nbsp;reconstructed&nbsp;from&nbsp;the&nbsp;input&nbsp;patches,&nbsp;matching&nbsp;the&nbsp;specified&nbsp;original&nbsp;data&nbsp;shape.</span></dd></dl>
+ <dl><dt><a name="-reg_aladin"><strong>reg_aladin</strong></a>(ref_file, flo_file, aff_file, rig_only_flag=False, in_aff_file=None, aff_direct_flag=True, res_file=None, verbosity=None)</dt><dd><span class="code">Perform&nbsp;symmetric&nbsp;global&nbsp;registration&nbsp;using&nbsp;the&nbsp;Block&nbsp;Matching&nbsp;algorithm.<br>
+&nbsp;<br>
+This&nbsp;function&nbsp;aligns&nbsp;a&nbsp;floating/source&nbsp;image&nbsp;('flo_file')&nbsp;to&nbsp;a&nbsp;reference/target&nbsp;image&nbsp;('ref_file')&nbsp;<br>
+by&nbsp;applying&nbsp;a&nbsp;Block&nbsp;Matching&nbsp;algorithm.&nbsp;The&nbsp;result&nbsp;is&nbsp;an&nbsp;affine&nbsp;transformation&nbsp;matrix&nbsp;('aff_file')&nbsp;<br>
+that&nbsp;describes&nbsp;the&nbsp;alignment&nbsp;between&nbsp;the&nbsp;two&nbsp;images,&nbsp;and&nbsp;the&nbsp;transformed&nbsp;floating&nbsp;image&nbsp;is&nbsp;saved&nbsp;as&nbsp;<br>
+a&nbsp;new&nbsp;file&nbsp;('res_file').<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+ref_file&nbsp;:&nbsp;pathlike&nbsp;object&nbsp;or&nbsp;str<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;input&nbsp;reference/target&nbsp;image&nbsp;to&nbsp;which&nbsp;the&nbsp;floating&nbsp;image&nbsp;will&nbsp;be&nbsp;aligned.<br>
+&nbsp;<br>
+flo_file&nbsp;:&nbsp;pathlike&nbsp;object&nbsp;or&nbsp;str<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;input&nbsp;floating/source&nbsp;image&nbsp;that&nbsp;needs&nbsp;to&nbsp;be&nbsp;aligned&nbsp;with&nbsp;the&nbsp;reference&nbsp;image.<br>
+&nbsp;<br>
+aff_file&nbsp;:&nbsp;pathlike&nbsp;object&nbsp;or&nbsp;str<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;output&nbsp;affine&nbsp;matrix&nbsp;file&nbsp;that&nbsp;contains&nbsp;the&nbsp;transformation&nbsp;parameters&nbsp;used&nbsp;to&nbsp;align&nbsp;the&nbsp;floating&nbsp;image.<br>
+&nbsp;<br>
+res_file&nbsp;:&nbsp;pathlike&nbsp;object&nbsp;or&nbsp;str<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;output&nbsp;file&nbsp;where&nbsp;the&nbsp;affine&nbsp;transformed&nbsp;floating&nbsp;image&nbsp;will&nbsp;be&nbsp;saved.<br>
+&nbsp;<br>
+verbosity&nbsp;:&nbsp;{'file',&nbsp;'file_split',&nbsp;'file_stdout',&nbsp;'file_stderr',&nbsp;'stream',&nbsp;'allatonce',&nbsp;'none'},&nbsp;optional<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;level&nbsp;of&nbsp;verbosity&nbsp;for&nbsp;logging&nbsp;output&nbsp;during&nbsp;the&nbsp;registration&nbsp;process.&nbsp;If&nbsp;set&nbsp;to&nbsp;'none',&nbsp;no&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;logging&nbsp;output&nbsp;will&nbsp;be&nbsp;shown.<br>
+&nbsp;<br>
+Returns:<br>
+--------<br>
+runtime&nbsp;object<br>
+&nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;runtime&nbsp;object&nbsp;representing&nbsp;the&nbsp;execution&nbsp;of&nbsp;the&nbsp;registration&nbsp;process.&nbsp;This&nbsp;object&nbsp;allows&nbsp;access&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;to&nbsp;detailed&nbsp;logs&nbsp;and&nbsp;error&nbsp;messages.&nbsp;For&nbsp;example,&nbsp;if&nbsp;verbosity&nbsp;is&nbsp;set&nbsp;to&nbsp;'file_stdout',&nbsp;you&nbsp;can&nbsp;access&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;standard&nbsp;output&nbsp;of&nbsp;the&nbsp;process&nbsp;with&nbsp;'result.runtime.stdout'.</span></dd></dl>
+ <dl><dt><a name="-reg_resample"><strong>reg_resample</strong></a>(ref_file, flo_file, trans_file, out_file, interpol='NN', pad_val=None, verbosity=None)</dt><dd><span class="code">Resample&nbsp;a&nbsp;NIfTI&nbsp;file&nbsp;to&nbsp;a&nbsp;reference&nbsp;template&nbsp;using&nbsp;a&nbsp;given&nbsp;transformation&nbsp;matrix.<br>
+&nbsp;<br>
+This&nbsp;function&nbsp;performs&nbsp;image&nbsp;resampling&nbsp;of&nbsp;the&nbsp;floating/source&nbsp;image&nbsp;('flo_file')&nbsp;to&nbsp;match&nbsp;the&nbsp;reference/target&nbsp;image&nbsp;<br>
+('ref_file'),&nbsp;applying&nbsp;the&nbsp;transformation&nbsp;matrix&nbsp;('trans_file')&nbsp;for&nbsp;the&nbsp;resampling.&nbsp;The&nbsp;output&nbsp;image&nbsp;is&nbsp;saved&nbsp;to&nbsp;<br>
+the&nbsp;specified&nbsp;output&nbsp;file&nbsp;('out_file').<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+ref_file&nbsp;:&nbsp;pathlike&nbsp;object&nbsp;or&nbsp;str<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;input&nbsp;reference/target&nbsp;image&nbsp;to&nbsp;which&nbsp;the&nbsp;floating&nbsp;image&nbsp;will&nbsp;be&nbsp;resampled.<br>
+&nbsp;<br>
+flo_file&nbsp;:&nbsp;pathlike&nbsp;object&nbsp;or&nbsp;str<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;input&nbsp;floating/source&nbsp;image&nbsp;that&nbsp;needs&nbsp;to&nbsp;be&nbsp;resampled&nbsp;to&nbsp;match&nbsp;the&nbsp;reference&nbsp;image.<br>
+&nbsp;<br>
+trans_file&nbsp;:&nbsp;pathlike&nbsp;object&nbsp;or&nbsp;str<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;input&nbsp;transformation&nbsp;matrix&nbsp;file&nbsp;that&nbsp;defines&nbsp;the&nbsp;transformation&nbsp;to&nbsp;apply&nbsp;to&nbsp;the&nbsp;floating&nbsp;image.<br>
+&nbsp;<br>
+out_file&nbsp;:&nbsp;pathlike&nbsp;object&nbsp;or&nbsp;str<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;output&nbsp;filename&nbsp;where&nbsp;the&nbsp;transformed&nbsp;image&nbsp;will&nbsp;be&nbsp;saved.<br>
+&nbsp;<br>
+interpol&nbsp;:&nbsp;{'NN',&nbsp;'LIN',&nbsp;'CUB',&nbsp;'SINC'},&nbsp;optional,&nbsp;default='NN'<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;interpolation&nbsp;method&nbsp;to&nbsp;use&nbsp;for&nbsp;resampling.&nbsp;Options&nbsp;include:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;-&nbsp;'NN':&nbsp;Nearest-neighbor&nbsp;interpolation<br>
+&nbsp;&nbsp;&nbsp;&nbsp;-&nbsp;'LIN':&nbsp;Linear&nbsp;interpolation<br>
+&nbsp;&nbsp;&nbsp;&nbsp;-&nbsp;'CUB':&nbsp;Cubic&nbsp;interpolation<br>
+&nbsp;&nbsp;&nbsp;&nbsp;-&nbsp;'SINC':&nbsp;Sinc&nbsp;interpolation<br>
+&nbsp;<br>
+pad_val&nbsp;:&nbsp;float,&nbsp;optional,&nbsp;default=None<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;padding&nbsp;value&nbsp;to&nbsp;apply&nbsp;when&nbsp;resampling.&nbsp;If&nbsp;None,&nbsp;no&nbsp;padding&nbsp;will&nbsp;be&nbsp;applied.<br>
+&nbsp;<br>
+verbosity&nbsp;:&nbsp;{'file',&nbsp;'file_split',&nbsp;'file_stdout',&nbsp;'file_stderr',&nbsp;'stream',&nbsp;'allatonce',&nbsp;'none'},&nbsp;optional<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;level&nbsp;of&nbsp;verbosity&nbsp;for&nbsp;logging&nbsp;output&nbsp;during&nbsp;the&nbsp;resampling&nbsp;process.&nbsp;If&nbsp;set&nbsp;to&nbsp;'none',&nbsp;no&nbsp;logging&nbsp;output&nbsp;will&nbsp;be&nbsp;shown.<br>
+&nbsp;<br>
+Returns:<br>
+--------<br>
+runtime&nbsp;object<br>
+&nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;runtime&nbsp;object&nbsp;representing&nbsp;the&nbsp;execution&nbsp;of&nbsp;the&nbsp;resampling&nbsp;process.&nbsp;This&nbsp;object&nbsp;allows&nbsp;access&nbsp;to&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;detailed&nbsp;logs&nbsp;and&nbsp;error&nbsp;messages.&nbsp;For&nbsp;example,&nbsp;if&nbsp;verbosity&nbsp;is&nbsp;set&nbsp;to&nbsp;'file_stdout',&nbsp;you&nbsp;can&nbsp;access&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;standard&nbsp;output&nbsp;of&nbsp;the&nbsp;process&nbsp;with&nbsp;'result.runtime.stdout'.</span></dd></dl>
+ <dl><dt><a name="-resampling"><strong>resampling</strong></a>(self, pet_nii, ct_nii, brain_nii)</dt><dd><span class="code">Resample&nbsp;and&nbsp;register&nbsp;PET&nbsp;and&nbsp;CT&nbsp;scans&nbsp;to&nbsp;a&nbsp;brain&nbsp;template,&nbsp;ensuring&nbsp;that&nbsp;all&nbsp;steps&nbsp;<br>
+are&nbsp;performed&nbsp;only&nbsp;if&nbsp;the&nbsp;corresponding&nbsp;output&nbsp;files&nbsp;do&nbsp;not&nbsp;already&nbsp;exist.<br>
+&nbsp;<br>
+This&nbsp;function&nbsp;performs&nbsp;the&nbsp;following&nbsp;operations:<br>
+1.&nbsp;Registers&nbsp;the&nbsp;CT&nbsp;brain&nbsp;image&nbsp;to&nbsp;an&nbsp;average&nbsp;brain&nbsp;template.<br>
+2.&nbsp;Resamples&nbsp;the&nbsp;CT&nbsp;brain&nbsp;and&nbsp;CT&nbsp;images&nbsp;to&nbsp;match&nbsp;the&nbsp;brain&nbsp;template.<br>
+3.&nbsp;Registers&nbsp;and&nbsp;resamples&nbsp;the&nbsp;PET&nbsp;image&nbsp;to&nbsp;the&nbsp;CT&nbsp;image&nbsp;and&nbsp;brain&nbsp;template.<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+pet_nii&nbsp;:&nbsp;nib.Nifti1Image<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;NIfTI&nbsp;image&nbsp;representing&nbsp;the&nbsp;PET&nbsp;scan.<br>
+ct_nii&nbsp;:&nbsp;nib.Nifti1Image<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;NIfTI&nbsp;image&nbsp;representing&nbsp;the&nbsp;CT&nbsp;scan.<br>
+brain_nii&nbsp;:&nbsp;nib.Nifti1Image<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;NIfTI&nbsp;image&nbsp;representing&nbsp;the&nbsp;brain&nbsp;scan.<br>
+&nbsp;<br>
+Returns:<br>
+--------<br>
+petrsltemplate_nii&nbsp;:&nbsp;str<br>
+&nbsp;&nbsp;&nbsp;&nbsp;File&nbsp;path&nbsp;to&nbsp;the&nbsp;PET&nbsp;image&nbsp;resampled&nbsp;to&nbsp;the&nbsp;brain&nbsp;template.<br>
+ctrsl_nii&nbsp;:&nbsp;str<br>
+&nbsp;&nbsp;&nbsp;&nbsp;File&nbsp;path&nbsp;to&nbsp;the&nbsp;CT&nbsp;image&nbsp;resampled&nbsp;to&nbsp;the&nbsp;brain&nbsp;template.<br>
+brainrsl_nii&nbsp;:&nbsp;str<br>
+&nbsp;&nbsp;&nbsp;&nbsp;File&nbsp;path&nbsp;to&nbsp;the&nbsp;brain&nbsp;image&nbsp;resampled&nbsp;to&nbsp;the&nbsp;brain&nbsp;template.</span></dd></dl>
+ <dl><dt><a name="-run_prediction"><strong>run_prediction</strong></a>(logger, model_file, labels, input_data, threshold=0.5)</dt><dd><span class="code">Run&nbsp;a&nbsp;prediction&nbsp;on&nbsp;the&nbsp;input&nbsp;data&nbsp;using&nbsp;a&nbsp;pre-trained&nbsp;model&nbsp;and&nbsp;convert&nbsp;the&nbsp;output&nbsp;to&nbsp;an&nbsp;image&nbsp;format.<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+model_file&nbsp;:&nbsp;str<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;file&nbsp;path&nbsp;to&nbsp;the&nbsp;pre-trained&nbsp;model.<br>
+labels&nbsp;:&nbsp;list<br>
+&nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;list&nbsp;of&nbsp;labels&nbsp;corresponding&nbsp;to&nbsp;the&nbsp;classes&nbsp;for&nbsp;prediction.<br>
+input_data&nbsp;:&nbsp;np.ndarray<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;input&nbsp;data&nbsp;for&nbsp;which&nbsp;predictions&nbsp;will&nbsp;be&nbsp;made.<br>
+threshold&nbsp;:&nbsp;float,&nbsp;optional&nbsp;(default=0.5)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;threshold&nbsp;value&nbsp;for&nbsp;converting&nbsp;model&nbsp;outputs&nbsp;to&nbsp;binary&nbsp;class&nbsp;predictions.<br>
+&nbsp;<br>
+Returns:<br>
+--------<br>
+np.ndarray<br>
+&nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;numpy&nbsp;array&nbsp;representing&nbsp;the&nbsp;predicted&nbsp;image&nbsp;after&nbsp;applying&nbsp;the&nbsp;threshold.<br>
+&nbsp;<br>
+Exceptions:<br>
+-----------<br>
+Raises&nbsp;an&nbsp;exception&nbsp;if&nbsp;there&nbsp;is&nbsp;an&nbsp;issue&nbsp;with&nbsp;loading&nbsp;the&nbsp;model&nbsp;or&nbsp;running&nbsp;the&nbsp;prediction.</span></dd></dl>
+ <dl><dt><a name="-run_skullstripping"><strong>run_skullstripping</strong></a>(self, input_modality_nii)</dt><dd><span class="code">Perform&nbsp;skull&nbsp;stripping&nbsp;on&nbsp;a&nbsp;CT&nbsp;scan&nbsp;using&nbsp;the&nbsp;hd_ctbet&nbsp;method.<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+input_modality_nii&nbsp;:&nbsp;str<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;file&nbsp;path&nbsp;to&nbsp;the&nbsp;NIfTI&nbsp;image&nbsp;to&nbsp;be&nbsp;processed.<br>
+&nbsp;<br>
+Returns:<br>
+--------<br>
+output_filename&nbsp;:&nbsp;str<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;file&nbsp;path&nbsp;to&nbsp;the&nbsp;resulting&nbsp;skull-stripped&nbsp;NIfTI&nbsp;image.</span></dd></dl>
+ <dl><dt><a name="-second_values"><strong>second_values</strong></a>(doc, patient_values, normal_stat_values, pt_age)</dt><dd><span class="code">Creates&nbsp;and&nbsp;populates&nbsp;a&nbsp;table&nbsp;in&nbsp;a&nbsp;LaTeX&nbsp;document&nbsp;that&nbsp;presents&nbsp;patient&nbsp;SBR&nbsp;values,&nbsp;LLN,&nbsp;<br>
+and&nbsp;Z-scores&nbsp;for&nbsp;different&nbsp;brain&nbsp;regions&nbsp;(Striatum,&nbsp;Posterior&nbsp;Putamen,&nbsp;etc.),&nbsp;<br>
+as&nbsp;well&nbsp;as&nbsp;asymmetry&nbsp;calculations.<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+doc&nbsp;:&nbsp;Document<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;LaTeX&nbsp;document&nbsp;object.<br>
+patient_values&nbsp;:&nbsp;DataFrame<br>
+&nbsp;&nbsp;&nbsp;&nbsp;DataFrame&nbsp;with&nbsp;patient-specific&nbsp;values.<br>
+normal_stat_values&nbsp;:&nbsp;DataFrame<br>
+&nbsp;&nbsp;&nbsp;&nbsp;DataFrame&nbsp;with&nbsp;normal&nbsp;reference&nbsp;values&nbsp;(mean,&nbsp;slope,&nbsp;sigma,&nbsp;etc.).<br>
+pt_age&nbsp;:&nbsp;int<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;age&nbsp;of&nbsp;the&nbsp;patient.<br>
+&nbsp;<br>
+Returns:<br>
+--------<br>
+None</span></dd></dl>
+ <dl><dt><a name="-swap_dims"><strong>swap_dims</strong></a>(self, modality, name)</dt><dd><span class="code">Adjust&nbsp;the&nbsp;orientation&nbsp;of&nbsp;a&nbsp;given&nbsp;NIfTI&nbsp;image&nbsp;(modality)&nbsp;from&nbsp;radiological&nbsp;to&nbsp;neurological&nbsp;if&nbsp;needed,&nbsp;<br>
+and&nbsp;save&nbsp;the&nbsp;modified&nbsp;image&nbsp;to&nbsp;the&nbsp;specified&nbsp;output&nbsp;directory.<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+modality&nbsp;:&nbsp;nib.Nifti1Image<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;NIfTI&nbsp;image&nbsp;to&nbsp;be&nbsp;processed.<br>
+name&nbsp;:&nbsp;str<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;name&nbsp;of&nbsp;the&nbsp;file&nbsp;to&nbsp;be&nbsp;saved,&nbsp;which&nbsp;will&nbsp;also&nbsp;be&nbsp;used&nbsp;to&nbsp;determine&nbsp;if&nbsp;the&nbsp;image&nbsp;is&nbsp;a&nbsp;PET&nbsp;scan.<br>
+&nbsp;<br>
+Returns:<br>
+--------<br>
+modality_nii&nbsp;:&nbsp;str<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;file&nbsp;path&nbsp;to&nbsp;the&nbsp;reoriented&nbsp;and&nbsp;saved&nbsp;NIfTI&nbsp;image.</span></dd></dl>
+ <dl><dt><a name="-tversky_coef"><strong>tversky_coef</strong></a>(y_true, y_pred)</dt><dd><span class="code">Compute&nbsp;the&nbsp;Tversky&nbsp;coefficient,&nbsp;which&nbsp;is&nbsp;the&nbsp;negative&nbsp;of&nbsp;the&nbsp;Tversky&nbsp;loss.<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+y_true&nbsp;:&nbsp;tf.Tensor<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Ground&nbsp;truth&nbsp;tensor&nbsp;(binary&nbsp;mask),&nbsp;where&nbsp;1&nbsp;represents&nbsp;the&nbsp;presence&nbsp;of&nbsp;the&nbsp;object&nbsp;of&nbsp;interest.<br>
+&nbsp;<br>
+y_pred&nbsp;:&nbsp;tf.Tensor<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Predicted&nbsp;tensor&nbsp;(probability&nbsp;map),&nbsp;with&nbsp;values&nbsp;ranging&nbsp;from&nbsp;0&nbsp;to&nbsp;1&nbsp;representing&nbsp;the&nbsp;model's&nbsp;confidence.<br>
+&nbsp;<br>
+Returns:<br>
+--------<br>
+tf.Tensor<br>
+&nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;scalar&nbsp;tensor&nbsp;representing&nbsp;the&nbsp;Tversky&nbsp;coefficient,&nbsp;which&nbsp;measures&nbsp;the&nbsp;similarity&nbsp;between&nbsp;'y_true'&nbsp;and&nbsp;'y_pred'.</span></dd></dl>
+ <dl><dt><a name="-tversky_loss"><strong>tversky_loss</strong></a>(y_true, y_pred)</dt><dd><span class="code">Compute&nbsp;the&nbsp;Tversky&nbsp;loss&nbsp;for&nbsp;imbalanced&nbsp;datasets,&nbsp;a&nbsp;generalization&nbsp;of&nbsp;the&nbsp;Dice&nbsp;coefficient.<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+y_true&nbsp;:&nbsp;tf.Tensor<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Ground&nbsp;truth&nbsp;tensor&nbsp;(binary&nbsp;mask),&nbsp;where&nbsp;1&nbsp;represents&nbsp;the&nbsp;presence&nbsp;of&nbsp;the&nbsp;object&nbsp;of&nbsp;interest.<br>
+&nbsp;<br>
+y_pred&nbsp;:&nbsp;tf.Tensor<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Predicted&nbsp;tensor&nbsp;(probability&nbsp;map),&nbsp;with&nbsp;values&nbsp;ranging&nbsp;from&nbsp;0&nbsp;to&nbsp;1&nbsp;representing&nbsp;the&nbsp;model's&nbsp;confidence.<br>
+&nbsp;<br>
+Returns:<br>
+--------<br>
+tf.Tensor<br>
+&nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;scalar&nbsp;tensor&nbsp;representing&nbsp;the&nbsp;Tversky&nbsp;loss,&nbsp;which&nbsp;quantifies&nbsp;the&nbsp;dissimilarity&nbsp;between&nbsp;'y_true'&nbsp;and&nbsp;'y_pred'.</span></dd></dl>
+ <dl><dt><a name="-weighted_dice_coefficient"><strong>weighted_dice_coefficient</strong></a>(y_true, y_pred, axis=(-3, -2, -1), smooth=1e-05)</dt><dd><span class="code">Compute&nbsp;the&nbsp;weighted&nbsp;Dice&nbsp;coefficient&nbsp;for&nbsp;evaluating&nbsp;the&nbsp;similarity&nbsp;<br>
+between&nbsp;the&nbsp;ground&nbsp;truth&nbsp;and&nbsp;predicted&nbsp;masks,&nbsp;with&nbsp;the&nbsp;option&nbsp;for&nbsp;a&nbsp;smoothing&nbsp;constant.<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+y_true&nbsp;:&nbsp;tf.Tensor<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Ground&nbsp;truth&nbsp;tensor,&nbsp;typically&nbsp;with&nbsp;shape&nbsp;(batch_size,&nbsp;height,&nbsp;width,&nbsp;depth,&nbsp;n_classes)&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;or&nbsp;similar&nbsp;for&nbsp;multi-class&nbsp;segmentation.<br>
+&nbsp;<br>
+y_pred&nbsp;:&nbsp;tf.Tensor<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Predicted&nbsp;tensor&nbsp;with&nbsp;the&nbsp;same&nbsp;shape&nbsp;as&nbsp;'y_true',&nbsp;typically&nbsp;containing&nbsp;probability&nbsp;values&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;for&nbsp;each&nbsp;class&nbsp;at&nbsp;each&nbsp;voxel&nbsp;location.<br>
+&nbsp;<br>
+axis&nbsp;:&nbsp;tuple&nbsp;of&nbsp;int,&nbsp;optional<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Axes&nbsp;along&nbsp;which&nbsp;to&nbsp;compute&nbsp;the&nbsp;Dice&nbsp;coefficient.&nbsp;Defaults&nbsp;to&nbsp;(-3,&nbsp;-2,&nbsp;-1)&nbsp;assuming&nbsp;'channels&nbsp;first'&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;data&nbsp;format.&nbsp;Modify&nbsp;for&nbsp;specific&nbsp;dimensionality&nbsp;of&nbsp;the&nbsp;data.<br>
+&nbsp;<br>
+smooth&nbsp;:&nbsp;float,&nbsp;optional<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Smoothing&nbsp;constant&nbsp;to&nbsp;avoid&nbsp;division&nbsp;by&nbsp;zero.&nbsp;Defaults&nbsp;to&nbsp;1e-5.<br>
+&nbsp;<br>
+Returns:<br>
+--------<br>
+tf.Tensor<br>
+&nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;scalar&nbsp;tensor&nbsp;representing&nbsp;the&nbsp;weighted&nbsp;Dice&nbsp;coefficient.&nbsp;Higher&nbsp;values&nbsp;indicate&nbsp;better&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;similarity&nbsp;between&nbsp;the&nbsp;predicted&nbsp;and&nbsp;true&nbsp;masks.</span></dd></dl>
+ <dl><dt><a name="-weighted_dice_coefficient_loss"><strong>weighted_dice_coefficient_loss</strong></a>(y_true, y_pred)</dt><dd><span class="code">Compute&nbsp;the&nbsp;weighted&nbsp;Dice&nbsp;coefficient&nbsp;loss&nbsp;for&nbsp;imbalanced&nbsp;segmentation&nbsp;tasks.<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+y_true&nbsp;:&nbsp;tf.Tensor<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Ground&nbsp;truth&nbsp;tensor,&nbsp;typically&nbsp;a&nbsp;binary&nbsp;or&nbsp;multi-class&nbsp;mask&nbsp;with&nbsp;shape&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(batch_size,&nbsp;height,&nbsp;width,&nbsp;depth,&nbsp;n_classes).<br>
+&nbsp;<br>
+y_pred&nbsp;:&nbsp;tf.Tensor<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Predicted&nbsp;tensor&nbsp;with&nbsp;the&nbsp;same&nbsp;shape&nbsp;as&nbsp;'y_true',&nbsp;containing&nbsp;the&nbsp;predicted&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;probabilities&nbsp;or&nbsp;logits&nbsp;for&nbsp;each&nbsp;class.<br>
+&nbsp;<br>
+Returns:<br>
+--------<br>
+tf.Tensor<br>
+&nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;scalar&nbsp;tensor&nbsp;representing&nbsp;the&nbsp;negative&nbsp;weighted&nbsp;Dice&nbsp;coefficient,&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;which&nbsp;is&nbsp;minimized&nbsp;during&nbsp;training.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>CEREBELLUM_INDEX</strong> = 4<br>
+<strong>DEF_MIDS</strong> = [0.07]<br>
+<strong>FIRST_DIM</strong> = (22, 234)<br>
+<strong>FIRST_DIM_CROPPED</strong> = slice(22, 234, None)<br>
+<strong>FWHM</strong> = 2.35482<br>
+<strong>MID_POINTS</strong> = [0]<br>
+<strong>SECOND_DIM</strong> = (4, 216)<br>
+<strong>SECOND_DIM_CROPPED</strong> = slice(4, 216, None)<br>
+<strong>STATIC_FILES</strong> = PosixPath('/home/zuza/pe2i/report_data')</td></tr></table>
+</body></html>
