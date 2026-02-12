@@ -122,7 +122,10 @@ class MyMRInput(AbstractInput):
             maxInstanceNumber = max(maxInstanceNumber, dataset.InstanceNumber)
         # Check if the number of images matches the maximum instance number (+1 DD starts with 0)
         return self.images == maxInstanceNumber + 1
-
+    
+    def add_image(self, dicom):
+        print(dicom.SeriesDescription)
+        super().add_image(dicom)
 
     # Image grinder object for processing NIfTI images
     image_grinder = ManyGrinder(NiftiGrinder(), IdentityGrinder())
@@ -209,9 +212,9 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
         # Get CT series description (metadata)
         anatomical_desc = ref_anatomical_dicom.SeriesDescription
         # this is added for validation
-        pt_id = ref_anatomical_dicom.PatientID
-        with open("/home/zuza/validation/pt_processed.txt", "a") as file:
-            file.write('\n' + pt_id)
+        # pt_id = ref_anatomical_dicom.PatientID
+        # with open("/home/zuza/validation/pt_processed.txt", "a") as file:
+        #     file.write('\n' + pt_id)
 
         # Perform preprocessing steps on PET and CT/DD data:
         # Swap dimensions for PET and CT/DD (function defined in node_functions)
