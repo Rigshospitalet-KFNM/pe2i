@@ -119,7 +119,10 @@ class MyMRInput(AbstractInput):
             maxInstanceNumber = max(maxInstanceNumber, dataset.InstanceNumber)
         # Check if the number of images matches the maximum instance number (+1 DD starts with 0)
         return self.images == maxInstanceNumber + 1
-
+    
+    def add_image(self, dicom):
+        print(dicom.SeriesDescription)
+        super().add_image(dicom)
 
     # Image grinder object for processing NIfTI images
     image_grinder = ManyGrinder(NiftiGrinder(), IdentityGrinder())
