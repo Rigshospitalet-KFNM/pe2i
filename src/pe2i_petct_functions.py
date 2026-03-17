@@ -2794,7 +2794,10 @@ def plots_normal_values(doc, normal_values, patient_values, pt_age):
 def get_age_from_dataset(ref_pet_dcm):
 
     if hasattr(ref_pet_dcm, "PatientAge"):
-        pt_age = get_age(ref_pet_dcm.PatientAge)
+        try:
+            pt_age = get_age(ref_pet_dcm.PatientAge)
+        except Exception:
+            pt_age = get_age_from_birth(ref_pet_dcm.PatientBirthDate)
     else:
         pt_age = get_age_from_birth(ref_pet_dcm.PatientBirthDate)
     return pt_age
