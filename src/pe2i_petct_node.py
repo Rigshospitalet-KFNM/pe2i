@@ -210,11 +210,14 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
         # Get CT series description (metadata)
         anatomical_desc = ref_anatomical_dicom.SeriesDescription
         # this is added for validation
-        pt_id = ref_anatomical_dicom.StudyInstanceUID
+        #pt_id = ref_anatomical_dicom.StudyInstanceUID
 
 
-        with env.VALIDATION_PATH.open('a') as file:
-            file.write('\n' + pt_id)
+        #with env.VALIDATION_PATH.open('a') as file:
+        #    file.write('\n' + pt_id)
+        # pt_id = ref_anatomical_dicom.PatientID
+        # with open("/home/zuza/validation/pt_processed.txt", "a") as file:
+        #     file.write('\n' + pt_id)
 
         # Perform preprocessing steps on PET and CT/DD data:
         # Swap dimensions for PET and CT/DD (function defined in node_functions)
