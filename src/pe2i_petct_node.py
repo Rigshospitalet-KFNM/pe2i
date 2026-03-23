@@ -113,16 +113,17 @@ class MyMRInput(AbstractInput):
     enforce_single_series = True
 
     def validate(self) -> bool:
+        minInstanceNumber = 1000
         maxInstanceNumber = -1
         # Iterate through datasets to find the maximum instance number
         for dataset in self:
             maxInstanceNumber = max(maxInstanceNumber, dataset.InstanceNumber)
+            minInstanceNumber = min(minInstanceNumber, dataset.InstanceNumber)
         # Check if the number of images matches the maximum instance number (+1 DD starts with 0)
-        return self.images == maxInstanceNumber + 1
-    
-    def add_image(self, dicom):
-        print(dicom.SeriesDescription)
-        super().add_image(dicom)
+        if minInstanceNumber == 0:
+            return self.images == maxInstanceNumber + 1
+        elif minInstanceNumber ==1:
+            return self.images == maxInstanceNumber
 
     # Image grinder object for processing NIfTI images
     image_grinder = ManyGrinder(NiftiGrinder(), IdentityGrinder())
@@ -228,10 +229,12 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
         anatomical_bet_path = node_functions.run_skullstripping(self, anatomical_swap_path)
 
         # Resampling PET, CT, and skull-stripped CT images to the same resolution
-        pet_resampled_path, anatomical_resampled_path, anatomical_bet_resampled_path, trans_pet, trans_anatomical = node_functions.resampling(
+        # pet_resampled_path, anatomical_resampled_path, anatomical_bet_resampled_path, trans_pet, trans_anatomical = node_functions.resampling(
+        #     self, pet_swap_path, anatomical_swap_path, anatomical_bet_path
+        # )
+        pet_resampled_path, anatomical_resampled_path, anatomical_bet_resampled_path = node_functions.registration_ants(
             self, pet_swap_path, anatomical_swap_path, anatomical_bet_path
         )
-
         # Further processing of CT data (e.g., preprocessing)
         anatomical_bet_preproc_path = node_functions.process_anatomical(self, anatomical_bet_resampled_path)
         
