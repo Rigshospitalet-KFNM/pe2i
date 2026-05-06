@@ -262,7 +262,8 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
         self.logger.info(len(ref_pet_dicoms))
         if not isinstance(ref_pet_dicoms, list):
             ref_pet_dicoms = [ref_pet_dicoms]
-        pet_dcm = node_functions.get_pet_dicom(self, pet_normalized_org, ref_pet_dicoms, modality_name)
+        series_number = str(random.randint(5000,100000))
+        pet_dcm = node_functions.get_pet_dicom(self, pet_normalized_org, ref_pet_dicoms, modality_name, series_number+1)
         # pet_dcm = node_functions.nifti_to_pet_dicom(self, pet_normalized_swapped, ref_pet_dicoms, modality_name)
         # file_path = '/home/zuza/validation/' + str(pt_id) +'.json'
         # with open(file_path, 'w') as json_file:
@@ -282,7 +283,7 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
         blueprint[0x0008_0033] = FunctionalElement(0x00080033, 'TM', get_time) # Content Time
         blueprint[0x0008_103E] = StaticElement(0x0008_103E, 'LO', report_name) # Series Description
         blueprint[0x0010_0010] = CopyElement(0x0010_0010) # Patient's Name 
-        blueprint[0x0020_0011] = StaticElement(0x0020_0011, 'IS', str(random.randint(5000,100000))) # Series Number
+        blueprint[0x0020_0011] = StaticElement(0x0020_0011, 'IS', series_number) # Series Number
         
         # Add calculated patient values to the blueprint for DICOM output
         for i in range(len(keys)):  
