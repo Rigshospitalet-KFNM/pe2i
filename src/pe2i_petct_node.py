@@ -117,13 +117,17 @@ class MyMRInput(AbstractInput):
     enforce_single_series = True
 
     def validate(self) -> bool:
+        minInstanceNumber = 1000
         maxInstanceNumber = -1
         # Iterate through datasets to find the maximum instance number
         for dataset in self:
             maxInstanceNumber = max(maxInstanceNumber, dataset.InstanceNumber)
+            minInstanceNumber = min(minInstanceNumber, dataset.InstanceNumber)
         # Check if the number of images matches the maximum instance number (+1 DD starts with 0)
-        return self.images == maxInstanceNumber + 1
-
+        if minInstanceNumber == 0:
+            return self.images == maxInstanceNumber + 1
+        elif minInstanceNumber ==1:
+            return self.images == maxInstanceNumber
 
     # Image grinder object for processing NIfTI images
     image_grinder = ManyGrinder(NiftiGrinder(), IdentityGrinder())
@@ -210,11 +214,9 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
         # Get CT series description (metadata)
         anatomical_desc = ref_anatomical_dicom.SeriesDescription
         # this is added for validation
-        pt_id = ref_anatomical_dicom.StudyInstanceUID
-
-
-        with env.VALIDATION_PATH.open('a') as file:
-            file.write('\n' + pt_id)
+        # pt_id = ref_anatomical_dicom.PatientID
+        # with open("/home/zuza/validation/pt_processed.txt", "a") as file:
+        #     file.write('\n' + pt_id)
 
         # Perform preprocessing steps on PET and CT/DD data:
         # Swap dimensions for PET and CT/DD (function defined in node_functions)
@@ -231,10 +233,12 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
         anatomical_bet_path = node_functions.run_skullstripping(self, anatomical_swap_path)
 
         # Resampling PET, CT, and skull-stripped CT images to the same resolution
-        pet_resampled_path, anatomical_resampled_path, anatomical_bet_resampled_path, trans_pet, trans_anatomical = node_functions.resampling(
+        # pet_resampled_path, anatomical_resampled_path, anatomical_bet_resampled_path, trans_pet, trans_anatomical = node_functions.resampling(
+        #     self, pet_swap_path, anatomical_swap_path, anatomical_bet_path
+        # )
+        pet_resampled_path, anatomical_resampled_path, anatomical_bet_resampled_path = node_functions.registration_ants(
             self, pet_swap_path, anatomical_swap_path, anatomical_bet_path
         )
-
         # Further processing of CT data (e.g., preprocessing)
         anatomical_bet_preproc_path = node_functions.process_anatomical(self, anatomical_bet_resampled_path)
 
@@ -262,7 +266,8 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
         self.logger.info(len(ref_pet_dicoms))
         if not isinstance(ref_pet_dicoms, list):
             ref_pet_dicoms = [ref_pet_dicoms]
-        pet_dcm = node_functions.get_pet_dicom(self, pet_normalized_org, ref_pet_dicoms, modality_name)
+        series_number = str(random.randint(5000,100000))
+        pet_dcm = node_functions.get_pet_dicom(self, pet_normalized_org, ref_pet_dicoms, modality_name, series_number+1)
         # pet_dcm = node_functions.nifti_to_pet_dicom(self, pet_normalized_swapped, ref_pet_dicoms, modality_name)
         # file_path = '/home/zuza/validation/' + str(pt_id) +'.json'
         # with open(file_path, 'w') as json_file:
@@ -281,9 +286,9 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
         blueprint[0x0008_0031] = CopyElement(0x0008_0031) # Series Time
         blueprint[0x0008_0033] = FunctionalElement(0x00080033, 'TM', get_time) # Content Time
         blueprint[0x0008_103E] = StaticElement(0x0008_103E, 'LO', report_name) # Series Description
-        blueprint[0x0010_0010] = CopyElement(0x0010_0010) # Patient's Name
-        blueprint[0x0020_0011] = StaticElement(0x0020_0011, 'IS', str(random.randint(5000,100000))) # Series Number
-
+        blueprint[0x0010_0010] = CopyElement(0x0010_0010) # Patient's Name 
+        blueprint[0x0020_0011] = StaticElement(0x0020_0011, 'IS', series_number) # Series Number
+        
         # Add calculated patient values to the blueprint for DICOM output
         for i in range(len(keys)):
             key = keys[i]

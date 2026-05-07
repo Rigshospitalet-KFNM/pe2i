@@ -1,6 +1,9 @@
 import os
+import re
+import glob
 import random
 import datetime
+from typing import List, Optional
 from pathlib import Path
 import cv2 as cv
 import numpy as np
@@ -29,7 +32,9 @@ import shutil
 from pe2i_environment import environment as env
 # tf.config.list_physical_devices('GPU')
 # tf.config.list_physical_devices('CPU')
-
+import ants
+from ants import ANTsImage
+from ants.internal import get_lib_fn, get_pointer_string, process_arguments
 from nilearn.image import smooth_img, resample_to_img # type: ignore
 from nipype.interfaces.niftyseg import LabelFusion # type: ignore
 from nipype.interfaces.niftyreg import RegAladin, RegResample, RegTransform # type: ignore
@@ -359,7 +364,8 @@ def run_skullstripping(self, input_modality_path):
 
     # Define the output filename for the skull-stripped image
     output_filename = os.getcwd() + '/anatomical_swap_BET.nii.gz'
-
+    if Path(output_filename).is_file():
+        return output_filename
     # Call the hd_ctbet function to perform skull stripping
     run_hd_ctbet(str(input_modality_path), str(output_filename), mode='fast', device='cpu', do_tta =False)
 
@@ -465,6 +471,307 @@ def cerebellum_mask(self, input_file):
     self.logger.info(f"Segmentation successful. Output file: {out_file}")
     # Return the path to the output file
     return out_file
+
+
+def registration_helper(
+    fixed,
+    moving,
+    type_of_transform="SyN-adjusted",
+    outprefix="",
+    grad_step=0.2,
+    flow_sigma=3.,
+    total_sigma=0.,
+    aff_metric="mattes",
+    aff_sampling=32,
+    syn_metric="mattes",
+    syn_sampling=32,
+    reg_iterations=(40, 20, 0),
+    write_composite_transform=False,
+    verbose=False,
+    **kwargs
+):
+    """
+    Register a pair of images either through the full or simplified
+    interface to the ANTs registration method.
+
+    ANTsR function: `antsRegistration`
+
+    Arguments
+    ---------
+    fixed : ants.ANTsImage
+        fixed image to which we register the moving image.
+
+    moving : ants.ANTsImage
+        moving image to be mapped to fixed space.
+
+    type_of_transform : string
+        A linear or non-linear registration type. Mutual information metric by default.
+        See Notes below for more.
+
+    initial_transform : list of strings (optional)
+        transforms to prepend. If None, a translation is computed to align the image centers of mass.
+
+    outprefix : string
+        output will be named with this prefix.
+
+    grad_step : scalar
+        gradient step size (not for all tx)
+
+    flow_sigma : scalar
+        smoothing for update field
+        At each iteration, the similarity metric and gradient is calculated. 
+        That gradient field is also called the update field and is smoothed 
+        before composing with the total field (i.e., the estimate of the total 
+        transform at that iteration). This total field can also be smoothed 
+        after each iteration.
+
+    total_sigma : scalar
+        smoothing for total field
+
+    aff_metric : string
+        the metric for the affine part (GC, mattes, meansquares)
+
+    aff_sampling : scalar
+        number of bins for the mutual information metric
+
+    syn_metric : string
+        the metric for the syn part (CC, mattes, meansquares, demons)
+
+    syn_sampling : scalar
+        the nbins or radius parameter for the syn metric
+
+    reg_iterations : list/tuple of integers
+        vector of iterations for syn. we will set the smoothing and multi-resolution parameters based on the length of this vector.
+
+    write_composite_transform : boolean
+        Boolean specifying whether or not the composite transform (and its inverse, if it exists) should be written to an hdf5 composite file. This is false by default so that only the transform for each stage is written to file.
+
+    verbose : boolean
+        request verbose output (useful for debugging)
+
+    kwargs : keyword args
+        extra arguments
+
+    Returns
+    -------
+    dict containing follow key/value pairs:
+        `warpedmovout`: Moving image warped to space of fixed image.
+        `warpedfixout`: Fixed image warped to space of moving image.
+        `fwdtransforms`: Transforms to move from moving to fixed image.
+        `invtransforms`: Transforms to move from fixed to moving image.
+
+    """
+    if isinstance(fixed, list) and (moving is None):
+        processed_args = process_arguments(fixed)
+        libfn = get_lib_fn("antsRegistration")
+        reg_exit = libfn(processed_args)
+        if (reg_exit != 0):
+            raise RuntimeError(f"Registration failed with error code {reg_exit}")
+        else:
+            return 0
+
+    if not (ants.is_image(fixed) and ants.is_image(moving)):
+        raise ValueError("Fixed and moving images must be ants.ANTsImage objects")
+
+    if type_of_transform == "":
+        type_of_transform = "SyN-adjusted"
+
+    if isinstance(type_of_transform, (tuple, list)) and (len(type_of_transform) == 1):
+        type_of_transform = type_of_transform[0]
+
+    if np.sum(np.isnan(fixed.numpy())) > 0:
+        raise ValueError("fixed image has NaNs - replace these")
+    if np.sum(np.isnan(moving.numpy())) > 0:
+        raise ValueError("moving image has NaNs - replace these")
+
+    if fixed.dimension != moving.dimension:
+        raise ValueError("Fixed and moving image dimensions are not the same.")
+    # ----------------------------
+
+    args = [fixed, moving, type_of_transform, outprefix]
+
+    mysyn = "SyN[%f,%f,%f]" % (grad_step, flow_sigma, total_sigma)
+    itlen = len(reg_iterations)  # NEED TO CHECK THIS
+    if itlen == 0:
+        synits = reg_iterations
+    else:
+        synits = "x".join([str(ri) for ri in reg_iterations])
+
+    inpixeltype = fixed.pixeltype
+    moving = moving.clone("float")
+    fixed = fixed.clone("float")
+
+    warpedfixout = moving.clone()
+    warpedmovout = fixed.clone()
+    f = get_pointer_string(fixed)
+    m = get_pointer_string(moving)
+    wfo = get_pointer_string(warpedfixout)
+    wmo = get_pointer_string(warpedmovout)
+
+    if type_of_transform == "SyN-adjusted":
+        initx = ["[%s,%s,0]" % (f, m)]
+        args = [
+            "-d",
+            str(fixed.dimension),
+            "-r",
+        ] + initx + [
+            "-n",
+            "Linear",
+            "-t",
+            "Affine[0.1]",  # this is different
+            "-m",
+            "%s[%s,%s,1,%s]" # this is different
+            % (aff_metric, f, m, aff_sampling), 
+            "-c",
+            "[1000x500x250x100,1e-6,10]", # this is different
+            "-s",
+            "3.0x2.0x1.0x0.",
+            "-f",
+            "8x4x2x1", # this is different, and no x flag
+            "-t",
+            mysyn,
+            "-m",
+            "%s[%s,%s,1,%s]" % (syn_metric, f, m, syn_sampling),
+            "-c",
+            "[%s,1e-6,10]" % synits, # this is different
+            "-s",
+            "2.0x1.0x0.0", # this is different (but can be set)
+            "-f",
+            "3x2x1", # this is different (but can be set)
+            "-u",
+            "0", # this is different (cant be changed) (but in new version yes)
+            "-z",
+            "1", 
+            "-o",
+            "[%s,%s,%s]" % (outprefix, wmo, wfo),
+            "-w", 
+            "[0.005, 0.995]" # this is different, no o2nd x flag
+        ]
+    
+
+    args.append("--float")
+    args.append("1")
+    args.append("--write-composite-transform")
+    args.append(write_composite_transform * 1)
+    if verbose:
+        args.append("-v")
+        args.append("1")
+    print(args)
+    processed_args = process_arguments(args)
+    libfn = get_lib_fn("antsRegistration")
+    if verbose:
+        print("antsRegistration " + ' '.join(processed_args))
+    reg_exit = libfn(processed_args)
+    if (reg_exit != 0):
+        raise RuntimeError(f"Registration failed with error code {reg_exit}")
+    afffns = glob.glob(outprefix + "*" + "[0-9]GenericAffine.mat")
+    fwarpfns = glob.glob(outprefix + "*" + "[0-9]Warp.nii.gz")
+    iwarpfns = glob.glob(outprefix + "*" + "[0-9]InverseWarp.nii.gz")
+    vfieldfns = glob.glob(outprefix + "*" + "[0-9]VelocityField.nii.gz")
+    # print(afffns, fwarpfns, iwarpfns)
+    if len(afffns) == 0:
+        afffns = ""
+    if len(fwarpfns) == 0:
+        fwarpfns = ""
+    if len(iwarpfns) == 0:
+        iwarpfns = ""
+    if len(vfieldfns) == 0:
+        vfieldfns = ""
+
+    alltx = sorted(
+        set(glob.glob(outprefix + "*" + "[0-9]*"))
+        - set(glob.glob(outprefix + "*VelocityField*"))
+    )
+    findinv = np.where(
+        [re.search("[0-9]InverseWarp.nii.gz", ff) for ff in alltx]
+    )[0]
+    findfwd = np.where([re.search("[0-9]Warp.nii.gz", ff) for ff in alltx])[
+        0
+    ]
+    if len(findinv) > 0:
+        fwdtransforms = list(
+            reversed(
+                [ff for idx, ff in enumerate(alltx) if idx != findinv[0]]
+            )
+        )
+        invtransforms = [
+            ff for idx, ff in enumerate(alltx) if idx != findfwd[0]
+        ]
+    else:
+        fwdtransforms = list(reversed(alltx))
+        invtransforms = alltx
+
+    if write_composite_transform:
+        fwdtransforms = outprefix + "Composite.h5"
+        invtransforms = outprefix + "InverseComposite.h5"
+
+    if not vfieldfns:
+        return {
+            "warpedmovout": warpedmovout.clone(inpixeltype),
+            "warpedfixout": warpedfixout.clone(inpixeltype),
+            "fwdtransforms": fwdtransforms,
+            "invtransforms": invtransforms,
+        }
+    else:
+        return {
+            "warpedmovout": warpedmovout.clone(inpixeltype),
+            "warpedfixout": warpedfixout.clone(inpixeltype),
+            "fwdtransforms": fwdtransforms,
+            "invtransforms": invtransforms,
+            "velocityfield": vfieldfns,
+        }
+
+def move_to_space(fixed: ANTsImage, moving: ANTsImage, transformlist: List[str], 
+                      interpolator: str = 'linear', which_to_invert: Optional[List[bool]] = None) -> ANTsImage:
+    kwargs = {
+        "fixed": fixed, "moving": moving,
+        "transformlist": transformlist, "interpolator": interpolator
+    }
+    if which_to_invert is not None:
+        kwargs["whichtoinvert"] = which_to_invert
+    return ants.apply_transforms(**kwargs) # type: ignore
+
+def registration_ants(self, pet_path, anatomical_path, brain_path):
+
+    brain_template_path = STATIC_FILES / 'avg_template_swap.nii.gz'
+    brain_template = ants.image_read(str(brain_template_path))
+    anatomical = ants.image_read(anatomical_path)
+    pet = ants.image_read(pet_path) 
+    anatomical_brain = ants.image_read(brain_path)
+    #brain to template
+    self.logger.info(f'Registering anatomical brain to template')
+    brain_to_mni_reg = registration_helper(fixed = brain_template, 
+                                        moving = anatomical_brain, 
+                                        type_of_transform="SyN-adjusted", # added to ants registration file
+                                        grad_step= 0.25,  
+                                        flow_sigma=3.0,
+                                        total_sigma=0.0,
+                                        syn_metric='Mattes',  
+                                        reg_iterations=(100, 50, 30), 
+                                        outprefix=os.getcwd() + "/SyN")
+    
+    transform_to_mni = [brain_to_mni_reg['fwdtransforms'][0], 
+                    brain_to_mni_reg['fwdtransforms'][1]]
+    #ct to template
+    self.logger.info('Moving anatomical to template space')
+    anatomical_to_mni = move_to_space(fixed=brain_template, moving=anatomical, transformlist=transform_to_mni)
+    #pet to ct
+    self.logger.info('Resampling PET to anatomical')
+    pet_to_anatomical_rsl = ants.resample_image_to_target(image=pet, target=anatomical)
+    pet_to_anatomical = ants.registration(fixed=anatomical, moving=pet_to_anatomical_rsl, type_of_transform='Rigid')
+    
+    #pet to template
+    self.logger.info('Moving PET to template space')
+    pet_to_mni = move_to_space(fixed=brain_template, moving=pet_to_anatomical, transformlist=transform_to_mni)
+
+    pet_to_mni_path = 'pettomni_ants.nii.gz'
+    anatomical_to_mni_path = 'anatomical_tomni_ants.nii.gz'
+    brain_to_mni_path = 'brain_tomni_ants.nii.gz'
+    ants.image_write(pet_to_mni, pet_to_mni_path)
+    ants.image_write(anatomical_to_mni['warpedmovout'], anatomical_to_mni_path)
+    ants.image_write(brain_to_mni_reg['warpedmovout'], brain_to_mni_path)
+    
+    return  pet_to_mni_path, anatomical_to_mni_path, brain_to_mni_path
 
 
 def resampling(self, pet_nii, anatomical_nii, brain_nii):
@@ -1115,7 +1422,7 @@ def reverse_swap_dims(self,
     return resampled_image
 
 
-def get_pet_dicom(self, pet_nii, ref_pet_dicom, modality_name):
+def get_pet_dicom(self, pet_nii, ref_pet_dicom, modality_name, series_number):
     self.logger.info('Conversion of normalized PET nifti to DICOM')
     pet_data = pet_nii.get_fdata()
     # pet_data =  pet_data.T
@@ -1175,7 +1482,7 @@ def get_pet_dicom(self, pet_nii, ref_pet_dicom, modality_name):
         SeriesElement(0x0020_000E, 'UI', add_UID_tag),
         CopyOrElseElement(0x0020_000D, 'UI', SeriesElement(0x0020_000D, 'UI', add_UID_tag)),
         CopyOrElseElement(0x0020_0010, 'SH', "Missing Study ID"),
-        StaticElement(0x0020_0011, 'IS', str(random.randint(5000,100000))),
+        StaticElement(0x0020_0011, 'IS', series_number), # Series Number
         InstanceCopyElement(0x0020_0032, 'DS'),
         # FunctionalElement(0x0020_0032, 'DS', add_patient_position),
         CopyOrElseElement(0x0020_0037, 'LO', 'MISSING'),
