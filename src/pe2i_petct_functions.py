@@ -762,7 +762,7 @@ def registration_ants(self, pet_path, anatomical_path, brain_path):
     
     #pet to template
     self.logger.info('Moving PET to template space')
-    pet_to_mni = move_to_space(fixed=brain_template, moving=pet_to_anatomical, transformlist=transform_to_mni)
+    pet_to_mni = move_to_space(fixed=brain_template, moving=pet_to_anatomical['warpedmovout'], transformlist=transform_to_mni)
 
     pet_to_mni_path = 'pettomni_ants.nii.gz'
     anatomical_to_mni_path = 'anatomical_tomni_ants.nii.gz'
