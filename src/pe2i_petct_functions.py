@@ -338,6 +338,14 @@ def convert_LAC_to_HU(self, dd_path):
     # Return the file path of the converted image
     return converted_path
 
+#import torch.nn.functional as F
+
+#def softmax(x):
+#    return F.softmax(x, 1)
+
+#import nnunet.utilities
+#nnunet.utilities.softmax_helper = softmax
+
 def run_skullstripping(self, input_modality_path):
     """
     Perform skull stripping on a anatomical scan using the `hd_ctbet` method to remove non-brain tissues.
@@ -367,7 +375,23 @@ def run_skullstripping(self, input_modality_path):
     if Path(output_filename).is_file():
         return output_filename
     # Call the hd_ctbet function to perform skull stripping
-    run_hd_ctbet(str(input_modality_path), str(output_filename), mode='fast', device='cpu', do_tta =False)
+
+    script = "\n".join([
+        "from HD_CTBET.run import run_hd_ctbet",
+        f"run_hd_ctbet({input_modality_path!r}, {output_filename!r}, mode='fast', device='cpu', do_tta=False)",
+    ])
+    import subprocess
+    import sys
+
+    result = subprocess.run(
+        [sys.executable, "-c", script],
+        check=True,
+        capture_output=True,
+        text=True
+    )
+
+
+    #run_hd_ctbet(str(input_modality_path), str(output_filename), mode='fast', device='cpu', do_tta =False)
 
     return output_filename
 

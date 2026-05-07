@@ -23,14 +23,15 @@ from pe2i_environment import environment as env
 import dicomnode
 import dicomnode.server
 from dicomnode.dicom.dimse import Address
-from dicomnode.server.pipeline_tree import InputContainer
+from dicomnode.server.input_container import InputContainer
 from dicomnode.server.input import AbstractInput
 from dicomnode.server.output import DicomOutput, MultiOutput
 from dicomnode.server.nodes import AbstractQueuedPipeline
+from dicomnode.server.processor import AbstractProcessor
 from dicomnode.server.grinders import NiftiGrinder, ManyGrinder, IdentityGrinder
 from dicomnode.dicom.blueprints import Blueprint, StaticElement, CopyElement, FunctionalElement, get_today, get_time
 from dicomnode.dicom.blueprints.secondary_image_report_blueprint import SECONDARY_IMAGE_REPORT_BLUEPRINT
-from dicomnode.dicom.blueprints.error_blueprint_english import ERROR_BLUEPRINT
+#from dicomnode.dicom.blueprints.error_blueprint_english import ERROR_BLUEPRINT
 from dicomnode.dicom.dicom_factory import DicomFactory
 from dicomnode.lib.validators import RegexValidator, NegatedValidator, CaselessRegexValidator
 import pydicom.config
@@ -44,7 +45,7 @@ pydicom.config.convert_wrong_length_to_UN = True
 
 OUTPUT_PATH = env.OUTPUT_PATH
 factory  = DicomFactory()
-error_blueprint = ERROR_BLUEPRINT
+#error_blueprint = ERROR_BLUEPRINT
 
 PET_ARCHIVE = Address('172.16.82.177', 11112, 'GAUSS') # These should be  in .env
 
@@ -139,6 +140,10 @@ class MyMRInput(AbstractInput):
     }
 
 
+AE_TITLE = "PE2IPETCTNODE"
+
+endpoint = Address('10.49.144.35', 104, "VIA2") ## TODO move into .env
+
 class Pe2iPetCtNode(AbstractQueuedPipeline):
     """
     Main pipeline node for processing PET and CT data, and generating reports.
@@ -162,12 +167,12 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
     # Logger settings: disable pynetdicom logger and set log level
     disable_pynetdicom_logger = True
     log_level: int = logging.DEBUG
-    log_output = env.LOG_PATH
+    log_output = "/raid/pe2i/pe2i.log"
 
     error_on_rejected_dataset = False
 
     # Blueprint for handling unhandled errors
-    unhandled_error_blueprint = error_blueprint
+    #unhandled_error_blueprint = error_blueprint
 
     known_endpoints = {
         BISPEBJERG_SCANNER_1.ae_title : BISPEBJERG_SCANNER_1,
@@ -184,9 +189,8 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
     }
 
     # Endpoint for output
-    endpoint = Address('10.49.144.35', 104, "VIA2") ## TODO move into .env
-
-    def process(self, input_data: InputContainer):
+    class Processor(AbstractProcessor):
+      def process(self, input_data: InputContainer):
         """
         Processes the input data, converts DICOM to NIfTI, performs necessary operations,
         and generates a report.
@@ -202,6 +206,8 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
             The generated report in DICOM format.
         """
 
+
+
         # Extract PET and CT data from input
         ref_pet_dicom = input_data.datasets['PET'][0]
         ref_pet_dicoms = input_data.datasets['PET']
@@ -215,7 +221,6 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
         anatomical_desc = ref_anatomical_dicom.SeriesDescription
         # this is added for validation
         #pt_id = ref_anatomical_dicom.StudyInstanceUID
-
 
         #with env.VALIDATION_PATH.open('a') as file:
         #    file.write('\n' + pt_id)
@@ -242,7 +247,7 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
         #     self, pet_swap_path, anatomical_swap_path, anatomical_bet_path
         # )
         pet_resampled_path, anatomical_resampled_path, anatomical_bet_resampled_path = node_functions.registration_ants(
-            self, pet_swap_path, anatomical_swap_path, anatomical_bet_path
+          self, pet_swap_path, anatomical_swap_path, anatomical_bet_path
         )
         # Further processing of CT data (e.g., preprocessing)
         anatomical_bet_preproc_path = node_functions.process_anatomical(self, anatomical_bet_resampled_path)
@@ -254,7 +259,7 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
         prediction_data = node_functions.get_predition(self.logger, anatomical_bet_preproc_path, pet_resampled_path)
         pet_normalized_data, cerebellum_mask_data, patient_values, cerebellum_median = node_functions.get_statistics(
             self.logger, pet_resampled_path, cerebellum_path, prediction_data
-            )
+        )
 
         # Generate the report
         report = node_functions.generate_report(
@@ -277,7 +282,7 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
         # with open(file_path, 'w') as json_file:
         #     json.dump(patient_values, json_file, indent=4)
 
-        # Extract keys from the patient_values dictionary to add them to the DICOM report
+         # Extract keys from the patient_values dictionary to add them to the DICOM report
         keys = list(patient_values.keys())
 
         # Define the report name and create a blueprint for encoding the DICOM report
@@ -301,7 +306,11 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
                 'FL',
                 np.round(patient_values[key], 2),
                 name=f"{key} [SBR]" if i < 14 else f"{key}"
-        )
+          )
+
+
+
+        self.dicom_factory = DicomFactory()
 
         # Encode the report as a PDF
         try:
@@ -317,7 +326,6 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
 
           raise E
 
-
         # Ensure that all encoded report instances have matching series time
         if encoded_report[0].SeriesTime != encoded_report[1].SeriesTime:
             for i in range(1, len(encoded_report)):
@@ -332,20 +340,17 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
             # return DicomOutput([(BISPEBJERG_PROD_ARCHIVE, encoded_report)], self.ae_title)
             return DicomOutput([(BISPEBJERG_PROD_ARCHIVE, encoded_report),
                                 (BISPEBJERG_PROD_ARCHIVE, pet_dcm)],
-                                self.ae_title)
+                                AE_TITLE)
 
-        # return DicomOutput([
-        #          (self.endpoint, encoded_report),
-        #          (PET_ARCHIVE, encoded_report),
-                #  (DICOM_ROUTER, encoded_report)], self.ae_title)
+
         return DicomOutput([
-                 (self.endpoint, encoded_report),
+                 (endpoint, encoded_report),
                  (PET_ARCHIVE, encoded_report),
                  (DICOM_ROUTER, encoded_report),
-                 (self.endpoint, pet_dcm),
+                 (endpoint, pet_dcm),
                  (PET_ARCHIVE, pet_dcm),
                  (DICOM_ROUTER, pet_dcm)
-                 ], self.ae_title)
+                 ], AE_TITLE)
 
 # Entry point for running the node
 if __name__ == "__main__":
