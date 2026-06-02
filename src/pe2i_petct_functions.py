@@ -780,20 +780,25 @@ def registration_ants(self, pet_path, anatomical_path, brain_path):
     self.logger.info('Moving anatomical to template space')
     anatomical_to_mni = move_to_space(fixed=brain_template, moving=anatomical, transformlist=transform_to_mni)
     #pet to ct
-    self.logger.info('Registering PET to anatomical')
-    pet_to_anatomical = ants.registration(fixed=anatomical, moving=pet, type_of_transform='Rigid')
-    pet_to_mni_transform = transform_to_mni + pet_to_anatomical['fwdtransforms'] 
+    self.logger.info('Resampling PET to anatomical')
+    pet_to_anatomical_rsl = ants.resample_image_to_target(image=pet, target=anatomical)
+    pet_to_anatomical = ants.registration(fixed=anatomical, moving=pet_to_anatomical_rsl, type_of_transform='Rigid')
+    
     #pet to template
     self.logger.info('Moving PET to template space')
-    pet_to_mni = move_to_space(fixed=brain_template, moving=pet, transformlist=pet_to_mni_transform)
-    pet_to_ct_path = 'pettoanatomical_ants.nii.gz'
+    self.logger.info(type(brain_template))
+    self.logger.info(type(pet_to_anatomical))
+    self.logger.info(type(transform_to_mni))
+
+    pet_to_mni = move_to_space(fixed=brain_template, moving=pet_to_anatomical['warpedmovout'], transformlist=transform_to_mni)
+
     pet_to_mni_path = 'pettomni_ants.nii.gz'
     anatomical_to_mni_path = 'anatomical_tomni_ants.nii.gz'
     brain_to_mni_path = 'brain_tomni_ants.nii.gz'
-    ants.image_write(pet_to_anatomical['warpedmovout'], pet_to_ct_path)
     ants.image_write(pet_to_mni, pet_to_mni_path)
     ants.image_write(anatomical_to_mni['warpedmovout'], anatomical_to_mni_path)
     ants.image_write(brain_to_mni_reg['warpedmovout'], brain_to_mni_path)
+    
     return  pet_to_mni_path, anatomical_to_mni_path, brain_to_mni_path
 
 
@@ -1445,7 +1450,7 @@ def reverse_swap_dims(self,
     return resampled_image
 
 
-def get_pet_dicom(self, pet_nii, ref_pet_dicom, modality_name):
+def get_pet_dicom(self, pet_nii, ref_pet_dicom, modality_name, series_number):
     self.logger.info('Conversion of normalized PET nifti to DICOM')
     pet_data = pet_nii.get_fdata()
     # pet_data =  pet_data.T
@@ -1505,7 +1510,7 @@ def get_pet_dicom(self, pet_nii, ref_pet_dicom, modality_name):
         SeriesElement(0x0020_000E, 'UI', add_UID_tag),
         CopyOrElseElement(0x0020_000D, 'UI', SeriesElement(0x0020_000D, 'UI', add_UID_tag)),
         CopyOrElseElement(0x0020_0010, 'SH', "Missing Study ID"),
-        StaticElement(0x0020_0011, 'IS', str(random.randint(5000,100000))),
+        StaticElement(0x0020_0011, 'IS', series_number), # Series Number
         InstanceCopyElement(0x0020_0032, 'DS'),
         # FunctionalElement(0x0020_0032, 'DS', add_patient_position),
         CopyOrElseElement(0x0020_0037, 'LO', 'MISSING'),

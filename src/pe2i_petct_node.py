@@ -10,6 +10,7 @@ import logging
 import random
 import numpy as np
 import nibabel as nib
+from enum import Enum
 from pathlib import Path
 from typing import Dict, Any
 import shutil
@@ -32,6 +33,7 @@ from dicomnode.server.grinders import NiftiGrinder, ManyGrinder, IdentityGrinder
 from dicomnode.dicom.blueprints import Blueprint, StaticElement, CopyElement, FunctionalElement, get_today, get_time
 from dicomnode.dicom.blueprints.secondary_image_report_blueprint import SECONDARY_IMAGE_REPORT_BLUEPRINT
 #from dicomnode.dicom.blueprints.error_blueprint_english import ERROR_BLUEPRINT
+from dicomnode.lib.logging import LoggerConfig
 from dicomnode.dicom.dicom_factory import DicomFactory
 from dicomnode.lib.validators import RegexValidator, NegatedValidator, CaselessRegexValidator
 import pydicom.config
@@ -56,6 +58,32 @@ BISPEBJERG_SCANNER_2 = Address('172.23.48.82', 104, 'BFHKFNM7102')
 BISPEBJERG_SCANNER_3 = Address('172.23.48.83', 104, 'BFHKFNMMI1')
 BISPEBJERG_PET_ARCHIVE = Address('172.23.48.110', 11112, 'BBHKFNMOSIRIX')
 BISPEBJERG_PROD_ARCHIVE = Address('172.23.48.76', 11112, 'BBHKFAGW1')
+
+class Destination(Enum):
+  # Values in enum are meanless
+  Rigshospitalet = 1
+  Bispebjerg  = 2
+
+def dataset_destination(datasets) -> Destination:
+  """Determines the endpoint that we should send data to"""
+  ref = datasets[0]
+
+  institution = ref.InstitutionName
+
+  if institution == 'Nuklearmedicin':
+    return Destination.Rigshospitalet
+
+  if 'Bispebjerg' in institution:
+    return Destination.Bispebjerg
+
+  if 'Region Syd' in institution:
+    return Destination.Bispebjerg
+
+  if 'OUH' in institution:
+    return Destination.Bispebjerg
+
+  return Destination.Rigshospitalet
+
 
 class MyCTInput(AbstractInput):
     """
@@ -165,7 +193,11 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
     ip: str = '0.0.0.0'
 
     # Logger settings: disable pynetdicom logger and set log level
-    disable_pynetdicom_logger = True
+    #disable_pynetdicom_logger = True
+    pynetdicom_logger_config = LoggerConfig(
+      log_output = "/raid/pe2i/pynetdicom.log",
+      log_level = logging.INFO
+    )
     log_level: int = logging.DEBUG
     log_output = "/raid/pe2i/pe2i.log"
 
@@ -220,11 +252,6 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
         # Get CT series description (metadata)
         anatomical_desc = ref_anatomical_dicom.SeriesDescription
         # this is added for validation
-        #pt_id = ref_anatomical_dicom.StudyInstanceUID
-
-        #with env.VALIDATION_PATH.open('a') as file:
-        #    file.write('\n' + pt_id)
-        # pt_id = ref_anatomical_dicom.PatientID
         # with open("/home/zuza/validation/pt_processed.txt", "a") as file:
         #     file.write('\n' + pt_id)
 
@@ -276,7 +303,8 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
         self.logger.info(len(ref_pet_dicoms))
         if not isinstance(ref_pet_dicoms, list):
             ref_pet_dicoms = [ref_pet_dicoms]
-        pet_dcm = node_functions.get_pet_dicom(self, pet_normalized_org, ref_pet_dicoms, modality_name)
+        series_number = str(random.randint(5000,100000))
+        pet_dcm = node_functions.get_pet_dicom(self, pet_normalized_org, ref_pet_dicoms, modality_name, int(series_number)+1)
         # pet_dcm = node_functions.nifti_to_pet_dicom(self, pet_normalized_swapped, ref_pet_dicoms, modality_name)
         # file_path = '/home/zuza/validation/' + str(pt_id) +'.json'
         # with open(file_path, 'w') as json_file:
@@ -295,9 +323,9 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
         blueprint[0x0008_0031] = CopyElement(0x0008_0031) # Series Time
         blueprint[0x0008_0033] = FunctionalElement(0x00080033, 'TM', get_time) # Content Time
         blueprint[0x0008_103E] = StaticElement(0x0008_103E, 'LO', report_name) # Series Description
-        blueprint[0x0010_0010] = CopyElement(0x0010_0010) # Patient's Name
-        blueprint[0x0020_0011] = StaticElement(0x0020_0011, 'IS', str(random.randint(5000,100000))) # Series Number
-
+        blueprint[0x0010_0010] = CopyElement(0x0010_0010) # Patient's Name 
+        blueprint[0x0020_0011] = StaticElement(0x0020_0011, 'IS', series_number) # Series Number
+        
         # Add calculated patient values to the blueprint for DICOM output
         for i in range(len(keys)):
             key = keys[i]
@@ -331,17 +359,14 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
             for i in range(1, len(encoded_report)):
                 encoded_report[i].SeriesTime = encoded_report[0].SeriesTime
 
+        destination = dataset_destination(ref_pet_dicoms)
+
         # Return the file output containing the generated report
-        if input_data.responding_address.ae_title in [BISPEBJERG_SCANNER_1.ae_title,\
-                                                      BISPEBJERG_SCANNER_2.ae_title,\
-                                                      BISPEBJERG_SCANNER_3.ae_title,\
-                                                      BISPEBJERG_PET_ARCHIVE.ae_title,\
-                                                      BISPEBJERG_PROD_ARCHIVE.ae_title]:
+        if destination == Destination.Bispebjerg:
             # return DicomOutput([(BISPEBJERG_PROD_ARCHIVE, encoded_report)], self.ae_title)
             return DicomOutput([(BISPEBJERG_PROD_ARCHIVE, encoded_report),
                                 (BISPEBJERG_PROD_ARCHIVE, pet_dcm)],
                                 AE_TITLE)
-
 
         return DicomOutput([
                  (endpoint, encoded_report),
@@ -355,4 +380,5 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
 # Entry point for running the node
 if __name__ == "__main__":
    node = Pe2iPetCtNode()
+   node.logger.info(logging.getLogger("pynetdicom").handlers)
    node.open()
