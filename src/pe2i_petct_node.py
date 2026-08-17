@@ -263,7 +263,7 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
         if not isinstance(ref_pet_dicoms, list):
             ref_pet_dicoms = [ref_pet_dicoms]
         series_number = str(random.randint(5000,100000))
-        pet_dcm = node_functions.get_pet_dicom(self, pet_normalized_org, ref_pet_dicoms, modality_name, series_number+1)
+        pet_dcm = node_functions.get_pet_dicom(self, pet_normalized_org, ref_pet_dicoms, modality_name, int(series_number)+1)
         # pet_dcm = node_functions.nifti_to_pet_dicom(self, pet_normalized_swapped, ref_pet_dicoms, modality_name)
         # file_path = '/home/zuza/validation/' + str(pt_id) +'.json'
         # with open(file_path, 'w') as json_file:
