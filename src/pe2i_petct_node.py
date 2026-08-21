@@ -18,6 +18,8 @@ dotenv.load_dotenv()
 from datetime import datetime
 from pydicom.uid import PositronEmissionTomographyImageStorage, CTImageStorage, MRImageStorage
 import pe2i_petct_functions as node_functions
+# import report_node ## future to divide functions in multiple files
+# import prediction_node ## future to divide functions in multiple files
 import dicomnode
 import dicomnode.server
 from dicomnode.dicom.dimse import Address
@@ -155,6 +157,8 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
     data_directory = "/tmp/dicomnode/data_dir"
     # Network settings
     port: int = 1131
+    # port: int = 1337
+    
     ip: str = '0.0.0.0'
 
     # Logger settings: disable pynetdicom logger and set log level
@@ -230,11 +234,13 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
         # Skull stripping on CT data
         anatomical_bet_path = node_functions.run_skullstripping(self, anatomical_swap_path)
 
-        # Resampling PET, CT, and skull-stripped CT images to the same resolution TODO remove last two arguments
-        pet_resampled_path, anatomical_resampled_path, anatomical_bet_resampled_path, trans_pet, trans_anatomical = node_functions.resampling(
+        # # Resampling PET, CT, and skull-stripped CT images to the same resolution TODO remove last two arguments
+        # pet_resampled_path, anatomical_resampled_path, anatomical_bet_resampled_path, trans_pet, trans_anatomical = node_functions.resampling(
+        #     self, pet_swap_path, anatomical_swap_path, anatomical_bet_path
+        # )
+        pet_resampled_path, anatomical_resampled_path, anatomical_bet_resampled_path = node_functions.registration_ants(
             self, pet_swap_path, anatomical_swap_path, anatomical_bet_path
-        )
-
+            )
         # Further processing of CT data (e.g., preprocessing)
         anatomical_bet_preproc_path = node_functions.process_anatomical(self, anatomical_bet_resampled_path)
         
@@ -242,6 +248,7 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
         cerebellum_path = node_functions.cerebellum_mask(self, anatomical_bet_preproc_path)
         
         # Get prediction data and statistics based on PET and CT data
+        # prediction_data = prediction_node.get_predition(self.logger, anatomical_bet_preproc_path, pet_resampled_path)
         prediction_data = node_functions.get_predition(self.logger, anatomical_bet_preproc_path, pet_resampled_path)
         pet_normalized_data, cerebellum_mask_data, patient_values, cerebellum_median = node_functions.get_statistics(
             self.logger, pet_resampled_path, cerebellum_path, prediction_data
@@ -249,14 +256,16 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
 
         # Generate the report
         report = node_functions.generate_report(
+        # report = report_node.generate_report( 
             self, ref_pet_dicom, anatomical_desc, pet_normalized_data, anatomical_resampled_path, 
             prediction_data, cerebellum_mask_data, patient_values, MR_flag
         )
 
-        # pet_normalized_pet_space = node_functions.reverse_pet_resampling(self, pet_normalized_data, pet_resampled_path, pet_swap_path, anatomical_bet_path, trans_anatomical, trans_pet)
+        # Normalize PET data based on cerebellum median and create a new NIfTI image
         pet_sbr_data = pet.get_fdata() / cerebellum_median - 1
-        self.logger.info(np.max(pet_sbr_data))
         pet_normalized_org = nib.Nifti1Image(pet_sbr_data, pet.affine)
+        
+        # DICOM PART
         time_now = datetime.now().strftime("%Y/%m/%d %H:%M:%S")
         modality_name = f"PET PE2I SBR {time_now}"
         self.logger.info(len(ref_pet_dicoms))
