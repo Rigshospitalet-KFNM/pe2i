@@ -21,6 +21,8 @@ from datetime import datetime
 from pydicom.uid import PositronEmissionTomographyImageStorage, CTImageStorage, MRImageStorage
 import pe2i_petct_functions as node_functions
 from pe2i_environment import environment as env
+# import report_node ## future to divide functions in multiple files
+# import prediction_node ## future to divide functions in multiple files
 import dicomnode
 import dicomnode.server
 from dicomnode.dicom.dimse import Address
@@ -59,10 +61,13 @@ BISPEBJERG_SCANNER_3 = Address('172.23.48.83', 104, 'BFHKFNMMI1')
 BISPEBJERG_PET_ARCHIVE = Address('172.23.48.110', 11112, 'BBHKFNMOSIRIX')
 BISPEBJERG_PROD_ARCHIVE = Address('172.23.48.76', 11112, 'BBHKFAGW1')
 
+AARHUS_ARCHIVE = Address('195.80.249.41', 10505, "DKAUHNUPOTS04")
+
 class Destination(Enum):
   # Values in enum are meanless
   Rigshospitalet = 1
   Bispebjerg  = 2
+  Aarhus = 3
 
 def dataset_destination(datasets) -> Destination:
   """Determines the endpoint that we should send data to"""
@@ -72,6 +77,8 @@ def dataset_destination(datasets) -> Destination:
 
   if institution == 'Nuklearmedicin':
     return Destination.Rigshospitalet
+  if institution == 'AUH':
+     return Destination.Aarhus
 
   if 'Bispebjerg' in institution:
     return Destination.Bispebjerg
@@ -91,6 +98,7 @@ class MyCTInput(AbstractInput):
     """
 
     enforce_single_series = True
+    enforce_single_study_date = True
 
     def validate(self) -> bool:
         maxInstanceNumber = -1
@@ -118,6 +126,7 @@ class MyPETInput(AbstractInput):
     """
 
     enforce_single_series = True
+    enforce_single_study_date = True
 
     def validate(self) -> bool:
         maxInstanceNumber = -1
@@ -144,6 +153,7 @@ class MyMRInput(AbstractInput):
     """
 
     enforce_single_series = True
+    enforce_single_study_date = True
 
     def validate(self) -> bool:
         minInstanceNumber = 1000
@@ -190,6 +200,8 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
     data_directory = env.STORAGE_PATH
     # Network settings
     port: int = 1131
+    # port: int = 1337
+    
     ip: str = '0.0.0.0'
 
     # Logger settings: disable pynetdicom logger and set log level
@@ -283,6 +295,7 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
         cerebellum_path = node_functions.cerebellum_mask(self, anatomical_bet_preproc_path)
 
         # Get prediction data and statistics based on PET and CT data
+        # prediction_data = prediction_node.get_predition(self.logger, anatomical_bet_preproc_path, pet_resampled_path)
         prediction_data = node_functions.get_predition(self.logger, anatomical_bet_preproc_path, pet_resampled_path)
         pet_normalized_data, cerebellum_mask_data, patient_values, cerebellum_median = node_functions.get_statistics(
             self.logger, pet_resampled_path, cerebellum_path, prediction_data
@@ -290,14 +303,16 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
 
         # Generate the report
         report = node_functions.generate_report(
-            self, ref_pet_dicom, anatomical_desc, pet_normalized_data, anatomical_resampled_path,
+        # report = report_node.generate_report( 
+            self, ref_pet_dicom, anatomical_desc, pet_normalized_data, anatomical_resampled_path, 
             prediction_data, cerebellum_mask_data, patient_values, MR_flag
         )
 
-        # pet_normalized_pet_space = node_functions.reverse_pet_resampling(self, pet_normalized_data, pet_resampled_path, pet_swap_path, anatomical_bet_path, trans_anatomical, trans_pet)
+        # Normalize PET data based on cerebellum median and create a new NIfTI image
         pet_sbr_data = pet.get_fdata() / cerebellum_median - 1
-        self.logger.info(np.max(pet_sbr_data))
         pet_normalized_org = nib.Nifti1Image(pet_sbr_data, pet.affine)
+        
+        # DICOM PART
         time_now = datetime.now().strftime("%Y/%m/%d %H:%M:%S")
         modality_name = f"PET PE2I SBR {time_now}"
         self.logger.info(len(ref_pet_dicoms))
