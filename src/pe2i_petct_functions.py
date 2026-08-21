@@ -983,19 +983,12 @@ def registration_ants(self, pet_path, anatomical_path, brain_path):
     self.logger.info('Moving PET to template space')
     pet_to_mni = move_to_space(fixed=brain_template, moving=pet_to_anatomical['warpedmovout'], transformlist=transform_to_mni)
 
-    pet_to_ct_path = '/home/zuza/test/pettoct_ants.nii.gz'
-    pet_to_mni_path = '/home/zuza/test/pettomni_ants.nii.gz'
-    anatomical_to_mni_path = '/home/zuza/test/anatomical_tomni_ants.nii.gz'
-    brain_to_mni_path = '/home/zuza/test/brain_tomni_ants.nii.gz'
-    pet_path2 = '/home/zuza/test/pet_ants.nii.gz'
-    ct_path2 = '/home/zuza/test/ct_ants.nii.gz'
-    ants.image_write(pet, pet_path2)
-    ants.image_write(anatomical, ct_path2)
+    pet_to_mni_path = 'pettomni_ants.nii.gz'
+    anatomical_to_mni_path = 'anatomical_tomni_ants.nii.gz'
+    brain_to_mni_path = 'brain_tomni_ants.nii.gz'
     ants.image_write(pet_to_mni, pet_to_mni_path)
-    ants.image_write(pet_to_anatomical['warpedmovout'], pet_to_ct_path)
     ants.image_write(anatomical_to_mni['warpedmovout'], anatomical_to_mni_path)
     ants.image_write(brain_to_mni_reg['warpedmovout'], brain_to_mni_path)
-
     return  pet_to_mni_path, anatomical_to_mni_path, brain_to_mni_path
 
 def get_statistics(logger, pet_path, cerebellum_path, prediction):
