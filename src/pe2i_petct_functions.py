@@ -473,6 +473,189 @@ def cerebellum_mask(self, input_file):
     return out_file
 
 
+# def resampling(self, pet_nii, anatomical_nii, brain_nii):
+#     """
+#     Resample and register PET and anatomical scans to a brain template, ensuring that all steps 
+#     are performed only if the corresponding output files do not already exist.
+
+#     This function performs the following operations:
+#     1. Registers the anatomical brain modality to an average brain template.
+#     2. Resamples the anatomical brain modality and anatomical modality to match the brain template.
+#     3. Registers and resamples the PET image to the anatomical modality and brain template.
+
+#     Parameters:
+#     -----------
+#     pet_nii : nib.Nifti1Image
+#         The NIfTI image representing the PET scan.
+#     anatomical_nii : nib.Nifti1Image
+#         The NIfTI image representing the anatomical scan.
+#     brain_nii : nib.Nifti1Image
+#         The NIfTI image representing the brain scan.
+
+#     Returns:
+#     --------
+#     petrsltemplate_path : str
+#         File path to the PET image resampled to the brain template.
+#     anatomicalrsl_path : str
+#         File path to the anatomical image resampled to the brain template.
+#     brainrsl_path : str
+#         File path to the brain image resampled to the brain template.
+#     trans_pet : pathlike object 
+#         The transformation matrix file that defines the transformation from PET space to CT space
+#     trans_anatomical : pathlike object 
+#         The transformation matrix file that defines the transformation from CT space to MNI space.
+#     Exceptions:
+#     -----------
+#     Raises IOError if any of the registration or resampling steps fail to create the expected output files.
+
+#     Notes:
+#     ------
+#     The function uses the `reg_aladin` tool for image registration and the `reg_resample` tool for resampling.
+#     """
+
+#     # Define file paths for templates and output files
+#     template_path = STATIC_FILES / 'avg_template_swap.nii.gz'
+#     brainreg_path = os.getcwd() + '/brain_reg_avg.nii.gz'
+#     brainrsl_path = os.getcwd() + '/brain_rsl_avg.nii.gz'
+#     trans_anatomical = os.getcwd() + '/brain_to_avg.txt'
+#     anatomicalrsl_path = os.getcwd() + '/anatomical_rsl_avg.nii.gz'
+#     petreg_path = os.getcwd() + '/pet_rsl_anatomical.nii.gz'
+#     petrsltemplate_path = os.getcwd() + '/pet_rsl_avg.nii.gz'
+#     trans_pet = os.getcwd() + '/pet_to_anatomical.txt'
+
+#     # Step 1: Register anatomical brain to the average template if the transformation doesn't exist
+#     self.logger.info(f'Registering anatomical brain to template')
+#     reg_aladin(ref_file=template_path, 
+#                 flo_file=brain_nii,
+#                 aff_file=trans_anatomical,
+#                 res_file=brainreg_path,
+#                 verbosity='none')
+    
+#     # Verify if registration was successful
+#     if not Path(trans_anatomical).is_file():
+#         self.logger.error(f"Failed to save anatomical brain registration at {trans_anatomical}")
+#         raise IOError(f"Anatomical brain registration not saved: {trans_anatomical}")
+
+#     # Step 2: Resample anatomical brain to the template if not already resampled  
+#     self.logger.info(f'Resampling anatomical brain to template')
+#     reg_resample(ref_file=template_path, 
+#                     flo_file=brain_nii,
+#                     trans_file=trans_anatomical,
+#                     out_file=brainrsl_path,
+#                     interpol='LIN',
+#                     pad_val=-1024,
+#                     verbosity='none')
+    
+#     # Check if brain resampling was successful
+#     if not Path(brainrsl_path).is_file():
+#         self.logger.error(f"Failed to save resampled anatomical brain at {brainrsl_path}")
+#         raise IOError(f"Resampled anatomical brain not saved: {brainrsl_path}")
+        
+#     # Step 3: Resample anatomical modality to the template if not already resampled
+#     self.logger.info('Resampling anatomical to template')
+#     reg_resample(ref_file=template_path,
+#                     flo_file=anatomical_nii,
+#                     trans_file=trans_anatomical,
+#                     out_file=anatomicalrsl_path,
+#                     interpol='LIN',
+#                     pad_val=-1024,
+#                     verbosity='none')
+    
+#     # Check if anatomical resampling was successful
+#     if not Path(anatomicalrsl_path).is_file():
+#         self.logger.error(f"Failed to save resampled anatomical at {anatomicalrsl_path}")
+#         raise IOError(f"Resampled anatomical not saved: {anatomicalrsl_path}")
+
+#     # Step 4: Register PET to anatomical modality if the transformation doesn't exist
+#     self.logger.info('Registering PET to anatomical')
+#     reg_aladin(ref_file=anatomical_nii, 
+#                 flo_file=pet_nii,
+#                 aff_file=trans_pet,
+#                 res_file=petreg_path,
+#                 verbosity='none')
+    
+#     # Verify if PET registration was successful
+#     if not Path(trans_pet).is_file():
+#         self.logger.error(f"Failed to save PET registration at {trans_pet}")
+#         raise IOError(f"PET registration not saved: {trans_pet}")
+
+#     # Step 5: Resample PET to the brain template if not already resampled
+#     self.logger.info('Resampling PET to template')
+#     reg_resample(ref_file=template_path,
+#                     flo_file=petreg_path,
+#                     trans_file=trans_anatomical,
+#                     out_file=petrsltemplate_path,
+#                     interpol='LIN',
+#                     pad_val=0,
+#                     verbosity='none')
+    
+#     # Check if PET resampling to template was successful
+#     if not Path(petrsltemplate_path).is_file():
+#         self.logger.error(f"Failed to save resampled PET at {petrsltemplate_path}")
+#         raise IOError(f"Resampled PET not saved: {petrsltemplate_path}")
+
+#     return petrsltemplate_path, anatomicalrsl_path, brainrsl_path, trans_pet, trans_anatomical
+
+
+def get_predition(logger, brain_path, pet_path):
+    """
+    Obtain the segmentation prediction for basal ganglia using a trained deep learning model.
+
+    This function normalizes the input anatomical and PET images, loads a pre-trained model, and generates 
+    a segmentation prediction for the basal ganglia. It ensures TensorFlow resources are properly 
+    released after prediction.
+
+    Parameters:
+    -----------
+    logger : Logger object
+        Logger for logging the process information.
+    brain_path : str
+        File path to the anatomical brain modality NIfTI image.
+    pet_path : str
+        File path to the PET NIfTI image.
+
+    Returns:
+    --------
+    prediction_image : numpy array
+        The segmentation prediction image of basal ganglia.
+    
+    Exceptions:
+    -----------
+    Logs an exception if there is an error while clearing the TensorFlow session.
+
+    Notes:
+    ------
+    - Normalization of input images is performed before prediction.
+    - The model expects normalized anatomical and PET images as inputs and predicts three label values (0, 2, 3).
+    - TensorFlow session is cleared to manage memory usage after prediction.
+    """
+
+    logger.info('Getting predition.')
+    
+    # Normalize anatomical and PET images
+    input_files = normalize(logger, brain_path, pet_path) 
+    
+    try:
+        # Define the path to the trained model
+        MODEL_PATH  = STATIC_FILES / 'new_model_other.keras'
+        
+        # Run prediction using the model
+        prediction_image = run_prediction(logger, 
+                                          model_file=MODEL_PATH,  # Path to the trained model
+                                          labels=(0, 2, 3),       # The label values (0, 2, 3) that the model will predict
+                                          input_data=input_files  # The normalized input data
+                                          )
+    finally:
+        try:
+            # Clear the TensorFlow session to free up resources
+            tf.keras.backend.clear_session()
+        except Exception as e:
+            # Log any exceptions encountered during session clearing
+            logger.info(e)
+
+    return prediction_image
+
+
 def registration_helper(
     fixed,
     moving,
@@ -617,6 +800,18 @@ def registration_helper(
         ] + initx + [
             "-n",
             "Linear",
+            # --- NEW:  Rigid stage,
+            "-t",
+            "Rigid[0.1]",
+            "-m",
+            "%s[%s,%s,1,%s]" % (aff_metric, f, m, aff_sampling),
+            "-c",
+            "[1000x500x250x100,1e-6,10]",
+            "-s",
+            "4.0x3.0x2.0x1.0",
+            "-f",
+            "12x8x4x2",
+            # --- end new Rigid stage ---
             "-t",
             "Affine[0.1]",  # this is different
             "-m",
@@ -764,197 +959,20 @@ def registration_ants(self, pet_path, anatomical_path, brain_path):
     self.logger.info('Moving PET to template space')
     pet_to_mni = move_to_space(fixed=brain_template, moving=pet_to_anatomical['warpedmovout'], transformlist=transform_to_mni)
 
-    pet_to_mni_path = 'pettomni_ants.nii.gz'
-    anatomical_to_mni_path = 'anatomical_tomni_ants.nii.gz'
-    brain_to_mni_path = 'brain_tomni_ants.nii.gz'
+    pet_to_ct_path = '/home/zuza/test/pettoct_ants.nii.gz'
+    pet_to_mni_path = '/home/zuza/test/pettomni_ants.nii.gz'
+    anatomical_to_mni_path = '/home/zuza/test/anatomical_tomni_ants.nii.gz'
+    brain_to_mni_path = '/home/zuza/test/brain_tomni_ants.nii.gz'
+    pet_path2 = '/home/zuza/test/pet_ants.nii.gz'
+    ct_path2 = '/home/zuza/test/ct_ants.nii.gz'
+    ants.image_write(pet, pet_path2)
+    ants.image_write(anatomical, ct_path2)
     ants.image_write(pet_to_mni, pet_to_mni_path)
+    ants.image_write(pet_to_anatomical['warpedmovout'], pet_to_ct_path)
     ants.image_write(anatomical_to_mni['warpedmovout'], anatomical_to_mni_path)
     ants.image_write(brain_to_mni_reg['warpedmovout'], brain_to_mni_path)
     
     return  pet_to_mni_path, anatomical_to_mni_path, brain_to_mni_path
-
-
-def resampling(self, pet_nii, anatomical_nii, brain_nii):
-    """
-    Resample and register PET and anatomical scans to a brain template, ensuring that all steps 
-    are performed only if the corresponding output files do not already exist.
-
-    This function performs the following operations:
-    1. Registers the anatomical brain modality to an average brain template.
-    2. Resamples the anatomical brain modality and anatomical modality to match the brain template.
-    3. Registers and resamples the PET image to the anatomical modality and brain template.
-
-    Parameters:
-    -----------
-    pet_nii : nib.Nifti1Image
-        The NIfTI image representing the PET scan.
-    anatomical_nii : nib.Nifti1Image
-        The NIfTI image representing the anatomical scan.
-    brain_nii : nib.Nifti1Image
-        The NIfTI image representing the brain scan.
-
-    Returns:
-    --------
-    petrsltemplate_path : str
-        File path to the PET image resampled to the brain template.
-    anatomicalrsl_path : str
-        File path to the anatomical image resampled to the brain template.
-    brainrsl_path : str
-        File path to the brain image resampled to the brain template.
-    trans_pet : pathlike object 
-        The transformation matrix file that defines the transformation from PET space to CT space
-    trans_anatomical : pathlike object 
-        The transformation matrix file that defines the transformation from CT space to MNI space.
-    Exceptions:
-    -----------
-    Raises IOError if any of the registration or resampling steps fail to create the expected output files.
-
-    Notes:
-    ------
-    The function uses the `reg_aladin` tool for image registration and the `reg_resample` tool for resampling.
-    """
-
-    # Define file paths for templates and output files
-    template_path = STATIC_FILES / 'avg_template_swap.nii.gz'
-    brainreg_path = os.getcwd() + '/brain_reg_avg.nii.gz'
-    brainrsl_path = os.getcwd() + '/brain_rsl_avg.nii.gz'
-    trans_anatomical = os.getcwd() + '/brain_to_avg.txt'
-    anatomicalrsl_path = os.getcwd() + '/anatomical_rsl_avg.nii.gz'
-    petreg_path = os.getcwd() + '/pet_rsl_anatomical.nii.gz'
-    petrsltemplate_path = os.getcwd() + '/pet_rsl_avg.nii.gz'
-    trans_pet = os.getcwd() + '/pet_to_anatomical.txt'
-
-    # Step 1: Register anatomical brain to the average template if the transformation doesn't exist
-    self.logger.info(f'Registering anatomical brain to template')
-    reg_aladin(ref_file=template_path, 
-                flo_file=brain_nii,
-                aff_file=trans_anatomical,
-                res_file=brainreg_path,
-                verbosity='none')
-    
-    # Verify if registration was successful
-    if not Path(trans_anatomical).is_file():
-        self.logger.error(f"Failed to save anatomical brain registration at {trans_anatomical}")
-        raise IOError(f"Anatomical brain registration not saved: {trans_anatomical}")
-
-    # Step 2: Resample anatomical brain to the template if not already resampled  
-    self.logger.info(f'Resampling anatomical brain to template')
-    reg_resample(ref_file=template_path, 
-                    flo_file=brain_nii,
-                    trans_file=trans_anatomical,
-                    out_file=brainrsl_path,
-                    interpol='LIN',
-                    pad_val=-1024,
-                    verbosity='none')
-    
-    # Check if brain resampling was successful
-    if not Path(brainrsl_path).is_file():
-        self.logger.error(f"Failed to save resampled anatomical brain at {brainrsl_path}")
-        raise IOError(f"Resampled anatomical brain not saved: {brainrsl_path}")
-        
-    # Step 3: Resample anatomical modality to the template if not already resampled
-    self.logger.info('Resampling anatomical to template')
-    reg_resample(ref_file=template_path,
-                    flo_file=anatomical_nii,
-                    trans_file=trans_anatomical,
-                    out_file=anatomicalrsl_path,
-                    interpol='LIN',
-                    pad_val=-1024,
-                    verbosity='none')
-    
-    # Check if anatomical resampling was successful
-    if not Path(anatomicalrsl_path).is_file():
-        self.logger.error(f"Failed to save resampled anatomical at {anatomicalrsl_path}")
-        raise IOError(f"Resampled anatomical not saved: {anatomicalrsl_path}")
-
-    # Step 4: Register PET to anatomical modality if the transformation doesn't exist
-    self.logger.info('Registering PET to anatomical')
-    reg_aladin(ref_file=anatomical_nii, 
-                flo_file=pet_nii,
-                aff_file=trans_pet,
-                res_file=petreg_path,
-                verbosity='none')
-    
-    # Verify if PET registration was successful
-    if not Path(trans_pet).is_file():
-        self.logger.error(f"Failed to save PET registration at {trans_pet}")
-        raise IOError(f"PET registration not saved: {trans_pet}")
-
-    # Step 5: Resample PET to the brain template if not already resampled
-    self.logger.info('Resampling PET to template')
-    reg_resample(ref_file=template_path,
-                    flo_file=petreg_path,
-                    trans_file=trans_anatomical,
-                    out_file=petrsltemplate_path,
-                    interpol='LIN',
-                    pad_val=0,
-                    verbosity='none')
-    
-    # Check if PET resampling to template was successful
-    if not Path(petrsltemplate_path).is_file():
-        self.logger.error(f"Failed to save resampled PET at {petrsltemplate_path}")
-        raise IOError(f"Resampled PET not saved: {petrsltemplate_path}")
-
-    return petrsltemplate_path, anatomicalrsl_path, brainrsl_path, trans_pet, trans_anatomical
-
-
-def get_predition(logger, brain_path, pet_path):
-    """
-    Obtain the segmentation prediction for basal ganglia using a trained deep learning model.
-
-    This function normalizes the input anatomical and PET images, loads a pre-trained model, and generates 
-    a segmentation prediction for the basal ganglia. It ensures TensorFlow resources are properly 
-    released after prediction.
-
-    Parameters:
-    -----------
-    logger : Logger object
-        Logger for logging the process information.
-    brain_path : str
-        File path to the anatomical brain modality NIfTI image.
-    pet_path : str
-        File path to the PET NIfTI image.
-
-    Returns:
-    --------
-    prediction_image : numpy array
-        The segmentation prediction image of basal ganglia.
-    
-    Exceptions:
-    -----------
-    Logs an exception if there is an error while clearing the TensorFlow session.
-
-    Notes:
-    ------
-    - Normalization of input images is performed before prediction.
-    - The model expects normalized anatomical and PET images as inputs and predicts three label values (0, 2, 3).
-    - TensorFlow session is cleared to manage memory usage after prediction.
-    """
-
-    logger.info('Getting predition.')
-    
-    # Normalize anatomical and PET images
-    input_files = normalize(logger, brain_path, pet_path) 
-    
-    try:
-        # Define the path to the trained model
-        MODEL_PATH  = STATIC_FILES / 'new_model_other.keras'
-        
-        # Run prediction using the model
-        prediction_image = run_prediction(logger, 
-                                          model_file=MODEL_PATH,  # Path to the trained model
-                                          labels=(0, 2, 3),       # The label values (0, 2, 3) that the model will predict
-                                          input_data=input_files  # The normalized input data
-                                          )
-    finally:
-        try:
-            # Clear the TensorFlow session to free up resources
-            tf.keras.backend.clear_session()
-        except Exception as e:
-            # Log any exceptions encountered during session clearing
-            logger.info(e)
-
-    return prediction_image
 
 
 def get_statistics(logger, pet_path, cerebellum_path, prediction):
@@ -1015,33 +1033,67 @@ def get_statistics(logger, pet_path, cerebellum_path, prediction):
     prediction_left = get_split(prediction, 'left')
     prediction_right = get_split(prediction, 'right')
 
-    # Step 3: Get posterior putamen masks
-    posterior_putamen_mask_left = get_posterior_putamen(prediction, 'left')
-    posterior_putamen_mask_right = get_posterior_putamen(prediction, 'right')  
+    # Step 3: Check each structure/hemisphere mask for emptiness up front.
+    # This catches e.g. a surgically removed putamen or caudate nucleus before
+    # any arithmetic (median/division/eig) is attempted on it.
+    putamen_left_mask = prediction_left == 2
+    putamen_right_mask = prediction_right == 2
+    caudate_left_mask = prediction_left == 3
+    caudate_right_mask = prediction_right == 3
+    striatum_left_mask = prediction_left != 0
+    striatum_right_mask = prediction_right != 0
 
-    # Step 4: Calculate SBR (Specific Binding Ratio) for each region
-    putamen_left = get_sbr(pet_left[prediction_left == 2], cerebellum_median)
-    putamen_right = get_sbr(pet_right[prediction_right == 2], cerebellum_median)
-    caudate_left = get_sbr(pet_left[prediction_left == 3], cerebellum_median)
-    caudate_right = get_sbr(pet_right[prediction_right == 3], cerebellum_median)
-    striatum_left = get_sbr(pet_left[prediction_left != 0 ], cerebellum_median) 
-    striatum_right = get_sbr(pet_right[prediction_right != 0 ], cerebellum_median) 
-    posterior_putamen_left = get_sbr(pet_data[posterior_putamen_mask_left == 2], cerebellum_median)
-    posterior_putamen_right = get_sbr(pet_data[posterior_putamen_mask_right == 2], cerebellum_median)
+    structure_masks = {
+        'Putamen left': putamen_left_mask,
+        'Putamen right': putamen_right_mask,
+        'Caudate Nucleus left': caudate_left_mask,
+        'Caudate Nucleus right': caudate_right_mask,
+        'Striatum left': striatum_left_mask,
+        'Striatum right': striatum_right_mask,
+    }
+    for label, mask in structure_masks.items():
+        if not mask.any():
+            logger.warning(f"{label}: structure not found in prediction (e.g. post-surgery); "
+                            "will report as 0 in statistics and DICOM header.")
 
-    # Step 5: Calculate ratios of putamen to caudate nucleus
-    ratio_left = putamen_left / caudate_left
-    ratio_right = putamen_right / caudate_right
-    ratio_posterior_left = posterior_putamen_left / caudate_left
-    ratio_posterior_right = posterior_putamen_right / caudate_right
+    # Step 4: Get posterior putamen masks, only if the putamen actually has voxels
+    # in that hemisphere (skip the PCA-based posterior/anterior split otherwise)
+    if putamen_left_mask.any():
+        posterior_putamen_mask_left = get_posterior_putamen(prediction, 'left', logger)
+    else:
+        logger.warning("Putamen left: no voxels found; skipping posterior putamen calculation, reporting as 0.")
+        posterior_putamen_mask_left = np.zeros_like(prediction)
 
-    # Step 6: Calculate asymmetry indices
-    caudate_asymmetry = get_asymmetry(caudate_right, caudate_left)
-    putamen_asymmetry = get_asymmetry(putamen_right, putamen_left)
-    posterior_asymmetry = get_asymmetry(posterior_putamen_right, posterior_putamen_left)
-    striatum_asymmetry = get_asymmetry(striatum_right, striatum_left)
-    ratio_asymmetry = get_asymmetry(ratio_right, ratio_left)
-    ratio_posterior_asymmetry = get_asymmetry(ratio_posterior_right, ratio_posterior_left)
+    if putamen_right_mask.any():
+        posterior_putamen_mask_right = get_posterior_putamen(prediction, 'right', logger)
+    else:
+        logger.warning("Putamen right: no voxels found; skipping posterior putamen calculation, reporting as 0.")
+        posterior_putamen_mask_right = np.zeros_like(prediction)
+
+    # Step 5: Calculate SBR (Specific Binding Ratio) for each region, safely
+    putamen_left = get_sbr_safe(pet_left[putamen_left_mask], cerebellum_median, logger, 'Putamen left')
+    putamen_right = get_sbr_safe(pet_right[putamen_right_mask], cerebellum_median, logger, 'Putamen right')
+    caudate_left = get_sbr_safe(pet_left[caudate_left_mask], cerebellum_median, logger, 'Caudate Nucleus left')
+    caudate_right = get_sbr_safe(pet_right[caudate_right_mask], cerebellum_median, logger, 'Caudate Nucleus right')
+    striatum_left = get_sbr_safe(pet_left[striatum_left_mask], cerebellum_median, logger, 'Striatum left')
+    striatum_right = get_sbr_safe(pet_right[striatum_right_mask], cerebellum_median, logger, 'Striatum right')
+    posterior_putamen_left = get_sbr_safe(pet_data[posterior_putamen_mask_left == 2], cerebellum_median, logger, 'Posterior Putamen left')
+    posterior_putamen_right = get_sbr_safe(pet_data[posterior_putamen_mask_right == 2], cerebellum_median, logger, 'Posterior Putamen right')
+
+    # Step 6: Calculate ratios of putamen to caudate nucleus, safely
+    ratio_left = safe_divide(putamen_left, caudate_left, logger, 'Putamen / Caudate Nucleus left')
+    ratio_right = safe_divide(putamen_right, caudate_right, logger, 'Putamen / Caudate Nucleus right')
+    ratio_posterior_left = safe_divide(posterior_putamen_left, caudate_left, logger, 'Posterior Putamen / Caudate Nucleus left')
+    ratio_posterior_right = safe_divide(posterior_putamen_right, caudate_right, logger, 'Posterior Putamen / Caudate Nucleus right')
+
+    # Step 7: Calculate asymmetry indices, safely
+    caudate_asymmetry = get_asymmetry_safe(caudate_right, caudate_left, logger, 'Caudate Nucleus')
+    putamen_asymmetry = get_asymmetry_safe(putamen_right, putamen_left, logger, 'Putamen')
+    posterior_asymmetry = get_asymmetry_safe(posterior_putamen_right, posterior_putamen_left, logger, 'Posterior Putamen')
+    striatum_asymmetry = get_asymmetry_safe(striatum_right, striatum_left, logger, 'Striatum')
+    ratio_asymmetry = get_asymmetry_safe(ratio_right, ratio_left, logger, 'Putamen / Caudate Nucleus ratio')
+    ratio_posterior_asymmetry = get_asymmetry_safe(ratio_posterior_right, ratio_posterior_left, logger, 'Posterior Putamen / Caudate Nucleus ratio')
+
     
     # Step 7: Compile statistics into a dictionary
     data = {
@@ -1142,7 +1194,46 @@ def get_asymmetry(right, left):
     return asymmetry
 
 
-def get_posterior_putamen(prediction_data, direction):
+def get_sbr_safe(region_data, cerebellum_median, logger=None, label="region"):
+    """
+    Same as get_sbr, but returns 0.0 (with a logged warning) instead of NaN
+    when the region is empty (structure not present in this hemisphere).
+    """
+    if region_data.size == 0:
+        if logger is not None:
+            logger.warning(f"{label}: no voxels found (structure absent); reporting SBR as 0.")
+        return 0.0
+    return get_sbr(region_data, cerebellum_median)
+
+
+def get_asymmetry_safe(right, left, logger=None, label="region"):
+    """
+    Same as get_asymmetry, but returns 0.0 (with a logged warning) instead of
+    NaN when right + left == 0 (e.g. structure absent bilaterally, or one side
+    absent and the other legitimately at zero uptake).
+    """
+    denom = right + left
+    if denom == 0:
+        if logger is not None:
+            logger.warning(f"{label}: asymmetry undefined (right + left == 0); reporting as 0.")
+        return 0.0
+    return (right - left) / denom
+
+
+def safe_divide(numerator, denominator, logger=None, label="ratio"):
+    """
+    Divides numerator by denominator, returning 0.0 (with a logged warning)
+    instead of raising/producing inf or NaN when denominator == 0
+    (e.g. caudate absent, so putamen/caudate ratio is undefined).
+    """
+    if denominator == 0:
+        if logger is not None:
+            logger.warning(f"{label}: denominator is zero; reporting as 0.")
+        return 0.0
+    return numerator / denominator
+
+
+def get_posterior_putamen( prediction_data, direction, logger):
     """
     Identifies the posterior putamen region from prediction data for a specified hemisphere.
 
@@ -1172,7 +1263,20 @@ def get_posterior_putamen(prediction_data, direction):
 
     # Get the coordinates of non-zero voxels in the putamen region
     xo, zo, yo = np.nonzero(putamen)
+    
+    # Prepare an empty mask up front so we can return it early if needed
+    putamen_posterior = np.zeros_like(prediction_data)
 
+    # If the putamen is absent or has too few voxels, skip the
+    # PCA-based split and return an empty posterior-putamen mask 
+    if xo.size < 2:
+        message = (f"Putamen not found (or too few voxels: {xo.size}) in the "
+                    f"'{direction}' hemisphere; treating as absent (e.g. post-surgery). "
+                    "Returning empty posterior putamen mask.")
+        if logger is not None:
+            logger.warning(message)
+        return putamen_posterior
+    
     # Center the coordinates relative to their mean
     x = xo - np.mean(xo)
     y = yo - np.mean(yo)
@@ -1195,9 +1299,7 @@ def get_posterior_putamen(prediction_data, direction):
                             np.extract(posterior, yo)])
 
     # Create a mask for the posterior putamen
-    putamen_posterior = np.zeros_like(prediction_data)
     putamen_posterior[tuple(coords_low)] = 2 # Set the posterior putamen voxels to 2 (same as putamen label)
-
 
     return putamen_posterior
 
@@ -1244,203 +1346,12 @@ def run_prediction(logger, model_file, labels, input_data, threshold=0.5):
         raise RuntimeError(f"Failed to run prediction: {e}")
 
 
-def reg_transform(input_affine_file, inverse_affine_file, logger, verbosity='none'):
-    """
-    Inverts an affine transformation matrix using Nipype RegTransform.
-
-    Parameters:
-    -----------
-    input_affine_file : pathlike object or str
-        The input transformation file to be inverted.
-    inverse_affine_file : pathlike object or str
-        The output file path for the inverted affine matrix.
-    logger : logging.Logger
-        Logger instance for logging messages.
-    verbosity : str, optional
-        Nipype terminal output verbosity. Default is 'none'.
-
-    Returns:
-    --------
-    str
-        Path to the generated inverted affine file.
-
-    Raises:
-    -------
-    RuntimeError
-        If the Nipype RegTransform command fails.
-    FileNotFoundError
-        If the output inverted affine file is not created.
-    """
-    rt = RegTransform()
-    rt.inputs.inv_aff_input = str(input_affine_file)
-    rt.inputs.out_file = str(inverse_affine_file) # Output for inverted affine
-    rt.terminal_output = verbosity
-    try:
-        result = rt.run()
-
-        if result.runtime.returncode != 0:
-            stderr_output = result.runtime.stderr or "No stderr output"
-            stdout_output = result.runtime.stdout or "No stdout output"
-            logger.error(f"Nipype RegTransform failed with return code {result.runtime.returncode}. "
-                         f"Error: {stderr_output}. Output: {stdout_output}")
-            raise RuntimeError(f"Nipype RegTransform failed for {input_affine_file}. Error: {stderr_output}")
-
-        # result.outputs.inv_aff_file should be the path to the output
-        output_path_from_nipype = Path(result.inputs['out_file'])
-        if not output_path_from_nipype.is_file():
-            logger.error(f"Nipype RegTransform ran but output file '{output_path_from_nipype}' was not created.")
-            raise FileNotFoundError(f"Output file '{output_path_from_nipype}' not found after RegTransform.")
-        logger.info(f"Inverted affine transform saved to: '{output_path_from_nipype}'")
-        return str(output_path_from_nipype)
-
-    except Exception as e:
-        logger.error(f"Exception during Nipype RegTransform for '{input_affine_file}': {e}")
-        raise
-
-
-def reverse_pet_resampling(self,
-                               pet_normalized_data,
-                               pet_resampled_path, 
-                               original_pet_swap_path,
-                               original_anatomical_bet_path,
-                               trans_anatomical_path,
-                               trans_pet_path):
-    """
-    Reverses the resampling steps applied to the PET image.
-
-    Parameters:
-    -----------
-    pet_normalized_data : #TODO
-    original_pet_swap_path : str or Path
-        Path to the PET image *after* initial swap_dims, but *before* resampling.
-        This is the target space for the final reversed PET.
-    original_anatomical_bet_path : str or Path
-        Path to the skull-stripped anatomical image that was used to derive trans_anatomical.
-        This serves as the reference space for the first part of the reversal.
-    trans_anatomical_path : str
-        Path to the transformation file from anatomical (brain) to template (e.g., 'brain_to_avg.txt').
-    trans_pet_path : str 
-        Path to the transformation file from original PET to anatomical (e.g., 'pet_to_anatomical.txt').
-
-    Returns:
-    --------
-    str :
-        File path to the PET image resampled back to the 'pet_swap' space.
-    """
-    self.logger.info("Starting reversal of PET resampling using Nipype functions...")
-    pet_normalized_path = os.getcwd() +  "/pet_normalized.nii.gz"
-    pet_resampled_nii = nib.load(pet_resampled_path)
-    pet_normalized_nii = nib.Nifti1Image(pet_normalized_data, pet_resampled_nii.affine)
-    nib.save(pet_normalized_nii, pet_normalized_path)
-    # 1. Invert trans_anatomical (template to anatomical_bet space)
-    inv_trans_anatomical_path = os.getcwd() +  "/inv_anatomical_to_template.txt"
-    self.logger.info(f"Inverting anatomical-to-template transform: '{trans_anatomical_path}'")
-    # Use the new Nipype wrapper for reg_transform
-    reg_transform(
-        input_affine_file=trans_anatomical_path,
-        inverse_affine_file=inv_trans_anatomical_path,
-        logger=self.logger,
-        verbosity='none' # Or your preferred verbosity
-    )
-    # Error handling is within reg_transform_invert_affine_nipype which raises on failure
-
-    # 2. Resample pet_normalized_data from template space back to anatomical_bet space
-    pet_reverted_to_anatomical_space_path = os.getcwd() +  "/pet_reverted_to_anatomical_space.nii.gz"
-    self.logger.info(f"Resampling PET from template space to anatomical_bet space ('{original_anatomical_bet_path}')")
-    # Use the provided reg_resample function
-    result_step2 = reg_resample(
-        ref_file=original_anatomical_bet_path,
-        flo_file=pet_normalized_path,
-        trans_file=inv_trans_anatomical_path,
-        out_file=pet_reverted_to_anatomical_space_path,
-        interpol='LIN', # Common choice for PET
-        pad_val=-1,      # Match original padding for PET if possible
-        verbosity='none'
-    )
-    if result_step2.runtime.returncode != 0 or not Path(result_step2.outputs.out_file).is_file():
-        self.logger.error(f"Step 2 resampling failed. Stderr: {result_step2.runtime.stderr}")
-        raise IOError(f"Failed to create resampled PET: '{pet_reverted_to_anatomical_space_path}'")
-
-    # 3. Invert trans_pet (anatomical to original PET space)
-    inv_trans_pet_path = os.getcwd() +  "/inv_pet_to_anatomical.txt"
-    self.logger.info(f"Inverting PET-to-anatomical transform: '{trans_pet_path}'")
-    reg_transform(
-        input_affine_file=trans_pet_path,
-        inverse_affine_file=inv_trans_pet_path,
-        logger=self.logger,
-        verbosity='none'
-    )
-
-    # 4. Resample the result from step 2 back to the original pet_swap space
-    final_reversed_pet_path = os.getcwd() +  "/pet_reverted_to_original_swapped_space.nii.gz"
-    self.logger.info(f"Resampling PET from anatomical space to original PET_swap space ('{original_pet_swap_path}')")
-    result_step4 = reg_resample(
-        ref_file=original_pet_swap_path,
-        flo_file=pet_reverted_to_anatomical_space_path,
-        trans_file=inv_trans_pet_path,
-        out_file=final_reversed_pet_path,
-        interpol='LIN',
-        pad_val=0,
-        verbosity='none'
-    )
-    if result_step4.runtime.returncode != 0 or not Path(result_step4.outputs.out_file).is_file():
-        self.logger.error(f"Step 4 resampling failed. Stderr: {result_step4.runtime.stderr}")
-        raise IOError(f"Failed to create final reversed PET: '{final_reversed_pet_path}'")
-
-    self.logger.info(f"Successfully reversed PET resampling. Output: '{final_reversed_pet_path}'")
-    return final_reversed_pet_path
-
-
-def reverse_swap_dims(self,
-                        normalized_pet_path,
-                        original_pet):
-    """
-    Reverses the dimension swapping if it was originally applied.
-
-    Parameters:
-    -----------
-    normalized_pet_path : str
-        Path to the NIfTI image that needs potential un-swapping (output from reverse_pet_resampling).
-    original_pet : nib.Nifti1Image
-        The nibabel NIfTI image object of the *very original* PET scan,
-        before any processing.
-
-    Returns:
-    --------
-    nib.Nifti1Image :
-        The unswapped NIfTI image.
-    """
-    self.logger.info(f"Starting reversal of swap_dims for normalized pet")
-
-    resampled_image = resample_to_img(
-            source_img=nib.load(normalized_pet_path),
-            target_img=original_pet,
-            interpolation='linear', 
-            force_resample=True
-        )
-    nib.save(resampled_image, os.getcwd() +  "/normalised_pet_back_to_original.nii.gz")
-    return resampled_image
-
-
-def get_pet_dicom(self, pet_nii, ref_pet_dicom, modality_name, series_number):
+def get_pet_dicom(self, pet_nii, ref_pet_dicom, modality_name):
     self.logger.info('Conversion of normalized PET nifti to DICOM')
     pet_data = pet_nii.get_fdata()
     # pet_data =  pet_data.T
     pet_data = (pet_nii.get_fdata().T)[::-1,:, :] # maybe this not necessery 
     ref_pet_dicom.sort(key=lambda dcm: int(dcm.InstanceNumber))
-    # write mine function for getting points 
-    # points, voxel_dim, orientation, startpoint = create_dicom_coordinate_system(pet_nii)
-
-    # x_dim, y_dim, z_dim = voxel_dim
-
-    # def add_image_index(ie: InstanceEnvironment):
-    #     return ie.instance_number + 1
-
-    # def add_patient_position(ie):
-    #     return points[ie.instance_number]
-
-    # def add_slice_location(ie):
-    #     return points[ie.instance_number][2]
 
     PET_BLUEPRINT = Blueprint([
         # 0008
@@ -1532,176 +1443,6 @@ def get_pet_dicom(self, pet_nii, ref_pet_dicom, modality_name, series_number):
         # transposed_data, PET_BLUEPRINT, ref_pet_dicom
     )
 
-
-def nifti_to_pet_dicom(self, pet_nifti, ref_dicom, modality_name):
-    """
-    Converts a NIfTI image to a DICOM PET series using a reference DICOM series as a template.
-
-    Args:
-        nifti_path (N1ftiImage): Path to the input NIfTI file (.nii or .nii.gz).
-        ref_dicom_dir (str): Path to the directory containing the reference DICOM series.
-        output_dir (str): Path to the directory where the new DICOM files will be saved.
-    """
-    # --- 1. Load NIfTI Image ---
-    try:
-        # Load NIfTI data and transpose it so the slice dimension (z) is first.
-        # NIfTI is typically (x, y, z), transpose makes it (z, y, x).
-        nifti_data = pet_nifti.get_fdata().T[:,::-1,::-1]
-        nifti_affine = pet_nifti.affine
-    except Exception as e:
-        self.logger.error(f"Error: Could not read NIfTI file. {e}")
-        return
-
-    # # --- 2. Load Reference DICOM as Template ---
-    # self.logger.info(f"Loading reference DICOM from: {ref_dicom_dir}")
-    # try:
-    #     ref_files = [os.path.join(ref_dicom_dir, f) for f in os.listdir(ref_dicom_dir)]
-    #     if not ref_files:
-    #         self.logger.error(f"Error: No DICOM files (.dcm) found in {ref_dicom_dir}")
-    #         return
-    #     # Use the first file as the main template
-    #     ds_template = pydicom.dcmread(ref_files[0])
-    # except Exception as e:
-    #     self.logger.error(f"Error: Could not read reference DICOM files. {e}")
-    #     return
-    ds_template = ref_dicom[0]
-
-    # Generate a new SeriesInstanceUID for the entire series. This is critical.
-    new_series_uid = generate_uid()
-    
-    # Get current date and time for series/acquisition metadata
-    now = datetime.datetime.now()
-    series_date = now.strftime('%Y%m%d')
-    series_time = now.strftime('%H%M%S.%f')
-
-    # --- 4. Handle Pixel Data Scaling ---
-    # DICOM stores pixel data as integers. NIfTI often uses floats.
-    # We need to scale the float data to fit into a 16-bit unsigned integer range.
-    # This involves finding the min/max of the data and calculating a Rescale Slope and Intercept.
-    
-    # Set the target DICOM data type
-    output_dtype = np.uint16
-    
-    # Calculate scale factors. Add a small epsilon to avoid division by zero.
-    min_val = np.min(nifti_data)
-    max_val = np.max(nifti_data)
-    
-    # RescaleSlope * raw_pixel_value + RescaleIntercept = real_world_value
-    # We want to store uint16, so raw_pixel_value will be in [0, 65535]
-    if max_val - min_val < 1e-6:
-        rescale_slope = 1.0
-        rescale_intercept = 0.0
-    else:
-        rescale_slope = (max_val - min_val) / (np.iinfo(output_dtype).max - 1)
-        rescale_intercept = 0
-
-    # Scale the NIfTI data to the integer range
-    scaled_pixel_data = (nifti_data - rescale_intercept) / rescale_slope
-    scaled_pixel_data = scaled_pixel_data.astype(output_dtype)
-
-    self.logger.info(f"Pixel data scaling: Slope={rescale_slope:.6f}, Intercept={rescale_intercept:.6f}")
-
-
-    # --- 5. Create and Save Each DICOM Slice ---
-    num_slices = nifti_data.shape[0]
-    self.logger.info(f"Found {num_slices} slices. Starting DICOM creation...")
-    datasets = []
-    for i in range(num_slices):
-        # Make a copy of the template dataset for each slice
-        ds = ds_template
-
-        # --- Part A: Set File Meta Information ---
-        file_meta = FileMetaDataset()
-        file_meta.FileMetaInformationGroupLength = 200 # A reasonable default
-        file_meta.FileMetaInformationVersion = b'\x00\x01'
-        file_meta.MediaStorageSOPClassUID = pydicom.uid.PositronEmissionTomographyImageStorage
-        file_meta.MediaStorageSOPInstanceUID = generate_uid() # Each file gets a unique media storage UID
-        file_meta.TransferSyntaxUID = pydicom.uid.ExplicitVRLittleEndian
-        file_meta.ImplementationClassUID = pydicom.uid.PYDICOM_IMPLEMENTATION_UID
-        file_meta.ImplementationVersionName = 'PYDICOM 2.X.X'
-        ds.file_meta = file_meta
-
-        # --- Part B: Update Main DICOM Tags ---
-        # Set new UIDs
-        ds.SOPInstanceUID = file_meta.MediaStorageSOPInstanceUID
-        ds.SOPClassUID = pydicom.uid.PositronEmissionTomographyImageStorage
-        ds.SeriesInstanceUID = new_series_uid
-        
-        # Update date/time
-        ds.InstanceCreationDate = series_date
-        ds.InstanceCreationTime = series_time
-        ds.SeriesDate = series_date
-        ds.SeriesTime = series_time
-        ds.AcquisitionDate = series_date
-        ds.AcquisitionTime = series_time
-        ds.ContentDate = series_date
-        ds.ContentTime = series_time
-        
-        # Update series/instance numbers
-        ds.InstanceNumber = str(i + 1)
-        ds.SeriesNumber = ds_template.SeriesNumber if 'SeriesNumber' in ds_template else "99"
-
-        # --- Part C: Set PET-Specific Tags and Geometry ---
-        ds.Modality = "PT"
-        ds.Rows, ds.Columns = nifti_data.shape[1], nifti_data.shape[2]
-        
-        # Pixel Spacing and Slice Thickness from NIfTI header
-        # Note: NIfTI pixdim order is (junk, x, y, z, ...). After transpose, our data is (z,y,x)
-        pix_spacing_row = pet_nifti.header['pixdim'][2] # Corresponds to y-axis
-        pix_spacing_col = pet_nifti.header['pixdim'][1] # Corresponds to x-axis
-        slice_thickness = pet_nifti.header['pixdim'][3] # Corresponds to z-axis
-        
-        ds.PixelSpacing = [str(pix_spacing_row), str(pix_spacing_col)]
-        ds.SliceThickness = str(slice_thickness)
-        
-        # Image Position and Orientation
-        # This is the most complex part. We derive the ImagePositionPatient for the
-        # current slice from the NIfTI affine matrix. The affine maps voxel coordinates
-        # (i,j,k) to world coordinates (x,y,z). ImagePositionPatient is the (x,y,z)
-        # of the top-left corner of the slice.
-        # We calculate the position for the center of the first voxel of the slice.
-        # Voxel coordinate is (x,y,z) = (0,0,i), where i is the slice number.
-        position = nifti_affine @ [0, 0, i, 1]
-
-        ds.ImagePositionPatient = [str(p) for p in position[:3]]
-        
-        # The ImageOrientationPatient defines the direction of rows and columns.
-        # It's derived from the first two columns of the affine's rotation matrix.
-        row_cosine = nifti_affine[:3, 0] / np.linalg.norm(nifti_affine[:3, 0])
-        col_cosine = nifti_affine[:3, 1] / np.linalg.norm(nifti_affine[:3, 1])
-        ds.ImageOrientationPatient = [str(v) for v in np.concatenate((row_cosine, col_cosine))]
-
-        # Slice Location: z-coordinate from the ImagePositionPatient
-        ds.SliceLocation = str(position[2])
-
-        # --- Part D: Set Pixel Data and Rescaling Info ---
-        ds.PixelRepresentation = 0  # 0 for unsigned integer
-        ds.BitsAllocated = 16
-        ds.BitsStored = 16
-        ds.HighBit = 15
-        
-        # Add the scaling tags we calculated earlier
-        ds.RescaleIntercept = str(rescale_intercept)
-        ds.RescaleSlope = str(rescale_slope)
-        ds.WindowCenter = (max_val*0.8)/2
-        ds.WindowWidth = max_val*0.8
-        # Set Units to reflect that these are raw counts. If you have SUV values,
-        # you would set this to 'BQML' and adjust the scaling accordingly.
-        if 'Units' in ds:
-            ds.Units = "MLMLMIN" # Counts
-        if 'CorrectedImage' in ds:
-             # Assuming normalized, not fully corrected (ATTN, SCAT, DECAY)
-            ds.CorrectedImage = "NONE"
-
-        # Finally, set the pixel data for the current slice
-        ds.PixelData = scaled_pixel_data[i].tobytes()
-
-        # Update Series Description
-        ds.SeriesDescription = f"{modality_name}" 
-
-        datasets.append(ds)
-    # self.logger.info(len(datasets))
-    return datasets
 
 ############## report part ############
 def get_logo(institution: str):
@@ -2176,6 +1917,7 @@ def add_colormap_plot(doc, plt, vmin, vmax, step, add_max_tick=False,
         
         # Add the plot to the LaTeX document
         subplot2.add_plot(width=plot_width)
+        plt.close(fig)  # Close the figure to free memory
 
 
 def get_slices(masks, indices, num_slices):
@@ -2268,6 +2010,7 @@ def get_first_plots(doc, pet, mask, slices):
                 get_image_sides(axes[i])
 
             subplot1.add_plot()
+            plt.close(fig)  # Close the figure to free memory
 
         doc.append(NoEscape(r'\par \vfill'))
         
@@ -2332,6 +2075,7 @@ def plot_collapse_pet(img_pet, seg, axial_slices, normalization):
     axes.text(2, 5, 'R', color='#f9f9f9', fontsize=45)
     axes.text(xrang - 5, 5, 'L', color='#f9f9f9', fontsize=45)
 
+    return fig
 
 def add_average_plot(doc, norm_pet, mask, title, subfig_width, colormap_width, min_value, max_value, slices):
     """
@@ -2370,7 +2114,7 @@ def add_average_plot(doc, norm_pet, mask, title, subfig_width, colormap_width, m
         doc.append(NoEscape(r'\vspace{0.2cm}'))
         
         # Generate the collapsed PET image plot
-        plot_collapse_pet(
+        fig = plot_collapse_pet(
             norm_pet,
             mask,
             slice(slices[6]-1, slices[0]+1),
@@ -2378,7 +2122,8 @@ def add_average_plot(doc, norm_pet, mask, title, subfig_width, colormap_width, m
         )
         
         subplot.add_plot(width=NoEscape(subfig_width))
-
+        plt.close(fig)  # Close the figure to free memory
+        
         doc.append(NoEscape(r'\par \vfill'))
         
         # Determine if a maximum tick should be added to the color map based on the plot title
@@ -2490,7 +2235,8 @@ def plot_nine_pet(doc, pet, mask, pet_desc, slices):
                 get_image_sides(axes[i, j])  # Add R/L labels
 
             subplot1.add_plot()  # Add plot to the LaTeX document
-
+            plt.close(fig) # Close the figure to free memory
+            
         doc.append(NoEscape(r'\par \vfill'))
         
         # Add study description to the LaTeX document
@@ -2554,7 +2300,8 @@ def plot_ct(doc, anatomical, mask, anatomical_desc, slices, MR=False):
                 get_image_sides(axes[i, j])  # Add R/L labels
 
             subplot1.add_plot()  # Add plot to the LaTeX document
-    
+            plt.close(fig) # Close the figure to free memory
+            
     doc.append(NoEscape(r'\vspace{-0.7cm}'))
 
     # Add study description to the LaTeX document
@@ -2916,6 +2663,8 @@ def plot_normal(normal_values, patient_values, pt_age, name, legend=False):
     axes.spines['top'].set_visible(False)
     axes.spines['right'].set_visible(False)
     
+    return fig
+    
 
 def normal_reference_SD_plot(mu, sigma, sbr, measure_type):
     """
@@ -3032,7 +2781,9 @@ def normal_reference_SD_plot(mu, sigma, sbr, measure_type):
             label.set_position((0, 2.25))
             label.set_color("#2a623d" if interval_left < sbr else "#bf0000")
 
-    return Figure()._save_plot()
+    plot_path = Figure()._save_plot()
+    plt.close(fig)
+    return plot_path
 
 
 def plots_normal_values(doc, normal_values, patient_values, pt_age):
@@ -3084,19 +2835,21 @@ def plots_normal_values(doc, normal_values, patient_values, pt_age):
             doc.append(Command('centering'))
 
             # Generate the plot for the Putamen region
-            plot_normal(normal_values, patient_values, pt_age, "Putamen", legend=True)
+            fig1 = plot_normal(normal_values, patient_values, pt_age, "Putamen", legend=True)
 
             subplot1.add_plot(width=subfig_width)
-
+            plt.close(fig1)
+            
         doc.append(NoEscape(r'\hspace{0.7cm}'))
         
         with doc.create(SubFigure(width=NoEscape(subfig_width))) as subplot2:
             doc.append(Command('centering'))
 
             # Generate the plot for the Putamen/Caudate Nucleus ratio
-            plot_normal(normal_values, patient_values, pt_age, "Putamen / Caudate Nucleus")
+            fig2 = plot_normal(normal_values, patient_values, pt_age, "Putamen / Caudate Nucleus")
 
             subplot2.add_plot(width=subfig_width)
+            plt.close(fig2)
 
 def get_age_from_dataset(ref_pet_dcm):
 
