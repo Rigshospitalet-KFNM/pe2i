@@ -872,14 +872,9 @@ def registration_helper(
     args.append("1")
     args.append("--write-composite-transform")
     args.append(write_composite_transform * 1)
-    if verbose:
-        args.append("-v")
-        args.append("1")
     print(args)
     processed_args = process_arguments(args)
     libfn = get_lib_fn("antsRegistration")
-    if verbose:
-        print("antsRegistration " + ' '.join(processed_args))
     reg_exit = libfn(processed_args)
     if (reg_exit != 0):
         raise RuntimeError(f"Registration failed with error code {reg_exit}")
