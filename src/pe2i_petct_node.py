@@ -294,7 +294,7 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
         # Perform preprocessing steps on PET and CT/DD data:
         # Swap dimensions for PET and CT/DD (function defined in node_functions)
         pet_swap_path = node_functions.swap_dims(self, pet, 'PET')
-        if isinstance(inputContainer, MyMRInput):
+        if isinstance(inputContainer, MyMRInput) or isinstance(inputContainer, MyEnhancedMRInput):
             dd_swap_path = node_functions.swap_dims(self, anatomical_nifti, 'DD')
             anatomical_swap_path = node_functions.convert_LAC_to_HU(self, dd_swap_path) # converting Linear Attenuation Coefficient units to Hounsefield Units
             MR_flag = True # MR flag for report settings
