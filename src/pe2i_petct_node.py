@@ -18,7 +18,7 @@ import subprocess
 import dotenv
 dotenv.load_dotenv()
 from datetime import datetime
-from pydicom.uid import PositronEmissionTomographyImageStorage, CTImageStorage, MRImageStorage
+from pydicom.uid import PositronEmissionTomographyImageStorage, CTImageStorage, MRImageStorage, EnhancedMRImageStorage
 import pe2i_petct_functions as node_functions
 from pe2i_environment import environment as env
 # import report_node ## future to divide functions in multiple files
@@ -63,11 +63,17 @@ BISPEBJERG_PROD_ARCHIVE = Address('172.23.48.76', 11112, 'BBHKFAGW1')
 
 AARHUS_ARCHIVE = Address('195.80.249.41', 10505, "DKAUHNUPOTS04")
 
+REGION_SYD_ARCHIVE = Address('195.80.251.179', 2104, "rsydvnaFIR" )
+
+NORD_JYLLAND_ARCHIVE = Address('195.80.246.50', 2350, "STORE_04_SCP")
+
 class Destination(Enum):
   # Values in enum are meanless
   Rigshospitalet = 1
   Bispebjerg  = 2
   Aarhus = 3
+  NordJylland = 4
+  RegionSyd = 5
 
 def dataset_destination(datasets) -> Destination:
   """Determines the endpoint that we should send data to"""
@@ -75,8 +81,12 @@ def dataset_destination(datasets) -> Destination:
 
   institution = ref.InstitutionName
 
+  if str(ref.AccessionNumber).startswith("RN."):
+    return Destination.NordJylland
+
   if institution == 'Nuklearmedicin':
     return Destination.Rigshospitalet
+
   if institution == 'AUH':
      return Destination.Aarhus
 
@@ -84,10 +94,10 @@ def dataset_destination(datasets) -> Destination:
     return Destination.Bispebjerg
 
   if 'Region Syd' in institution:
-    return Destination.Bispebjerg
+    return Destination.Bispebjerg # Should be region SYD
 
   if 'OUH' in institution:
-    return Destination.Bispebjerg
+    return Destination.Bispebjerg # Should be region Syd
 
   return Destination.Rigshospitalet
 
@@ -114,7 +124,7 @@ class MyCTInput(AbstractInput):
     image_grinder = ManyGrinder(NiftiGrinder(), IdentityGrinder())
 
     # Required DICOM tags and their expected values
-    required_values: Dict[int, Any] = {
+    required_values = {
         0x00080016 : CTImageStorage,
         0x00080060 : "CT",  # DICOM Modality Tag
         0x0008_103E : NegatedValidator(CaselessRegexValidator("topogram")),
@@ -165,17 +175,31 @@ class MyMRInput(AbstractInput):
         # Check if the number of images matches the maximum instance number (+1 DD starts with 0)
         if minInstanceNumber == 0:
             return self.images == maxInstanceNumber + 1
-        elif minInstanceNumber ==1:
+        elif minInstanceNumber == 1:
             return self.images == maxInstanceNumber
+        return False
 
     # Image grinder object for processing NIfTI images
     image_grinder = ManyGrinder(NiftiGrinder(), IdentityGrinder())
 
     # Required DICOM tags and their expected values
     required_values = {
-        0x00080016 : MRImageStorage,
-        0x00080060 : "MR"  # DICOM Modality Tag
+        0x00080016 : EnhancedMRImageStorage,
     }
+
+class MyEnhancedMRInput(AbstractInput):
+    enforce_single_series = True
+    enforce_single_study_date = True
+
+    def validate(self):
+      return self.images > 0
+
+    image_grinder = ManyGrinder(NiftiGrinder(), IdentityGrinder())
+
+    required_values = {
+       0x0008_0016 : EnhancedMRImageStorage
+    }
+
 
 
 AE_TITLE = "PE2IPETCTNODE"
@@ -201,7 +225,7 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
     # Network settings
     port: int = 1131
     # port: int = 1337
-    
+
     ip: str = '0.0.0.0'
 
     # Logger settings: disable pynetdicom logger and set log level
@@ -228,7 +252,7 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
 
     # Input types for the pipeline
     input = {
-        'anatomical': MyCTInput | MyMRInput,
+        'anatomical': MyCTInput | MyMRInput | MyEnhancedMRInput,
         'PET': MyPETInput
     }
 
@@ -303,15 +327,15 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
 
         # Generate the report
         report = node_functions.generate_report(
-        # report = report_node.generate_report( 
-            self, ref_pet_dicom, anatomical_desc, pet_normalized_data, anatomical_resampled_path, 
+        # report = report_node.generate_report(
+            self, ref_pet_dicom, anatomical_desc, pet_normalized_data, anatomical_resampled_path,
             prediction_data, cerebellum_mask_data, patient_values, MR_flag
         )
 
         # Normalize PET data based on cerebellum median and create a new NIfTI image
         pet_sbr_data = pet.get_fdata() / cerebellum_median - 1
         pet_normalized_org = nib.Nifti1Image(pet_sbr_data, pet.affine)
-        
+
         # DICOM PART
         time_now = datetime.now().strftime("%Y/%m/%d %H:%M:%S")
         modality_name = f"PET PE2I SBR {time_now}"
@@ -338,9 +362,9 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
         blueprint[0x0008_0031] = CopyElement(0x0008_0031) # Series Time
         blueprint[0x0008_0033] = FunctionalElement(0x00080033, 'TM', get_time) # Content Time
         blueprint[0x0008_103E] = StaticElement(0x0008_103E, 'LO', report_name) # Series Description
-        blueprint[0x0010_0010] = CopyElement(0x0010_0010) # Patient's Name 
+        blueprint[0x0010_0010] = CopyElement(0x0010_0010) # Patient's Name
         blueprint[0x0020_0011] = StaticElement(0x0020_0011, 'IS', series_number) # Series Number
-        
+
         # Add calculated patient values to the blueprint for DICOM output
         for i in range(len(keys)):
             key = keys[i]
@@ -382,6 +406,18 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
             return DicomOutput([(BISPEBJERG_PROD_ARCHIVE, encoded_report),
                                 (BISPEBJERG_PROD_ARCHIVE, pet_dcm)],
                                 AE_TITLE)
+        elif destination == Destination.Aarhus:
+           return DicomOutput([
+                (AARHUS_ARCHIVE, encoded_report),
+                (AARHUS_ARCHIVE, pet_dcm)
+           ], AE_TITLE)
+        elif destination == Destination.NordJylland:
+            return DicomOutput([(NORD_JYLLAND_ARCHIVE, encoded_report), (NORD_JYLLAND_ARCHIVE, pet_dcm)], AE_TITLE)
+        elif destination == Destination.RegionSyd:
+            return DicomOutput([
+              (REGION_SYD_ARCHIVE, encoded_report),
+              (REGION_SYD_ARCHIVE, pet_dcm)
+            ], AE_TITLE)
 
         return DicomOutput([
                  (endpoint, encoded_report),
