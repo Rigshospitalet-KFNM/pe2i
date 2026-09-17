@@ -37,7 +37,7 @@ from dicomnode.dicom.blueprints.secondary_image_report_blueprint import SECONDAR
 #from dicomnode.dicom.blueprints.error_blueprint_english import ERROR_BLUEPRINT
 from dicomnode.lib.logging import LoggerConfig
 from dicomnode.dicom.dicom_factory import DicomFactory
-from dicomnode.lib.validators import RegexValidator, NegatedValidator, CaselessRegexValidator
+from dicomnode.lib.validators import RegexValidator, NegatedValidator, CaselessRegexValidator, OptionsValidator
 import pydicom.config
 import warnings
 # Suppress specific warnings
@@ -127,7 +127,10 @@ class MyCTInput(AbstractInput):
     required_values = {
         0x00080016 : CTImageStorage,
         0x00080060 : "CT",  # DICOM Modality Tag
-        0x0008_103E : NegatedValidator(CaselessRegexValidator("topogram")),
+        0x0008_103E : NegatedValidator(
+           OptionsValidator(["topogram", "scout"], CaselessRegexValidator)
+        )
+
     }
 
 class MyPETInput(AbstractInput):
@@ -361,6 +364,7 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
         blueprint[0x0008_0023] = FunctionalElement(0x00080023, 'DA', get_today) # Content Date
         blueprint[0x0008_0031] = CopyElement(0x0008_0031) # Series Time
         blueprint[0x0008_0033] = FunctionalElement(0x00080033, 'TM', get_time) # Content Time
+        blueprint[0x0008_1010] = StaticElement(0x0008_1010, 'SH', AE_TITLE) # Station Name
         blueprint[0x0008_103E] = StaticElement(0x0008_103E, 'LO', report_name) # Series Description
         blueprint[0x0010_0010] = CopyElement(0x0010_0010) # Patient's Name
         blueprint[0x0020_0011] = StaticElement(0x0020_0011, 'IS', series_number) # Series Number
@@ -399,6 +403,8 @@ class Pe2iPetCtNode(AbstractQueuedPipeline):
                 encoded_report[i].SeriesTime = encoded_report[0].SeriesTime
 
         destination = dataset_destination(ref_pet_dicoms)
+
+        self.logger.info(f"Sending to {destination.name}")
 
         # Return the file output containing the generated report
         if destination == Destination.Bispebjerg:
