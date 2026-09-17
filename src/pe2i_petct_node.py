@@ -94,10 +94,10 @@ def dataset_destination(datasets) -> Destination:
     return Destination.Bispebjerg
 
   if 'Region Syd' in institution:
-    return Destination.Bispebjerg # Should be region SYD
+    return Destination.RegionSyd # Should be region SYD
 
   if 'OUH' in institution:
-    return Destination.Bispebjerg # Should be region Syd
+    return Destination.RegionSyd # Should be region Syd
 
   return Destination.Rigshospitalet
 
