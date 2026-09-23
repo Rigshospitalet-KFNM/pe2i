@@ -1030,7 +1030,10 @@ def get_statistics(logger, pet_path, cerebellum_path, prediction):
     cerebellum_median = np.median(pet_data[(cerebellum_mask == CEREBELLUM_INDEX)])
 
     if cerebellum_median == 0:
-        logger.warning('Cerebellum median is zero, normalization might be invalid.')
+   	 raise ValueError(
+        	f'Invalid cerebellum median ({cerebellum_median}); '
+	        'probably PET–CT registration failed. Resend the patient.'
+	    )
 
     logger.info(f'Found cerebellum median: {cerebellum_median}')
 
@@ -1064,7 +1067,7 @@ def get_statistics(logger, pet_path, cerebellum_path, prediction):
     }
     for label, mask in structure_masks.items():
         if not mask.any():
-            logger.warning(f"{label}: structure not found in prediction (e.g. post-surgery); "
+            logger.warning(f"{label}: structure not found in prediction; "
                             "will report as 0 in statistics and DICOM header.")
 
     # Step 4: Get posterior putamen masks, only if the putamen actually has voxels
