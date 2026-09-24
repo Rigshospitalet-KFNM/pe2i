@@ -1518,12 +1518,12 @@ def get_footnote(institution):
                      r'Rigshospitalet-Glostrup\\' +
                      r'Valdemar Hansens Vej 1-23\\ ' +
                      '2600 Glostrup'),
-	'OUH': (r'Nuklearmedicinsk Afdeling\\'+
-		r'Kløvervænget 47\\' + 
-		r'5000 Odense C')
+    	'OUH': (r'Nuklearmedicinsk Afdeling\\'+
+	    	    r'Kløvervænget 47\\' + 
+        		r'5000 Odense C')
 	}
     if institution == 'Region Syd':
-	institution = 'OUH'
+        institution = 'OUH'
     # Iterate through the map to find a match
     for key, footnote in footnote_map.items():
         if key in institution:
@@ -2967,7 +2967,7 @@ def generate_report(self, ref_pet_dcm, anatomical_desc, normalised_pet, anatomic
     institution = ref_pet_dcm.InstitutionName
     if institution == 'Nuklearmedicin':
         institution = 'Rigshospitalet'
-    elif 'OUH' institution or 'Region Syd' in institution:
+    elif 'OUH' in institution or 'Region Syd' in institution:
         institution = 'OUH'
 
     # Load normal values and statistical data
@@ -2978,16 +2978,16 @@ def generate_report(self, ref_pet_dcm, anatomical_desc, normalised_pet, anatomic
         normal_stat_values = pd.read_csv(os.path.join(STATIC_FILES, 'stats_BBH_rig+aff.csv'), index_col=0)
         normal_values = normal_values[normal_values['institution'] == 'BBH']
     elif institution == 'AUH':
-	normal_stat_values = pd.read_csv(os.path.join(STATIC_FILES, 'auh_stats.csv'), index_col=0)
-	normal_values = pd.read_csv(os.path.join(STATIC_FILES, 'auh_normal.csv'), index_col=0)
+        normal_stat_values = pd.read_csv(os.path.join(STATIC_FILES, 'auh_stats.csv'), index_col=0)
+        normal_values = pd.read_csv(os.path.join(STATIC_FILES, 'auh_normal.csv'), index_col=0)
     else:
         normal_stat_values = pd.read_csv(os.path.join(STATIC_FILES, 'stats_RH_rig+aff.csv'), index_col=0)
         normal_values = normal_values[normal_values['institution'] != 'BBH']
 
     if institution == 'OUH':
-	report_title = r'\begin{flushleft}{Dopamine transporter (DAT) {\textsuperscript{18}F}-FE-PE2I PET scanning}\end{flushleft}'
+    	report_title = r'\begin{flushleft}{Dopamine transporter (DAT) {\textsuperscript{18}F}-FE-PE2I PET scanning}\end{flushleft}'
     else:
-	report_title = r'\begin{flushleft}{Dopamine transporter (DAT) {[\textsuperscript{18}F]}FE-PE2I PET scanning}\end{flushleft}'
+	    report_title = r'\begin{flushleft}{Dopamine transporter (DAT) {[\textsuperscript{18}F]}FE-PE2I PET scanning}\end{flushleft}'
 
     # Extract age range and patient age
     age_range = (normal_values[['age']].values).astype(int)
