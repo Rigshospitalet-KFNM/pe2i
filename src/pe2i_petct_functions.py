@@ -1478,7 +1478,9 @@ def get_logo(institution: str):
         'Rigshospitalet': 'RH',
         'Nuclearmedicin': 'RH',
         'RH Glostrup': 'RH',
-        'AUH': 'AUH'
+	'AUH': 'AUH',
+	'OUH': 'RSD',
+	'Region Syd': 'RSD'
     }
 
     # Iterate through the map to find a match
@@ -1515,8 +1517,13 @@ def get_footnote(institution):
         'RH Glostrup': (r'Klinik for Klinisk Fysiologi, Nuklear medicin og PET\\' +
                      r'Rigshospitalet-Glostrup\\' +
                      r'Valdemar Hansens Vej 1-23\\ ' +
-                     '2600 Glostrup')}
-
+                     '2600 Glostrup'),
+	'OUH': (r'Nuklearmedicinsk Afdeling\\'+
+		r'Kløvervænget 47\\' + 
+		r'5000 Odense C')
+	}
+    if institution == 'Region Syd':
+	institution = 'OUH'
     # Iterate through the map to find a match
     for key, footnote in footnote_map.items():
         if key in institution:
@@ -2960,19 +2967,27 @@ def generate_report(self, ref_pet_dcm, anatomical_desc, normalised_pet, anatomic
     institution = ref_pet_dcm.InstitutionName
     if institution == 'Nuklearmedicin':
         institution = 'Rigshospitalet'
-    elif institution in ['OUH', 'Region Syd']:
-        institution = 'Bispebjerg'
+    elif 'OUH' institution or 'Region Syd' in institution:
+        institution = 'OUH'
 
     # Load normal values and statistical data
     normal_values = pd.read_csv(os.path.join(STATIC_FILES, 'normal_values-rig+aff.csv'), index_col=0)
 
     # Select statistical data based on the institution
-    if 'Bispebjerg' in institution:
+    if 'OUH' in institution or 'Bispebjerg' in institution:
         normal_stat_values = pd.read_csv(os.path.join(STATIC_FILES, 'stats_BBH_rig+aff.csv'), index_col=0)
         normal_values = normal_values[normal_values['institution'] == 'BBH']
+    elif institution == 'AUH':
+	normal_stat_values = pd.read_csv(os.path.join(STATIC_FILES, 'auh_stats.csv'), index_col=0)
+	normal_values = pd.read_csv(os.path.join(STATIC_FILES, 'auh_normal.csv'), index_col=0)
     else:
         normal_stat_values = pd.read_csv(os.path.join(STATIC_FILES, 'stats_RH_rig+aff.csv'), index_col=0)
         normal_values = normal_values[normal_values['institution'] != 'BBH']
+
+    if institution == 'OUH':
+	report_title = r'\begin{flushleft}{Dopamine transporter (DAT) {\textsuperscript{18}F}-FE-PE2I PET scanning}\end{flushleft}'
+    else:
+	report_title = r'\begin{flushleft}{Dopamine transporter (DAT) {[\textsuperscript{18}F]}FE-PE2I PET scanning}\end{flushleft}'
 
     # Extract age range and patient age
     age_range = (normal_values[['age']].values).astype(int)
@@ -2997,7 +3012,7 @@ def generate_report(self, ref_pet_dcm, anatomical_desc, normalised_pet, anatomic
     doc.append(NoEscape(r'\noindent\colorbox{babyblue}{\begin{minipage}{\linewidth}'))
     doc.append(NoEscape(r'\vspace{-0.5cm}'))
     # Create a section with the flushleft alignment for the title
-    with doc.create(Section(NoEscape(r'\begin{flushleft}{Dopamine transporter (DAT) {[\textsuperscript{18}F]}FE-PE2I PET scanning}\end{flushleft}'), numbering=False)):
+    with doc.create(Section(NoEscape(report_title), numbering=False)):
         # Adjust the vertical space
         doc.append(NoEscape(r'\vspace{-0.5cm}'))
 
