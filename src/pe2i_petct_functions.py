@@ -1478,9 +1478,9 @@ def get_logo(institution: str):
         'Rigshospitalet': 'RH',
         'Nuclearmedicin': 'RH',
         'RH Glostrup': 'RH',
-	'AUH': 'AUH',
-	'OUH': 'RSD',
-	'Region Syd': 'RSD'
+    	'AUH': 'AUH',
+	    'OUH': 'RSD',
+    	'Region Syd': 'RSD'
     }
 
     # Iterate through the map to find a match
@@ -1520,7 +1520,11 @@ def get_footnote(institution):
                      '2600 Glostrup'),
     	'OUH': (r'Nuklearmedicinsk Afdeling\\'+
 	    	    r'Kløvervænget 47\\' + 
-        		r'5000 Odense C')
+        		r'5000 Odense C'),
+        'AUH':(r'Nuklearmedicin\\' +
+                r'Aarhus Universitetshospital\\' +
+                r'Palle Juul-Jensens Boulevard 165\\' +
+                r'8200 Aarhus N')
 	}
     if institution == 'Region Syd':
         institution = 'OUH'
