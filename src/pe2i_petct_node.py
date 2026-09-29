@@ -187,7 +187,7 @@ class MyMRInput(AbstractInput):
 
     # Required DICOM tags and their expected values
     required_values = {
-        0x00080016 : EnhancedMRImageStorage,
+        0x00080016 : MRImageStorage,
     }
 
 class MyEnhancedMRInput(AbstractInput):
