@@ -81,7 +81,7 @@ def dataset_destination(datasets) -> Destination:
 
   institution = ref.InstitutionName
 
-  if str(ref.AccessionNumber).startswith("RN."):
+  if institution == "Hospitalsbyen":
     return Destination.NordJylland
 
   if institution == 'Nuklearmedicin':
