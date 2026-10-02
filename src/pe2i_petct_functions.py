@@ -499,7 +499,7 @@ def cerebellum_mask(self, input_file):
 
 # def resampling(self, pet_nii, anatomical_nii, brain_nii):
 #     """
-#     Resample and register PET and anatomical scans to a brain template, ensuring that all steps 
+#     Resample and register PET and anatomical scans to a brain template, ensuring that all steps
 #     are performed only if the corresponding output files do not already exist.
 
 #     This function performs the following operations:
@@ -524,9 +524,9 @@ def cerebellum_mask(self, input_file):
 #         File path to the anatomical image resampled to the brain template.
 #     brainrsl_path : str
 #         File path to the brain image resampled to the brain template.
-#     trans_pet : pathlike object 
+#     trans_pet : pathlike object
 #         The transformation matrix file that defines the transformation from PET space to CT space
-#     trans_anatomical : pathlike object 
+#     trans_anatomical : pathlike object
 #         The transformation matrix file that defines the transformation from CT space to MNI space.
 #     Exceptions:
 #     -----------
@@ -549,32 +549,32 @@ def cerebellum_mask(self, input_file):
 
 #     # Step 1: Register anatomical brain to the average template if the transformation doesn't exist
 #     self.logger.info(f'Registering anatomical brain to template')
-#     reg_aladin(ref_file=template_path, 
+#     reg_aladin(ref_file=template_path,
 #                 flo_file=brain_nii,
 #                 aff_file=trans_anatomical,
 #                 res_file=brainreg_path,
 #                 verbosity='none')
-    
+
 #     # Verify if registration was successful
 #     if not Path(trans_anatomical).is_file():
 #         self.logger.error(f"Failed to save anatomical brain registration at {trans_anatomical}")
 #         raise IOError(f"Anatomical brain registration not saved: {trans_anatomical}")
 
-#     # Step 2: Resample anatomical brain to the template if not already resampled  
+#     # Step 2: Resample anatomical brain to the template if not already resampled
 #     self.logger.info(f'Resampling anatomical brain to template')
-#     reg_resample(ref_file=template_path, 
+#     reg_resample(ref_file=template_path,
 #                     flo_file=brain_nii,
 #                     trans_file=trans_anatomical,
 #                     out_file=brainrsl_path,
 #                     interpol='LIN',
 #                     pad_val=-1024,
 #                     verbosity='none')
-    
+
 #     # Check if brain resampling was successful
 #     if not Path(brainrsl_path).is_file():
 #         self.logger.error(f"Failed to save resampled anatomical brain at {brainrsl_path}")
 #         raise IOError(f"Resampled anatomical brain not saved: {brainrsl_path}")
-        
+
 #     # Step 3: Resample anatomical modality to the template if not already resampled
 #     self.logger.info('Resampling anatomical to template')
 #     reg_resample(ref_file=template_path,
@@ -584,7 +584,7 @@ def cerebellum_mask(self, input_file):
 #                     interpol='LIN',
 #                     pad_val=-1024,
 #                     verbosity='none')
-    
+
 #     # Check if anatomical resampling was successful
 #     if not Path(anatomicalrsl_path).is_file():
 #         self.logger.error(f"Failed to save resampled anatomical at {anatomicalrsl_path}")
@@ -592,12 +592,12 @@ def cerebellum_mask(self, input_file):
 
 #     # Step 4: Register PET to anatomical modality if the transformation doesn't exist
 #     self.logger.info('Registering PET to anatomical')
-#     reg_aladin(ref_file=anatomical_nii, 
+#     reg_aladin(ref_file=anatomical_nii,
 #                 flo_file=pet_nii,
 #                 aff_file=trans_pet,
 #                 res_file=petreg_path,
 #                 verbosity='none')
-    
+
 #     # Verify if PET registration was successful
 #     if not Path(trans_pet).is_file():
 #         self.logger.error(f"Failed to save PET registration at {trans_pet}")
@@ -612,7 +612,7 @@ def cerebellum_mask(self, input_file):
 #                     interpol='LIN',
 #                     pad_val=0,
 #                     verbosity='none')
-    
+
 #     # Check if PET resampling to template was successful
 #     if not Path(petrsltemplate_path).is_file():
 #         self.logger.error(f"Failed to save resampled PET at {petrsltemplate_path}")
@@ -625,8 +625,8 @@ def get_predition(logger, brain_path, pet_path):
     """
     Obtain the segmentation prediction for basal ganglia using a trained deep learning model.
 
-    This function normalizes the input anatomical and PET images, loads a pre-trained model, and generates 
-    a segmentation prediction for the basal ganglia. It ensures TensorFlow resources are properly 
+    This function normalizes the input anatomical and PET images, loads a pre-trained model, and generates
+    a segmentation prediction for the basal ganglia. It ensures TensorFlow resources are properly
     released after prediction.
 
     Parameters:
@@ -642,7 +642,7 @@ def get_predition(logger, brain_path, pet_path):
     --------
     prediction_image : numpy array
         The segmentation prediction image of basal ganglia.
-    
+
     Exceptions:
     -----------
     Logs an exception if there is an error while clearing the TensorFlow session.
@@ -655,16 +655,16 @@ def get_predition(logger, brain_path, pet_path):
     """
 
     logger.info('Getting predition.')
-    
+
     # Normalize anatomical and PET images
-    input_files = normalize(logger, brain_path, pet_path) 
-    
+    input_files = normalize(logger, brain_path, pet_path)
+
     try:
         # Define the path to the trained model
         MODEL_PATH  = STATIC_FILES / 'new_model_other.keras'
-        
+
         # Run prediction using the model
-        prediction_image = run_prediction(logger, 
+        prediction_image = run_prediction(logger,
                                           model_file=MODEL_PATH,  # Path to the trained model
                                           labels=(0, 2, 3),       # The label values (0, 2, 3) that the model will predict
                                           input_data=input_files  # The normalized input data
@@ -726,10 +726,10 @@ def registration_helper(
 
     flow_sigma : scalar
         smoothing for update field
-        At each iteration, the similarity metric and gradient is calculated. 
-        That gradient field is also called the update field and is smoothed 
-        before composing with the total field (i.e., the estimate of the total 
-        transform at that iteration). This total field can also be smoothed 
+        At each iteration, the similarity metric and gradient is calculated.
+        That gradient field is also called the update field and is smoothed
+        before composing with the total field (i.e., the estimate of the total
+        transform at that iteration). This total field can also be smoothed
         after each iteration.
 
     total_sigma : scalar
@@ -840,7 +840,7 @@ def registration_helper(
             "Affine[0.1]",  # this is different
             "-m",
             "%s[%s,%s,1,%s]" # this is different
-            % (aff_metric, f, m, aff_sampling), 
+            % (aff_metric, f, m, aff_sampling),
             "-c",
             "[1000x500x250x100,1e-6,10]", # this is different
             "-s",
@@ -860,13 +860,13 @@ def registration_helper(
             "-u",
             "0", # this is different (cant be changed) (but in new version yes)
             "-z",
-            "1", 
+            "1",
             "-o",
             "[%s,%s,%s]" % (outprefix, wmo, wfo),
-            "-w", 
+            "-w",
             "[0.005, 0.995]" # this is different, no o2nd x flag
         ]
-    
+
 
     args.append("--float")
     args.append("1")
@@ -935,7 +935,7 @@ def registration_helper(
             "velocityfield": vfieldfns,
         }
 
-def move_to_space(fixed: ANTsImage, moving: ANTsImage, transformlist: List[str], 
+def move_to_space(fixed: ANTsImage, moving: ANTsImage, transformlist: List[str],
                       interpolator: str = 'linear', which_to_invert: Optional[List[bool]] = None) -> ANTsImage:
     kwargs = {
         "fixed": fixed, "moving": moving,
@@ -950,21 +950,21 @@ def registration_ants(self, pet_path, anatomical_path, brain_path):
     brain_template_path = STATIC_FILES / 'avg_template_swap.nii.gz'
     brain_template = ants.image_read(str(brain_template_path))
     anatomical = ants.image_read(anatomical_path)
-    pet = ants.image_read(pet_path) 
+    pet = ants.image_read(pet_path)
     anatomical_brain = ants.image_read(brain_path)
     #brain to template
     self.logger.info(f'Registering anatomical brain to template')
-    brain_to_mni_reg = registration_helper(fixed = brain_template, 
-                                        moving = anatomical_brain, 
+    brain_to_mni_reg = registration_helper(fixed = brain_template,
+                                        moving = anatomical_brain,
                                         type_of_transform="SyN-adjusted", # added to ants registration file
-                                        grad_step= 0.25,  
+                                        grad_step= 0.25,
                                         flow_sigma=3.0,
                                         total_sigma=0.0,
-                                        syn_metric='Mattes',  
-                                        reg_iterations=(100, 50, 30), 
+                                        syn_metric='Mattes',
+                                        reg_iterations=(100, 50, 30),
                                         outprefix=os.getcwd() + "/SyN")
-    
-    transform_to_mni = [brain_to_mni_reg['fwdtransforms'][0], 
+
+    transform_to_mni = [brain_to_mni_reg['fwdtransforms'][0],
                     brain_to_mni_reg['fwdtransforms'][1]]
     #ct to template
     self.logger.info('Moving anatomical to template space')
@@ -973,7 +973,7 @@ def registration_ants(self, pet_path, anatomical_path, brain_path):
     self.logger.info('Resampling PET to anatomical')
     pet_to_anatomical_rsl = ants.resample_image_to_target(image=pet, target=anatomical)
     pet_to_anatomical = ants.registration(fixed=anatomical, moving=pet_to_anatomical_rsl, type_of_transform='Rigid')
-    
+
     #pet to template
     self.logger.info('Moving PET to template space')
     pet_to_mni = move_to_space(fixed=brain_template, moving=pet_to_anatomical['warpedmovout'], transformlist=transform_to_mni)
@@ -1276,12 +1276,12 @@ def get_posterior_putamen( prediction_data, direction, logger):
 
     # Get the coordinates of non-zero voxels in the putamen region
     xo, zo, yo = np.nonzero(putamen)
-    
+
     # Prepare an empty mask up front so we can return it early if needed
     putamen_posterior = np.zeros_like(prediction_data)
 
     # If the putamen is absent or has too few voxels, skip the
-    # PCA-based split and return an empty posterior-putamen mask 
+    # PCA-based split and return an empty posterior-putamen mask
     if xo.size < 2:
         message = (f"Putamen not found (or too few voxels: {xo.size}) in the "
                     f"'{direction}' hemisphere; treating as absent (e.g. post-surgery). "
@@ -1289,7 +1289,7 @@ def get_posterior_putamen( prediction_data, direction, logger):
         if logger is not None:
             logger.warning(message)
         return putamen_posterior
-    
+
     # Center the coordinates relative to their mean
     x = xo - np.mean(xo)
     y = yo - np.mean(yo)
@@ -1519,7 +1519,7 @@ def get_footnote(institution):
                      r'Valdemar Hansens Vej 1-23\\ ' +
                      '2600 Glostrup'),
     	'OUH': (r'Nuklearmedicinsk Afdeling\\'+
-	    	    r'Kløvervænget 47\\' + 
+	    	    r'Kløvervænget 47\\' +
         		r'5000 Odense C'),
         'AUH':(r'Nuklearmedicin\\' +
                 r'Aarhus Universitetshospital\\' +
@@ -2146,7 +2146,7 @@ def add_average_plot(doc, norm_pet, mask, title, subfig_width, colormap_width, m
 
         subplot.add_plot(width=NoEscape(subfig_width))
         plt.close(fig)  # Close the figure to free memory
-        
+
         doc.append(NoEscape(r'\par \vfill'))
 
         # Determine if a maximum tick should be added to the color map based on the plot title
@@ -2259,7 +2259,7 @@ def plot_nine_pet(doc, pet, mask, pet_desc, slices):
 
             subplot1.add_plot()  # Add plot to the LaTeX document
             plt.close(fig) # Close the figure to free memory
-            
+
         doc.append(NoEscape(r'\par \vfill'))
 
         # Add study description to the LaTeX document
@@ -2861,7 +2861,7 @@ def plots_normal_values(doc, normal_values, patient_values, pt_age):
 
             subplot1.add_plot(width=subfig_width)
             plt.close(fig1)
-            
+
         doc.append(NoEscape(r'\hspace{0.7cm}'))
 
         with doc.create(SubFigure(width=NoEscape(subfig_width))) as subplot2:
@@ -2875,7 +2875,7 @@ def plots_normal_values(doc, normal_values, patient_values, pt_age):
 
 def get_age_from_dataset(ref_pet_dcm):
 
-    if hasattr(ref_pet_dcm, "PatientAge"):
+    if hasattr(ref_pet_dcm, "PatientAge") and ref_pet_dcm.PatientAge: # Check that the field isn't empty
         try:
             pt_age = get_age(ref_pet_dcm.PatientAge)
         except Exception:
